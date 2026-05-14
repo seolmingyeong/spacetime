@@ -355,7 +355,6 @@ if st.session_state.current_room:
         )
 
         
-
 # =========================
 # 추천 장소 계산
 # =========================
@@ -461,7 +460,7 @@ if (
     if len(recommendations) == 0:
 
         st.warning(
-            "추천 장소가 없습니다."
+            "추천 장소를 찾을 수 없습니다."
         )
 
         st.stop()
@@ -473,6 +472,23 @@ if (
     middle_lng = (
         st.session_state.middle_lng
     )
+
+    users = []
+
+    for user in users_data:
+
+        users.append({
+
+            "nickname": user[2],
+
+            "name": user[4],
+
+            "lat": user[5],
+
+            "lng": user[6],
+
+            "transport": user[7]
+        })
 
     best_place = recommendations[0]
 
