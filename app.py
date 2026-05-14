@@ -360,6 +360,8 @@ if st.session_state.current_room:
 # 추천 장소 계산
 # =========================
 
+users_data = []
+
 if len(users_data) >= 2:
 
     if st.button("추천 장소 찾기"):
