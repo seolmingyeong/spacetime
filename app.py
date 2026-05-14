@@ -364,14 +364,27 @@ users_data = []
 
 if st.session_state.current_room:
 
-    users_data = get_room_users(
+    room_id = (
         st.session_state.current_room
     )
+
+    users_data = get_room_users(
+        room_id
+    )
+
+    st.write(
+        f"현재 참가자 수: {len(users_data)}"
+    )
+
+    # =========================
+    # 추천 버튼
+    # =========================
 
     if len(users_data) >= 2:
 
         if st.button(
-            "추천 장소 찾기"
+            "추천 장소 찾기",
+            key="recommend_button"
         ):
 
             users = []
@@ -379,10 +392,15 @@ if st.session_state.current_room:
             for user in users_data:
 
                 users.append({
+
                     "nickname": user[2],
+
                     "name": user[4],
+
                     "lat": user[5],
+
                     "lng": user[6],
+
                     "transport": user[7]
                 })
 
@@ -421,70 +439,18 @@ if st.session_state.current_room:
             "2명 이상 참가 시 가능합니다."
         )
 
-    if st.button("추천 장소 찾기"):
-
-        users = []
-
-        for user in users_data:
-
-            users.append({
-                "nickname": user[2],
-                "name": user[4],
-                "lat": user[5],
-                "lng": user[6],
-                "transport": user[7]
-            })
-
-        for user in users_data:
-
-            users.append({
-                "nickname": user[2],
-                "name": user[4],
-                "lat": user[5],
-                "lng": user[6],
-                "transport": user[7]
-            })
-
-        with st.spinner(
-            "최적 장소 계산 중..."
-        ):
-
-            middle_lat, middle_lng = (
-                get_middle_point(users)
-            )
-
-            recommendations = recommend_places(
-                users,
-                middle_lat,
-                middle_lng
-            )
-
-            st.session_state.recommendations = (
-                recommendations
-            )
-
-            st.session_state.middle_lat = (
-                middle_lat
-            )
-
-            st.session_state.middle_lng = (
-                middle_lng
-            )
-
-    # =========================
-# 추천 결과
+# =========================
+# 추천 결과 출력
 # =========================
 
 if (
-    st.session_state.recommendations
-    is not None
+    "recommendations"
+    in st.session_state
 ):
 
     recommendations = (
         st.session_state.recommendations
     )
-
-    users = st.session_state.users
 
     middle_lat = (
         st.session_state.middle_lat
@@ -494,48 +460,80 @@ if (
         st.session_state.middle_lng
     )
 
+    users = []
+
+    for user in users_data:
+
+        users.append({
+
+            "nickname": user[2],
+
+            "name": user[4],
+
+            "lat": user[5],
+
+            "lng": user[6],
+
+            "transport": user[7]
+        })
+
     best_place = recommendations[0]
 
     # =========================
     # 추천 장소 카드
     # =========================
 
-    result_card = (
-        f'<div style="'
-        f'background:#1e293b;'
-        f'padding:24px;'
-        f'border-radius:20px;'
-        f'margin-bottom:20px;'
-        f'border:2px solid #22c55e;'
-        f'box-shadow:0 8px 24px rgba(0,0,0,0.3);'
-        f'">'
-        f'<div style="'
-        f'font-size:34px;'
-        f'font-weight:bold;'
-        f'color:#22c55e;'
-        f'margin-bottom:18px;">'
-        f'🌟 추천 장소'
-        f'</div>'
-        f'<div style="font-size:28px;margin-bottom:16px;">'
-        f'{best_place["name"]}'
-        f'</div>'
-        f'<div style="margin-bottom:10px;">'
-        f'⏱ 평균 이동시간: '
-        f'{best_place["avg_time"]}분'
-        f'</div>'
-        f'<div style="margin-bottom:10px;">'
-        f'🚦 최대 이동시간: '
-        f'{best_place["max_time"]}분'
-        f'</div>'
-        f'<div>'
-        f'📍 주소: '
-        f'{best_place["address"]}'
-        f'</div>'
-        f'</div>'
-    )
-
     st.markdown(
-        result_card,
+        f"""
+<div style="
+background:#1e293b;
+padding:24px;
+border-radius:20px;
+margin-bottom:20px;
+border:2px solid #22c55e;
+">
+
+<div style="
+font-size:32px;
+font-weight:bold;
+color:#22c55e;
+margin-bottom:16px;
+">
+🌟 추천 장소
+</div>
+
+<div style="
+font-size:28px;
+margin-bottom:14px;
+color:white;
+">
+{best_place["name"]}
+</div>
+
+<div style="
+color:#d1fae5;
+margin-bottom:8px;
+">
+⏱ 평균 이동시간:
+{best_place["avg_time"]}분
+</div>
+
+<div style="
+color:#d1fae5;
+margin-bottom:8px;
+">
+🚦 최대 이동시간:
+{best_place["max_time"]}분
+</div>
+
+<div style="
+color:#d1fae5;
+">
+📍 {best_place["address"]}
+</div>
+
+</div>
+""",
         unsafe_allow_html=True
     )
 
@@ -550,74 +548,77 @@ if (
     for user in users:
 
         travel_time = get_route_time(
+
             user["lat"],
             user["lng"],
+
             best_place["lat"],
             best_place["lng"],
+
             user["transport"]
         )
 
-        travel_card = (
-            f'<div style="'
-            f'background:#1e293b;'
-            f'padding:18px;'
-            f'border-radius:16px;'
-            f'margin-bottom:12px;'
-            f'border-left:5px solid #22c55e;'
-            f'box-shadow:0 4px 12px rgba(0,0,0,0.2);'
-            f'">'
-            f'<div style="'
-            f'font-size:22px;'
-            f'font-weight:bold;'
-            f'color:#22c55e;'
-            f'margin-bottom:10px;">'
-            f'👤 {user["nickname"]}'
-            f'</div>'
-            f'<div style="margin-bottom:6px;">'
-            f'🚗 이동수단: '
-            f'{user["transport"]}'
-            f'</div>'
-            f'<div>'
-            f'⏱ 예상 이동시간: '
-            f'{travel_time}분'
-            f'</div>'
-            f'</div>'
-        )
-
         st.markdown(
-            travel_card,
+            f"""
+<div style="
+background:#1e293b;
+padding:18px;
+border-radius:16px;
+margin-bottom:12px;
+border-left:5px solid #22c55e;
+">
+
+<div style="
+font-size:22px;
+font-weight:bold;
+color:#22c55e;
+margin-bottom:10px;
+">
+👤 {user["nickname"]}
+</div>
+
+<div style="
+color:#d1fae5;
+margin-bottom:6px;
+">
+🚗 이동수단:
+{user["transport"]}
+</div>
+
+<div style="
+color:#d1fae5;
+">
+⏱ 예상 이동시간:
+{travel_time}분
+</div>
+
+</div>
+""",
             unsafe_allow_html=True
         )
-        st.divider()
 
-    st.markdown(
-        """
-        <div style="
-        margin-top:30px;
-        margin-bottom:10px;
-        ">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
     # =========================
     # 지도
     # =========================
+
     st.divider()
 
     m = folium.Map(
-        location=[middle_lat, middle_lng],
-        zoom_start=13,
-        tiles="CartoDB dark_matter",
-        control_scale=True,
-        zoom_control=True,
-        scrollWheelZoom=False
-    )
 
-    st_folium(
-        m,
-        use_container_width=True,
-        height=750
+        location=[
+            middle_lat,
+            middle_lng
+        ],
+
+        zoom_start=13,
+
+        tiles="CartoDB dark_matter",
+
+        control_scale=True,
+
+        zoom_control=True,
+
+        scrollWheelZoom=False
     )
 
     # 사용자 마커
@@ -625,32 +626,17 @@ if (
     for user in users:
 
         folium.Marker(
-            [user["lat"], user["lng"]],
-            popup=user["nickname"],
-            tooltip=user["nickname"],
-            icon=folium.Icon(
-                color="blue",
-                icon="user"
-            )
-        ).add_to(m)
 
-        folium.map.Marker(
             [user["lat"], user["lng"]],
-            icon=folium.DivIcon(
-                html=f"""
-                <div style="
-                    font-size:14px;
-                    color:white;
-                    font-weight:bold;
-                    background:#2563eb;
-                    padding:4px 8px;
-                    border-radius:8px;
-                    white-space:nowrap;
-                ">
-                    {user["nickname"]}
-                </div>
-                """
+
+            popup=user["nickname"],
+
+            tooltip=user["nickname"],
+
+            icon=folium.Icon(
+                color="blue"
             )
+
         ).add_to(m)
 
     # 추천 장소 마커
@@ -659,45 +645,34 @@ if (
         recommendations[:5]
     ):
 
-        icon_color = (
+        color = (
             "red"
             if idx == 0
             else "green"
         )
 
         folium.Marker(
+
             [place["lat"], place["lng"]],
+
             popup=place["name"],
+
             tooltip=(
                 f"{place['name']} "
                 f"({place['avg_time']}분)"
             ),
-            icon=folium.Icon(
-                color=icon_color
-            )
-        ).add_to(m)
 
-        folium.map.Marker(
-            [place["lat"], place["lng"]],
-            icon=folium.DivIcon(
-                html=f"""
-                <div style="
-                    font-size:14px;
-                    color:white;
-                    font-weight:bold;
-                    background:#166534;
-                    padding:4px 8px;
-                    border-radius:8px;
-                    white-space:nowrap;
-                ">
-                    {place["name"]}
-                </div>
-                """
+            icon=folium.Icon(
+                color=color
             )
+
         ).add_to(m)
 
     st_folium(
+
         m,
-        width=None,
-        height=650
+
+        use_container_width=True,
+
+        height=700
     )
