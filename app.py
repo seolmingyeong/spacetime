@@ -362,7 +362,64 @@ if st.session_state.current_room:
 
 users_data = []
 
-if len(users_data) >= 2:
+if st.session_state.current_room:
+
+    users_data = get_room_users(
+        st.session_state.current_room
+    )
+
+    if len(users_data) >= 2:
+
+        if st.button(
+            "추천 장소 찾기"
+        ):
+
+            users = []
+
+            for user in users_data:
+
+                users.append({
+                    "nickname": user[2],
+                    "name": user[4],
+                    "lat": user[5],
+                    "lng": user[6],
+                    "transport": user[7]
+                })
+
+            with st.spinner(
+                "최적 장소 계산 중..."
+            ):
+
+                middle_lat, middle_lng = (
+                    get_middle_point(users)
+                )
+
+                recommendations = (
+                    recommend_places(
+                        users,
+                        middle_lat,
+                        middle_lng
+                    )
+                )
+
+                st.session_state.recommendations = (
+                    recommendations
+                )
+
+                st.session_state.middle_lat = (
+                    middle_lat
+                )
+
+                st.session_state.middle_lng = (
+                    middle_lng
+                )
+
+    else:
+
+        st.info(
+            "추천 계산은 "
+            "2명 이상 참가 시 가능합니다."
+        )
 
     if st.button("추천 장소 찾기"):
 
