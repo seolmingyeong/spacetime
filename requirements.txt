@@ -4,4 +4,4 @@ folium
 requests
 geopy
 pandas
-streamlit-calendar
+

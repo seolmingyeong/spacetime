@@ -7,8 +7,6 @@ import string
 
 import streamlit as st
 
-from streamlit_calendar import calendar
-
 from database import *
 
 from recommendation import *
@@ -262,13 +260,16 @@ margin-bottom:20px;
                 "자동차"
             ]
         )
+# =========================
+# 가능한 날짜 선택
+# =========================
 
-    # =========================
-    # 달력
-    # =========================
+import calendar
+from datetime import datetime
 
-    st.markdown(
-        """
+
+st.markdown(
+    """
 <h3 style="
 margin-top:25px;
 margin-bottom:15px;
@@ -276,72 +277,103 @@ margin-bottom:15px;
 📅 가능한 날짜
 </h3>
 """,
+    unsafe_allow_html=True
+)
+
+today = datetime.today()
+
+year = today.year
+
+month = today.month
+
+cal = calendar.monthcalendar(
+    year,
+    month
+)
+
+weekdays = [
+    "월",
+    "화",
+    "수",
+    "목",
+    "금",
+    "토",
+    "일"
+]
+
+# 요일 헤더
+
+cols = st.columns(7)
+
+for idx, day_name in enumerate(
+    weekdays
+):
+
+    cols[idx].markdown(
+        f"""
+<div style="
+text-align:center;
+font-weight:700;
+margin-bottom:10px;
+">
+{day_name}
+</div>
+""",
         unsafe_allow_html=True
     )
 
-    calendar_events = []
+# 달력 출력
 
-    for d in st.session_state.selected_dates:
+for week in cal:
 
-        calendar_events.append({
+    cols = st.columns(7)
 
-            "title": "가능",
+    for idx, day in enumerate(week):
 
-            "start": d,
+        if day == 0:
 
-            "end": d,
+            cols[idx].write("")
 
-            "color": "#8b5cf6"
-        })
+        else:
 
-    calendar_options = {
-
-        "initialView": "dayGridMonth",
-
-        "selectable": True
-    }
-
-    calendar_result = calendar(
-
-        events=calendar_events,
-
-        options=calendar_options,
-
-        key="calendar"
-    )
-
-    if calendar_result.get("callback"):
-
-        callback_data = (
-            calendar_result["callback"]
-        )
-
-        if callback_data.get("dateClick"):
-
-            clicked_date = (
-                callback_data[
-                    "dateClick"
-                ]["date"]
+            date_str = (
+                f"{year}-{month:02d}-{day:02d}"
             )
 
-            if (
-
-                clicked_date
-                not in
+            selected = (
+                date_str
+                in
                 st.session_state.selected_dates
+            )
+
+            button_label = str(day)
+
+            if selected:
+
+                button_label = (
+                    f"🟣 {day}"
+                )
+
+            if cols[idx].button(
+
+                button_label,
+
+                key=f"date_{date_str}"
             ):
 
-                st.session_state.selected_dates.append(
-                    clicked_date
-                )
+                if selected:
 
-            else:
+                    st.session_state.selected_dates.remove(
+                        date_str
+                    )
 
-                st.session_state.selected_dates.remove(
-                    clicked_date
-                )
+                else:
 
-            st.rerun()
+                    st.session_state.selected_dates.append(
+                        date_str
+                    )
+
+                st.rerun()
 
     # =========================
     # 정보 저장
