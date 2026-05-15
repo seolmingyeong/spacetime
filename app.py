@@ -328,67 +328,198 @@ opacity:0.75;
     )
 
 # =========================
-# 달력
+# 가능한 날짜 선택
+# 기존 달력 부분 전체 교체
 # =========================
 
-for week_idx, week in enumerate(cal):
+if st.session_state.current_room:
 
-    cols = st.columns(7)
+    import calendar
+    from datetime import datetime
 
-    for day_idx, day in enumerate(week):
-
-        if day == 0:
-
-            cols[day_idx].markdown(
-                """
-<div style="
-height:85px;
-"></div>
+    st.markdown(
+        """
+<h3 style="
+margin-top:25px;
+margin-bottom:18px;
+">
+📅 가능한 날짜
+</h3>
 """,
-                unsafe_allow_html=True
-            )
+        unsafe_allow_html=True
+    )
 
-        else:
+    today = datetime.today()
 
-            date_str = (
-                f"{year}-{month:02d}-{day:02d}"
-            )
+    year = today.year
 
-            selected = (
-                date_str
-                in
-                st.session_state.selected_dates
-            )
+    month = today.month
 
-            bg = (
-                "linear-gradient(135deg,#8b5cf6,#60a5fa)"
-                if selected
-                else "rgba(255,255,255,0.72)"
-            )
+    cal = calendar.monthcalendar(
+        year,
+        month
+    )
 
-            color = (
-                "white"
-                if selected
-                else "#334155"
-            )
+    weekdays = [
+        "월",
+        "화",
+        "수",
+        "목",
+        "금",
+        "토",
+        "일"
+    ]
 
-            border = (
-                "2px solid #8b5cf6"
-                if selected
-                else "1px solid rgba(148,163,184,0.18)"
-            )
+    # =========================
+    # 달력 전체 스타일
+    # =========================
 
-            shadow = (
-                "0 8px 24px rgba(139,92,246,0.28)"
-                if selected
-                else "0 4px 14px rgba(0,0,0,0.05)"
-            )
+    st.markdown(
+        """
+<style>
 
-            cols[day_idx].markdown(
-                f"""
+/* 달력 버튼 */
+
+div[data-testid="column"] button {
+
+    height:78px !important;
+
+    border-radius:0px !important;
+
+    border:none !important;
+
+    font-size:22px !important;
+
+    font-weight:700 !important;
+
+    transition:0.15s !important;
+
+    margin-top:-78px !important;
+
+    opacity:0 !important;
+
+    position:relative !important;
+
+    z-index:10 !important;
+}
+
+
+/* hover */
+
+div[data-testid="column"] button:hover {
+
+    transform:scale(1.02);
+}
+
+</style>
+""",
+        unsafe_allow_html=True
+    )
+
+    # =========================
+    # 요일 헤더
+    # =========================
+
+    header_cols = st.columns(7)
+
+    for idx, day_name in enumerate(
+        weekdays
+    ):
+
+        header_cols[idx].markdown(
+            f"""
 <div style="
-height:85px;
-border-radius:22px;
+text-align:center;
+font-weight:700;
+font-size:16px;
+padding:12px;
+background:rgba(255,255,255,0.7);
+border:1px solid rgba(148,163,184,0.15);
+">
+{day_name}
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+    # =========================
+    # 달력 본문
+    # =========================
+
+    for week_idx, week in enumerate(cal):
+
+        cols = st.columns(7)
+
+        for day_idx, day in enumerate(week):
+
+            if day == 0:
+
+                cols[day_idx].markdown(
+                    """
+<div style="
+height:78px;
+background:rgba(255,255,255,0.15);
+border:1px solid rgba(148,163,184,0.08);
+">
+</div>
+""",
+                    unsafe_allow_html=True
+                )
+
+            else:
+
+                date_str = (
+                    f"{year}-{month:02d}-{day:02d}"
+                )
+
+                selected = (
+                    date_str
+                    in
+                    st.session_state.selected_dates
+                )
+
+                # 선택된 날짜
+
+                if selected:
+
+                    bg = (
+                        "linear-gradient(135deg,#8b5cf6,#60a5fa)"
+                    )
+
+                    color = "white"
+
+                    border = (
+                        "2px solid #7c3aed"
+                    )
+
+                    shadow = (
+                        "0 6px 18px rgba(139,92,246,0.25)"
+                    )
+
+                # 선택 안된 날짜
+
+                else:
+
+                    bg = (
+                        "rgba(255,255,255,0.72)"
+                    )
+
+                    color = "#334155"
+
+                    border = (
+                        "1px solid rgba(148,163,184,0.15)"
+                    )
+
+                    shadow = (
+                        "none"
+                    )
+
+                # 실제 달력 칸
+
+                cols[day_idx].markdown(
+                    f"""
+<div style="
+height:78px;
 background:{bg};
 border:{border};
 display:flex;
@@ -397,48 +528,47 @@ justify-content:center;
 font-size:22px;
 font-weight:700;
 color:{color};
-margin-bottom:8px;
 box-shadow:{shadow};
-backdrop-filter:blur(10px);
-transition:0.2s;
+user-select:none;
 ">
 {day}
 </div>
 """,
-                unsafe_allow_html=True
-            )
+                    unsafe_allow_html=True
+                )
 
-            if cols[day_idx].button(
+                # 투명 클릭 영역
 
-                "",
+                if cols[day_idx].button(
 
-                key=f"calendar_button_{date_str}",
+                    " ",
 
-                use_container_width=True
-            ):
+                    key=f"calendar_click_{date_str}",
 
-                if selected:
+                    use_container_width=True
+                ):
 
-                    st.session_state.selected_dates.remove(
-                        date_str
-                    )
+                    if selected:
 
-                else:
+                        st.session_state.selected_dates.remove(
+                            date_str
+                        )
 
-                    st.session_state.selected_dates.append(
-                        date_str
-                    )
+                    else:
 
-                st.rerun()
+                        st.session_state.selected_dates.append(
+                            date_str
+                        )
 
-   # =========================
+                    st.rerun()
+                    
+# =========================
 # 정보 저장 버튼 수정
-# 기존 key=\"save_user\" 교체
 # =========================
 
 if st.button(
     "정보 저장",
-    key=f"save_user_{st.session_state.current_room}"
+    key=f"save_user_button_{st.session_state.current_room}"
 ):
         
         st.session_state.nickname = (
