@@ -260,96 +260,24 @@ margin-bottom:20px;
                 "자동차"
             ]
         )
-# =========================
-# 가능한 날짜 선택
-# 기존 달력 코드 전체 삭제 후 교체
-# =========================
-
-import calendar
-from datetime import datetime
-
-
-st.markdown(
-    """
-<h3 style="
-margin-top:25px;
-margin-bottom:18px;
-">
-📅 가능한 날짜
-</h3>
-""",
-    unsafe_allow_html=True
-)
-
-today = datetime.today()
-
-year = today.year
-
-month = today.month
-
-cal = calendar.monthcalendar(
-    year,
-    month
-)
-
-weekdays = [
-    "월",
-    "화",
-    "수",
-    "목",
-    "금",
-    "토",
-    "일"
-]
-
-# =========================
-# 요일 헤더
-# =========================
-
-header_cols = st.columns(7)
-
-for idx, day_name in enumerate(
-    weekdays
-):
-
-    header_cols[idx].markdown(
-        f"""
-<div style="
-text-align:center;
-font-weight:700;
-font-size:17px;
-margin-bottom:12px;
-opacity:0.75;
-">
-{day_name}
-</div>
-""",
-        unsafe_allow_html=True
-    )
-
-# =========================
-# 가능한 날짜 선택
-# 기존 달력 코드 전체 삭제 후 교체
-# =========================
-
-# 방 입장 후에만 표시
-
-if st.session_state.current_room:
+    # =========================
+    # 가능한 날짜 선택
+    # 기존 달력 코드 전체 삭제 후 교체
+    # =========================
 
     import calendar
     from datetime import datetime
 
+
     st.markdown(
         """
-<h3 style="
-margin-top:30px;
-margin-bottom:20px;
-font-size:24px;
-font-weight:700;
-">
-📅 가능한 날짜
-</h3>
-""",
+    <h3 style="
+    margin-top:25px;
+    margin-bottom:18px;
+    ">
+    📅 가능한 날짜
+    </h3>
+    """,
         unsafe_allow_html=True
     )
 
@@ -375,243 +303,280 @@ font-weight:700;
     ]
 
     # =========================
-    # 달력 CSS
-    # =========================
-
-    st.markdown(
-        """
-<style>
-
-/* 달력 wrapper */
-
-.calendar-wrapper {
-
-    background:white;
-
-    border:1px solid rgba(148,163,184,0.15);
-
-    overflow:hidden;
-
-    margin-bottom:20px;
-}
-
-
-/* 요일 헤더 */
-
-.calendar-header {
-
-    background:#f8fafc;
-
-    border-bottom:1px solid rgba(148,163,184,0.15);
-
-    text-align:center;
-
-    font-weight:700;
-
-    padding:14px 0;
-
-    font-size:16px;
-}
-
-
-/* 날짜 칸 */
-
-.calendar-day {
-
-    height:90px;
-
-    display:flex;
-
-    align-items:center;
-
-    justify-content:center;
-
-    font-size:22px;
-
-    font-weight:700;
-
-    border-right:1px solid rgba(148,163,184,0.12);
-
-    border-bottom:1px solid rgba(148,163,184,0.12);
-
-    background:white;
-
-    color:#334155;
-
-    transition:0.15s;
-}
-
-
-/* 선택된 날짜 */
-
-.calendar-selected {
-
-    background:
-    linear-gradient(
-        135deg,
-        #8b5cf6,
-        #60a5fa
-    );
-
-    color:white;
-
-    box-shadow:
-        inset 0 0 0 2px #7c3aed;
-}
-
-
-/* 빈칸 */
-
-.calendar-empty {
-
-    height:90px;
-
-    background:#f8fafc;
-
-    border-right:1px solid rgba(148,163,184,0.08);
-
-    border-bottom:1px solid rgba(148,163,184,0.08);
-}
-
-
-/* 실제 클릭 버튼 */
-
-.calendar-button button {
-
-    width:100% !important;
-
-    height:90px !important;
-
-    opacity:0 !important;
-
-    margin-top:-90px !important;
-
-    border-radius:0px !important;
-
-    position:relative !important;
-
-    z-index:10 !important;
-
-    padding:0px !important;
-}
-
-
-/* 버튼 hover */
-
-.calendar-button button:hover {
-
-    transform:none !important;
-}
-
-</style>
-""",
-        unsafe_allow_html=True
-    )
-
-    # =========================
     # 요일 헤더
     # =========================
 
     header_cols = st.columns(7)
 
-    for idx, weekday in enumerate(
+    for idx, day_name in enumerate(
         weekdays
     ):
 
         header_cols[idx].markdown(
             f"""
-<div class="calendar-header">
-{weekday}
-</div>
-""",
+    <div style="
+    text-align:center;
+    font-weight:700;
+    font-size:17px;
+    margin-bottom:12px;
+    opacity:0.75;
+    ">
+    {day_name}
+    </div>
+    """,
+            unsafe_allow_html=True
+        )
+    # =========================
+    # 가능한 날짜 선택
+    # =========================
+
+    if st.session_state.current_room:
+
+        import calendar
+        from datetime import datetime
+
+        st.markdown(
+            """
+    <h3 style="
+    margin-top:30px;
+    margin-bottom:20px;
+    font-size:24px;
+    font-weight:700;
+    ">
+    📅 가능한 날짜
+    </h3>
+    """,
             unsafe_allow_html=True
         )
 
-    # =========================
-    # 날짜 출력
-    # =========================
+        today = datetime.today()
 
-    for week_idx, week in enumerate(cal):
+        year = today.year
 
-        cols = st.columns(7)
+        month = today.month
 
-        for day_idx, day in enumerate(week):
+        cal = calendar.monthcalendar(
+            year,
+            month
+        )
 
-            # 빈칸
+        weekdays = [
+            "월",
+            "화",
+            "수",
+            "목",
+            "금",
+            "토",
+            "일"
+        ]
 
-            if day == 0:
+        # =========================
+        # CSS
+        # =========================
 
-                cols[day_idx].markdown(
-                    """
-<div class="calendar-empty"></div>
-""",
-                    unsafe_allow_html=True
-                )
+        st.markdown(
+            """
+    <style>
 
-            # 날짜 칸
+    /* 요일 */
 
-            else:
+    .calendar-weekday {
 
-                date_str = (
-                    f"{year}-{month:02d}-{day:02d}"
-                )
+        text-align:center;
 
-                selected = (
-                    date_str
-                    in
-                    st.session_state.selected_dates
-                )
+        font-weight:700;
 
-                class_name = (
-                    "calendar-day calendar-selected"
-                    if selected
-                    else "calendar-day"
-                )
+        padding:14px 0;
 
-                cols[day_idx].markdown(
-                    f"""
-<div class="{class_name}">
-{day}
-</div>
-""",
-                    unsafe_allow_html=True
-                )
+        background:#f8fafc;
 
-                # 실제 클릭 영역
+        border:1px solid rgba(148,163,184,0.12);
+    }
 
-                cols[day_idx].markdown(
-                    '<div class="calendar-button">',
-                    unsafe_allow_html=True
-                )
 
-                if cols[day_idx].button(
+    /* 날짜칸 */
 
-                    f"{date_str}",
+    .calendar-cell {
 
-                    key=f"calendar_{date_str}",
+        height:92px;
 
-                    use_container_width=True
-                ):
+        display:flex;
 
-                    if selected:
+        align-items:center;
 
-                        st.session_state.selected_dates.remove(
-                            date_str
-                        )
+        justify-content:center;
 
-                    else:
+        font-size:22px;
 
-                        st.session_state.selected_dates.append(
-                            date_str
-                        )
+        font-weight:700;
 
-                    st.rerun()
+        border:1px solid rgba(148,163,184,0.12);
 
-                cols[day_idx].markdown(
-                    "</div>",
-                    unsafe_allow_html=True
-                )
+        background:white;
 
+        color:#334155;
+
+        user-select:none;
+    }
+
+
+    /* 선택된 날짜 */
+
+    .calendar-selected {
+
+        background:
+        linear-gradient(
+            135deg,
+            #8b5cf6,
+            #60a5fa
+        );
+
+        color:white;
+    }
+
+
+    /* 빈칸 */
+
+    .calendar-empty {
+
+        height:92px;
+
+        border:1px solid rgba(148,163,184,0.08);
+
+        background:#f8fafc;
+    }
+
+
+    /* 실제 클릭 버튼 */
+
+    .calendar-btn button {
+
+        position:relative !important;
+
+        z-index:20 !important;
+
+        margin-top:-92px !important;
+
+        width:100% !important;
+
+        height:92px !important;
+
+        opacity:0 !important;
+
+        border-radius:0px !important;
+
+        padding:0px !important;
+
+        min-height:92px !important;
+    }
+
+    </style>
+    """,
+            unsafe_allow_html=True
+        )
+
+        # =========================
+        # 요일
+        # =========================
+
+        header_cols = st.columns(7)
+
+        for idx, weekday in enumerate(
+            weekdays
+        ):
+
+            header_cols[idx].markdown(
+                f"""
+    <div class="calendar-weekday">
+    {weekday}
+    </div>
+    """,
+                unsafe_allow_html=True
+            )
+
+        # =========================
+        # 달력
+        # =========================
+
+        for week in cal:
+
+            cols = st.columns(7)
+
+            for idx, day in enumerate(week):
+
+                # 빈칸
+
+                if day == 0:
+
+                    cols[idx].markdown(
+                        """
+    <div class="calendar-empty"></div>
+    """,
+                        unsafe_allow_html=True
+                    )
+
+                # 날짜칸
+
+                else:
+
+                    date_str = (
+                        f"{year}-{month:02d}-{day:02d}"
+                    )
+
+                    selected = (
+                        date_str
+                        in
+                        st.session_state.selected_dates
+                    )
+
+                    class_name = (
+                        "calendar-cell calendar-selected"
+                        if selected
+                        else "calendar-cell"
+                    )
+
+                    cols[idx].markdown(
+                        f"""
+    <div class="{class_name}">
+    {day}
+    </div>
+    """,
+                        unsafe_allow_html=True
+                    )
+
+                    cols[idx].markdown(
+                        '<div class="calendar-btn">',
+                        unsafe_allow_html=True
+                    )
+
+                    if cols[idx].button(
+
+                        "",
+
+                        key=f"calendar_{date_str}",
+
+                        use_container_width=True
+                    ):
+
+                        if selected:
+
+                            st.session_state.selected_dates.remove(
+                                date_str
+                            )
+
+                        else:
+
+                            st.session_state.selected_dates.append(
+                                date_str
+                            )
+
+                        st.rerun()
+
+                    cols[idx].markdown(
+                        "</div>",
+                        unsafe_allow_html=True
+                    )
+                    
 # =========================
 # 정보 저장 버튼 수정
 # =========================
