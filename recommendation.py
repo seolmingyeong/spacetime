@@ -1,10 +1,19 @@
-from map_utils import (
-    search_nearby_places
-)
+import math
 
-from scoring import (
-    calculate_place_score
-)
+
+def get_middle_point(users):
+
+    avg_lat = sum(
+        user["lat"]
+        for user in users
+    ) / len(users)
+
+    avg_lng = sum(
+        user["lng"]
+        for user in users
+    ) / len(users)
+
+    return avg_lat, avg_lng
 
 
 def recommend_places(
@@ -13,28 +22,15 @@ def recommend_places(
     middle_lng
 ):
 
-    places = search_nearby_places(
-        middle_lat,
-        middle_lng
-    )
+    return [
 
-    results = []
+        {
+            "name": "스타벅스 강남점",
+            "lat": middle_lat,
+            "lng": middle_lng,
+            "address": "서울 강남구",
+            "avg_time": 25,
+            "max_time": 40
+        }
 
-    for place in places:
-
-        score_data = (
-            calculate_place_score(
-                users,
-                place
-            )
-        )
-
-        place.update(score_data)
-
-        results.append(place)
-
-    results.sort(
-        key=lambda x: x["score"]
-    )
-
-    return results
+    ]

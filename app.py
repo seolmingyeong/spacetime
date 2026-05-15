@@ -1,115 +1,233 @@
-import uuid
+# =========================
+# app.py
+# =========================
+
 import streamlit as st
-import folium
-from streamlit_calendar import calendar
 
-from streamlit_folium import st_folium
+from database import *
 
-from database import (
-    init_db,
-    create_room,
-    room_exists,
-    save_user,
-    get_room_users
-)
+from recommendation import *
 
-from map_utils import (
-    search_location,
-    get_middle_point
-)
+from route_api import *
 
-from recommendation import recommend_places
-from scoring import get_route_time
+from map_utils import *
 
+from ui import *
 
 
 # =========================
-# 초기 설정
+# 페이지 설정
 # =========================
-
-init_db()
 
 st.set_page_config(
-    page_title="AI 약속 장소 추천 시스템",
+
+    page_title="스페이스타임",
+
     layout="wide"
 )
 
+
 # =========================
-# CSS
+# 전체 테마 CSS
 # =========================
 
 st.markdown(
     """
-    <style>
+<style>
 
-    .stApp {
-        background-color: #0f172a;
-        color: #f8fafc;
-    }
+/* 전체 배경 */
 
-    section[data-testid="stSidebar"] {
-        background-color: #111827;
-    }
+.stApp {
 
-    h1, h2, h3, h4, h5, h6, p, label {
-        color: #f8fafc !important;
-    }
+    background:
+    linear-gradient(
+        180deg,
+        #f8fafc 0%,
+        #f5f3ff 35%,
+        #eef2ff 70%,
+        #f0f9ff 100%
+    );
+}
 
-    div[data-testid="stTextInput"] input {
-        background-color: #1e293b !important;
-        color: white !important;
-        border-radius: 12px;
-        border: 1px solid #334155;
-    }
 
-    div[data-testid="stSelectbox"] > div {
-        background-color: #1e293b !important;
-        color: white !important;
-        border-radius: 12px;
-    }
+/* 기본 텍스트 */
 
-    div[data-testid="stDateInput"] input {
-        background-color: #1e293b !important;
-        color: white !important;
-        border-radius: 12px;
-    }
+html,
+body,
+[class*="css"] {
 
-    .stButton > button {
+    color:#334155;
+}
 
-        background: linear-gradient(
-            135deg,
-            #166534,
-            #15803d
+
+/* 입력창 */
+
+.stTextInput input {
+
+    background:white;
+
+    border:2px solid #ddd6fe;
+
+    border-radius:16px;
+
+    color:#334155;
+
+    padding:10px;
+}
+
+
+/* selectbox */
+
+.stSelectbox div[data-baseweb="select"] {
+
+    background:white;
+
+    border-radius:16px;
+}
+
+
+/* 버튼 */
+
+.stButton > button {
+
+    width:100%;
+
+    background:
+    linear-gradient(
+        90deg,
+        #8b5cf6,
+        #60a5fa
+    );
+
+    color:white;
+
+    border:none;
+
+    border-radius:18px;
+
+    padding:14px;
+
+    font-size:16px;
+
+    font-weight:700;
+
+    transition:0.2s;
+
+    box-shadow:
+        0 8px 24px rgba(
+            139,
+            92,
+            246,
+            0.22
         );
+}
 
-        color: white;
 
-        border: none;
+.stButton > button:hover {
 
-        border-radius: 14px;
+    transform:translateY(-2px);
 
-        padding: 0.6rem 1.2rem;
-
-        font-weight: bold;
-
-        transition: 0.3s;
-    }
-
-    .stButton > button:hover {
-
-        background: linear-gradient(
-            135deg,
-            #15803d,
-            #22c55e
+    box-shadow:
+        0 12px 30px rgba(
+            96,
+            165,
+            250,
+            0.28
         );
+}
 
-        transform: scale(1.03);
-    }
 
-    </style>
-    """,
+/* 카드 */
+
+.spacetime-card {
+
+    background:
+    rgba(
+        255,
+        255,
+        255,
+        0.88
+    );
+
+    backdrop-filter:blur(10px);
+
+    border:1px solid #ddd6fe;
+
+    border-radius:24px;
+
+    padding:24px;
+
+    margin-bottom:20px;
+
+    box-shadow:
+        0 10px 30px rgba(
+            139,
+            92,
+            246,
+            0.08
+        );
+}
+
+
+/* 참가자 카드 */
+
+.participant-card {
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:18px;
+
+    margin-bottom:14px;
+
+    border-left:6px solid #8b5cf6;
+
+    box-shadow:
+        0 6px 18px rgba(
+            96,
+            165,
+            250,
+            0.08
+        );
+}
+
+
+/* 지도 */
+
+iframe {
+
+    border-radius:24px;
+
+    overflow:hidden;
+}
+
+</style>
+""",
     unsafe_allow_html=True
 )
+
+
+# =========================
+# DB 초기화
+# =========================
+
+init_db()
+
+
+# =========================
+# session_state
+# =========================
+
+if "current_room" not in st.session_state:
+
+    st.session_state.current_room = None
+
+
+if "recommendations" not in st.session_state:
+
+    st.session_state.recommendations = None
+
 
 # =========================
 # 제목
@@ -117,360 +235,232 @@ st.markdown(
 
 st.markdown(
     """
-    <div style="
-        font-size:3rem;
-        font-weight:800;
-        color:#22c55e;
-        margin-bottom:10px;
-    ">
-        AI 약속 장소 추천 시스템
-    </div>
+<h1 style="
+text-align:center;
+font-size:58px;
+font-weight:800;
+background: linear-gradient(
+    90deg,
+    #8b5cf6,
+    #60a5fa
+);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+margin-bottom:10px;
+">
+🌌 스페이스타임
+</h1>
 
-    <div style="
-        color:#cbd5e1;
-        margin-bottom:30px;
-        font-size:1.1rem;
-    ">
-        일정 · 위치 · 이동수단 기반
-        최적 약속 장소 추천 플랫폼
-    </div>
-    """,
+<p style="
+text-align:center;
+font-size:18px;
+color:#64748b;
+margin-bottom:35px;
+">
+모두의 시간과 공간을 연결하는 약속 플랫폼
+</p>
+""",
     unsafe_allow_html=True
 )
 
-# =========================
-# session state
-# =========================
-
-if "current_room" not in st.session_state:
-    st.session_state.current_room = None
-
-if "selected_dates" not in st.session_state:
-    st.session_state.selected_dates = []
-
-if "recommendations" not in st.session_state:
-    st.session_state.recommendations = None
-
-if "middle_lat" not in st.session_state:
-    st.session_state.middle_lat = None
-
-if "middle_lng" not in st.session_state:
-    st.session_state.middle_lng = None
 
 # =========================
-# 사이드바
+# 입력 UI
 # =========================
 
-st.sidebar.title("메뉴")
+col1, col2 = st.columns(2)
 
-if st.sidebar.button("새 방 만들기"):
+with col1:
 
-    room_id = str(uuid.uuid4())[:8]
-
-    create_room(room_id)
-
-    st.session_state.current_room = room_id
-
-    st.session_state.selected_dates = []
-
-    st.session_state.recommendations = None
-
-room_input = st.sidebar.text_input(
-    "방 코드 입력"
-)
-
-if st.sidebar.button("방 참가"):
-
-    if room_exists(room_input):
-
-        st.session_state.current_room = room_input
-
-        st.session_state.selected_dates = []
-
-        st.session_state.recommendations = None
-
-    else:
-
-        st.sidebar.error(
-            "존재하지 않는 방입니다"
-        )
-
-# =========================
-# 메인
-# =========================
-
-if st.session_state.current_room:
-
-    room_id = st.session_state.current_room
-
-    st.success(f"현재 방: {room_id}")
-
-    nickname = st.text_input("닉네임")
-
-    # =========================
-    # 날짜 선택
-    # =========================
-
-    st.subheader("가능한 날짜 선택")
-
-    new_date = st.date_input(
-        "날짜 선택"
+    room_id = st.text_input(
+        "방 코드"
     )
 
-    col1, col2 = st.columns(2)
+    nickname = st.text_input(
+        "닉네임"
+    )
 
-    with col1:
+with col2:
 
-        if st.button("날짜 추가"):
-
-            formatted_date = (
-                new_date.strftime("%Y-%m-%d")
-            )
-
-            if (
-                formatted_date
-                not in st.session_state.selected_dates
-            ):
-
-                st.session_state.selected_dates.append(
-                    formatted_date
-                )
-
-    with col2:
-
-        if st.button("전체 삭제"):
-
-            st.session_state.selected_dates = []
-
-    st.write("선택된 날짜")
-
-    for d in st.session_state.selected_dates:
-
-        card_html = (
-            f'<div style="'
-            f'background:linear-gradient(135deg,#166534,#22c55e);'
-            f'color:white;'
-            f'padding:12px;'
-            f'border-radius:14px;'
-            f'margin:6px;'
-            f'width:240px;'
-            f'font-weight:bold;'
-            f'box-shadow:0 4px 14px rgba(34,197,94,0.3);'
-            f'">'
-            f'📅 {d}'
-            f'</div>'
-        )
-
-        st.markdown(
-            card_html,
-            unsafe_allow_html=True
-        )
-
-    # =========================
-    # 위치 입력
-    # =========================
-
-    location_input = st.text_input(
-        "위치 입력"
+    location_name = st.text_input(
+        "출발 위치"
     )
 
     transport = st.selectbox(
+
         "이동수단",
+
         [
             "도보",
-            "자전거",
             "대중교통",
             "자동차"
         ]
     )
 
-    if st.button("정보 저장"):
 
-        result = search_location(
-            location_input
-        )
-
-        if result:
-
-            save_user(
-                room_id,
-                nickname,
-                ",".join(
-                    st.session_state.selected_dates
-                ),
-                result["name"],
-                result["lat"],
-                result["lng"],
-                transport
-            )
-
-            st.success("저장 완료")
-
-        else:
-
-            st.error(
-                "위치를 찾을 수 없습니다"
-            )
-
-    # =========================
-    # 참가자 목록
-    # =========================
-
-    st.subheader("현재 참가자")
-
-    users_data = get_room_users(room_id)
-
-    for user in users_data:
-
-        participant_card = (
-            f'<div style="'
-            f'background:#1e293b;'
-            f'padding:20px;'
-            f'border-radius:18px;'
-            f'margin-bottom:15px;'
-            f'border-left:6px solid #22c55e;'
-            f'box-shadow:0 4px 14px rgba(0,0,0,0.2);'
-            f'">'
-            f'<div style="font-size:24px;'
-            f'font-weight:bold;'
-            f'color:#22c55e;'
-            f'margin-bottom:12px;">'
-            f'👤 {user[2]}'
-            f'</div>'
-            f'<div style="margin-bottom:8px;">'
-            f'📅 가능 날짜: {user[3]}'
-            f'</div>'
-            f'<div style="margin-bottom:8px;">'
-            f'📍 위치: {user[4]}'
-            f'</div>'
-            f'<div>'
-            f'🚗 이동수단: {user[7]}'
-            f'</div>'
-            f'</div>'
-        )
-
-        st.markdown(
-            participant_card,
-            unsafe_allow_html=True
-        )
-
-        
 # =========================
-# 추천 장소 계산
+# 참여 버튼
+# =========================
+
+if st.button(
+    "참여하기",
+    key="join_button"
+):
+
+    save_user(
+
+        room_id,
+
+        nickname,
+
+        "2026-05-15",
+
+        location_name,
+
+        37.5665,
+
+        126.9780,
+
+        transport
+    )
+
+    st.session_state.current_room = (
+        room_id
+    )
+
+    st.success(
+        "참여 완료!"
+    )
+
+
+# =========================
+# 참가자 목록
 # =========================
 
 users_data = []
 
 if st.session_state.current_room:
 
-    room_id = (
+    users_data = get_room_users(
+
         st.session_state.current_room
     )
 
-    users_data = get_room_users(
-        room_id
+    st.markdown(
+        """
+<h2 style="
+color:#8b5cf6;
+margin-top:30px;
+margin-bottom:20px;
+">
+👥 참가자
+</h2>
+""",
+        unsafe_allow_html=True
     )
 
-    st.write(
-        f"현재 참가자 수: {len(users_data)}"
-    )
+    for user in users_data:
 
-    # =========================
-    # 추천 버튼
-    # =========================
+        st.markdown(
+            f"""
+<div class="participant-card">
 
-    if len(users_data) >= 2:
+<div style="
+font-size:22px;
+font-weight:700;
+color:#8b5cf6;
+margin-bottom:10px;
+">
+👤 {user[2]}
+</div>
 
-        if st.button(
-            "추천 장소 찾기",
-            key="recommend_button"
-        ):
+<div style="
+color:#64748b;
+margin-bottom:6px;
+">
+📍 {user[4]}
+</div>
 
-            users = []
+<div style="
+color:#64748b;
+">
+🚗 {user[7]}
+</div>
 
-            for user in users_data:
-
-                users.append({
-
-                    "nickname": user[2],
-
-                    "name": user[4],
-
-                    "lat": user[5],
-
-                    "lng": user[6],
-
-                    "transport": user[7]
-                })
-
-            with st.spinner(
-                "최적 장소 계산 중..."
-            ):
-
-                middle_lat, middle_lng = (
-                    get_middle_point(users)
-                )
-
-                recommendations = (
-                    recommend_places(
-                        users,
-                        middle_lat,
-                        middle_lng
-                    )
-                )
-
-                st.session_state.recommendations = (
-                    recommendations
-                )
-
-                st.session_state.middle_lat = (
-                    middle_lat
-                )
-
-                st.session_state.middle_lng = (
-                    middle_lng
-                )
-
-    else:
-
-        st.info(
-            "추천 계산은 "
-            "2명 이상 참가 시 가능합니다."
+</div>
+""",
+            unsafe_allow_html=True
         )
 
+
 # =========================
-# 추천 결과 출력
+# 추천 장소 계산
 # =========================
 
-if (
+if len(users_data) >= 2:
 
-    "recommendations"
-    in st.session_state
+    if st.button(
+        "✨ 추천 장소 찾기",
+        key="recommend_button"
+    ):
 
-    and
+        users = []
 
-    st.session_state.recommendations
+        for user in users_data:
 
-):
+            users.append({
+
+                "nickname": user[2],
+
+                "lat": user[5],
+
+                "lng": user[6],
+
+                "transport": user[7]
+            })
+
+        middle_lat, middle_lng = (
+            get_middle_point(users)
+        )
+
+        recommendations = (
+            recommend_places(
+
+                users,
+
+                middle_lat,
+
+                middle_lng
+            )
+        )
+
+        st.session_state.recommendations = (
+            recommendations
+        )
+
+        st.session_state.middle_lat = (
+            middle_lat
+        )
+
+        st.session_state.middle_lng = (
+            middle_lng
+        )
+
+
+# =========================
+# 추천 결과
+# =========================
+
+if st.session_state.recommendations:
 
     recommendations = (
         st.session_state.recommendations
     )
 
-    if len(recommendations) == 0:
+    best_place = recommendations[0]
 
-        st.warning(
-            "추천 장소를 찾을 수 없습니다."
-        )
-
-        st.stop()
-
-    middle_lat = (
-        st.session_state.middle_lat
-    )
-
-    middle_lng = (
-        st.session_state.middle_lng
+    render_place_card(
+        best_place
     )
 
     users = []
@@ -481,8 +471,6 @@ if (
 
             "nickname": user[2],
 
-            "name": user[4],
-
             "lat": user[5],
 
             "lng": user[6],
@@ -490,202 +478,26 @@ if (
             "transport": user[7]
         })
 
-    best_place = recommendations[0]
-
-    # =========================
-    # 추천 장소 카드
-    # =========================
-
     st.markdown(
-        f"""
-<div style="
-background:#1e293b;
-padding:24px;
-border-radius:20px;
+        """
+<h2 style="
+color:#8b5cf6;
+margin-top:30px;
 margin-bottom:20px;
-border:2px solid #22c55e;
 ">
-
-<div style="
-font-size:32px;
-font-weight:bold;
-color:#22c55e;
-margin-bottom:16px;
-">
-🌟 추천 장소
-</div>
-
-<div style="
-font-size:28px;
-margin-bottom:14px;
-color:white;
-">
-{best_place["name"]}
-</div>
-
-<div style="
-color:#d1fae5;
-margin-bottom:8px;
-">
-⏱ 평균 이동시간:
-{best_place["avg_time"]}분
-</div>
-
-<div style="
-color:#d1fae5;
-margin-bottom:8px;
-">
-🚦 최대 이동시간:
-{best_place["max_time"]}분
-</div>
-
-<div style="
-color:#d1fae5;
-">
-📍 {best_place["address"]}
-</div>
-
-</div>
+🗺 추천 지도
+</h2>
 """,
         unsafe_allow_html=True
     )
 
-    # =========================
-    # 사용자별 이동시간
-    # =========================
+    render_map(
 
-    st.subheader(
-        "사용자별 예상 이동시간"
-    )
+        users,
 
-    for user in users:
+        recommendations,
 
-        travel_time = get_route_time(
+        st.session_state.middle_lat,
 
-            user["lat"],
-            user["lng"],
-
-            best_place["lat"],
-            best_place["lng"],
-
-            user["transport"]
-        )
-
-        st.markdown(
-            f"""
-<div style="
-background:#1e293b;
-padding:18px;
-border-radius:16px;
-margin-bottom:12px;
-border-left:5px solid #22c55e;
-">
-
-<div style="
-font-size:22px;
-font-weight:bold;
-color:#22c55e;
-margin-bottom:10px;
-">
-👤 {user["nickname"]}
-</div>
-
-<div style="
-color:#d1fae5;
-margin-bottom:6px;
-">
-🚗 이동수단:
-{user["transport"]}
-</div>
-
-<div style="
-color:#d1fae5;
-">
-⏱ 예상 이동시간:
-{travel_time}분
-</div>
-
-</div>
-""",
-            unsafe_allow_html=True
-        )
-
-    # =========================
-    # 지도
-    # =========================
-
-    st.divider()
-
-    m = folium.Map(
-
-        location=[
-            middle_lat,
-            middle_lng
-        ],
-
-        zoom_start=13,
-
-        tiles="CartoDB dark_matter",
-
-        control_scale=True,
-
-        zoom_control=True,
-
-        scrollWheelZoom=False
-    )
-
-    # 사용자 마커
-
-    for user in users:
-
-        folium.Marker(
-
-            [user["lat"], user["lng"]],
-
-            popup=user["nickname"],
-
-            tooltip=user["nickname"],
-
-            icon=folium.Icon(
-                color="blue"
-            )
-
-        ).add_to(m)
-
-    # 추천 장소 마커
-
-    for idx, place in enumerate(
-        recommendations[:5]
-    ):
-
-        color = (
-            "red"
-            if idx == 0
-            else "green"
-        )
-
-        folium.Marker(
-
-            [place["lat"], place["lng"]],
-
-            popup=place["name"],
-
-            tooltip=(
-                f"{place['name']} "
-                f"({place['avg_time']}분)"
-            ),
-
-            icon=folium.Icon(
-                color=color
-            )
-
-        ).add_to(m)
-
-    st_folium(
-
-        m,
-
-        use_container_width=True,
-
-        height=700
+        st.session_state.middle_lng
     )
