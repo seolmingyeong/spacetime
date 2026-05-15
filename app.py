@@ -7,6 +7,8 @@ import string
 
 import streamlit as st
 
+from streamlit_calendar import calendar
+
 from database import *
 
 from recommendation import *
@@ -38,13 +40,16 @@ st.markdown(
     """
 <style>
 
-/* =========================
-   공통
-========================= */
-
 .stApp {
 
-    transition:0.3s;
+    background:
+    linear-gradient(
+        180deg,
+        #fffdf7 0%,
+        #f8fafc 35%,
+        #f5f3ff 70%,
+        #eef2ff 100%
+    );
 }
 
 .block-container {
@@ -54,9 +59,6 @@ st.markdown(
     padding-top:2rem;
 }
 
-
-/* svg 아이콘 */
-
 svg {
 
     color:inherit !important;
@@ -64,146 +66,15 @@ svg {
     fill:inherit !important;
 }
 
+html,
+body,
+p,
+span,
+label,
+div {
 
-/* =========================
-   라이트 모드
-========================= */
-
-@media (prefers-color-scheme: light) {
-
-    .stApp {
-
-        background:
-        linear-gradient(
-            180deg,
-            #fffdf7 0%,
-            #f8fafc 35%,
-            #f5f3ff 70%,
-            #eef2ff 100%
-        );
-    }
-
-    html,
-    body,
-    p,
-    span,
-    label,
-    div {
-
-        color:#334155 !important;
-    }
-
-    .spacetime-card,
-    .participant-card {
-
-        background:white;
-
-        border:1px solid #e9d5ff;
-    }
-
-    .participant-card {
-
-        border-left:6px solid #8b5cf6;
-    }
-
-    .stTextInput input {
-
-        background:white !important;
-
-        color:#334155 !important;
-
-        border:2px solid #ddd6fe !important;
-
-        border-radius:16px;
-    }
-
-    .stSelectbox div[data-baseweb="select"] {
-
-        background:white !important;
-
-        border-radius:16px;
-
-        border:2px solid #ddd6fe !important;
-    }
+    color:#334155 !important;
 }
-
-
-/* =========================
-   다크 모드
-========================= */
-
-@media (prefers-color-scheme: dark) {
-
-    .stApp {
-
-        background:
-        linear-gradient(
-            180deg,
-            #0f172a 0%,
-            #111827 50%,
-            #1e1b4b 100%
-        );
-    }
-
-    html,
-    body,
-    p,
-    span,
-    label,
-    div {
-
-        color:#f8fafc !important;
-    }
-
-    .spacetime-card,
-    .participant-card {
-
-        background:
-        rgba(
-            30,
-            41,
-            59,
-            0.92
-        );
-
-        border:1px solid #312e81;
-    }
-
-    .participant-card {
-
-        border-left:6px solid #8b5cf6;
-    }
-
-    .stTextInput input {
-
-        background:#1e293b !important;
-
-        color:white !important;
-
-        border:2px solid #4338ca !important;
-
-        border-radius:16px;
-    }
-
-    .stSelectbox div[data-baseweb="select"] {
-
-        background:#1e293b !important;
-
-        border-radius:16px;
-
-        border:2px solid #4338ca !important;
-    }
-
-    .stSelectbox * {
-
-        color:white !important;
-    }
-}
-
-
-/* =========================
-   버튼
-========================= */
 
 .stButton > button {
 
@@ -227,31 +98,13 @@ svg {
     font-size:16px;
 
     font-weight:700;
-
-    transition:0.2s;
-
-    box-shadow:
-        0 8px 24px rgba(
-            139,
-            92,
-            246,
-            0.25
-        );
 }
-
-.stButton > button:hover {
-
-    transform:translateY(-2px);
-
-    opacity:0.95;
-}
-
-
-/* =========================
-   카드
-========================= */
 
 .spacetime-card {
+
+    background:white;
+
+    border:1px solid #e9d5ff;
 
     border-radius:24px;
 
@@ -259,10 +112,18 @@ svg {
 
     margin-bottom:20px;
 
-    transition:0.3s;
+    box-shadow:
+        0 10px 30px rgba(
+            139,
+            92,
+            246,
+            0.08
+        );
 }
 
 .participant-card {
+
+    background:white;
 
     border-radius:20px;
 
@@ -270,13 +131,16 @@ svg {
 
     margin-bottom:14px;
 
-    transition:0.3s;
+    border-left:6px solid #8b5cf6;
+
+    box-shadow:
+        0 6px 18px rgba(
+            96,
+            165,
+            250,
+            0.08
+        );
 }
-
-
-/* =========================
-   지도
-========================= */
 
 iframe {
 
@@ -308,6 +172,16 @@ if "current_room" not in st.session_state:
 if "recommendations" not in st.session_state:
 
     st.session_state.recommendations = None
+
+
+if "nickname" not in st.session_state:
+
+    st.session_state.nickname = ""
+
+
+if "selected_dates" not in st.session_state:
+
+    st.session_state.selected_dates = []
 
 
 # =========================
@@ -353,10 +227,6 @@ if not st.session_state.current_room:
 
     col1, col2 = st.columns(2)
 
-    # =========================
-    # 방 만들기
-    # =========================
-
     with col1:
 
         st.markdown(
@@ -397,10 +267,6 @@ if not st.session_state.current_room:
             )
 
             st.rerun()
-
-    # =========================
-    # 방 입장
-    # =========================
 
     with col2:
 
@@ -478,7 +344,10 @@ margin-bottom:20px;
     with col1:
 
         nickname = st.text_input(
-            "닉네임"
+
+            "닉네임",
+
+            value=st.session_state.nickname
         )
 
         location_name = st.text_input(
@@ -499,6 +368,86 @@ margin-bottom:20px;
         )
 
     # =========================
+    # 달력
+    # =========================
+
+    st.markdown(
+        """
+<h3 style="
+margin-top:25px;
+margin-bottom:15px;
+">
+📅 가능한 날짜
+</h3>
+""",
+        unsafe_allow_html=True
+    )
+
+    calendar_events = []
+
+    for d in st.session_state.selected_dates:
+
+        calendar_events.append({
+
+            "title": "가능",
+
+            "start": d,
+
+            "end": d,
+
+            "color": "#8b5cf6"
+        })
+
+    calendar_options = {
+
+        "initialView": "dayGridMonth",
+
+        "selectable": True
+    }
+
+    calendar_result = calendar(
+
+        events=calendar_events,
+
+        options=calendar_options,
+
+        key="calendar"
+    )
+
+    if calendar_result.get("callback"):
+
+        callback_data = (
+            calendar_result["callback"]
+        )
+
+        if callback_data.get("dateClick"):
+
+            clicked_date = (
+                callback_data[
+                    "dateClick"
+                ]["date"]
+            )
+
+            if (
+
+                clicked_date
+                not in
+                st.session_state.selected_dates
+            ):
+
+                st.session_state.selected_dates.append(
+                    clicked_date
+                )
+
+            else:
+
+                st.session_state.selected_dates.remove(
+                    clicked_date
+                )
+
+            st.rerun()
+
+    # =========================
     # 저장
     # =========================
 
@@ -507,13 +456,19 @@ margin-bottom:20px;
         key="save_user"
     ):
 
+        st.session_state.nickname = (
+            nickname
+        )
+
         save_user(
 
             st.session_state.current_room,
 
             nickname,
 
-            "2026-05-15",
+            ",".join(
+                st.session_state.selected_dates
+            ),
 
             location_name,
 
@@ -574,9 +529,16 @@ opacity:0.85;
 </div>
 
 <div style="
+margin-bottom:6px;
 opacity:0.85;
 ">
 🚗 {user[7]}
+</div>
+
+<div style="
+opacity:0.85;
+">
+📅 {user[3]}
 </div>
 
 </div>

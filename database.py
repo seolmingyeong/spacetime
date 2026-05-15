@@ -46,6 +46,11 @@ def init_db():
     conn.close()
 
 
+# =========================
+# database.py 수정
+# save_user 함수 교체
+# =========================
+
 def save_user(
     room_id,
     nickname,
@@ -59,6 +64,22 @@ def save_user(
     conn = get_connection()
 
     cursor = conn.cursor()
+
+    # 기존 사용자 삭제
+
+    cursor.execute(
+        """
+        DELETE FROM users
+        WHERE room_id=?
+        AND nickname=?
+        """,
+        (
+            room_id,
+            nickname
+        )
+    )
+
+    # 새로 저장
 
     cursor.execute(
         """
@@ -87,8 +108,6 @@ def save_user(
     conn.commit()
 
     conn.close()
-
-
 def get_room_users(room_id):
 
     conn = get_connection()
