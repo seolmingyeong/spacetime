@@ -197,7 +197,25 @@ iframe {
     transition:0.3s;
 }
 
+# =========================
+# theme.py 추가 CSS
+# 버튼 숨기기용
+# =========================
+
+button[kind="secondary"] {
+
+    min-height:0px !important;
+
+    height:0px !important;
+
+    padding:0px !important;
+
+    opacity:0;
+}
+
 </style>
 ''',
         unsafe_allow_html=True
     )
+
+    

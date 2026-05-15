@@ -89,7 +89,7 @@ background: linear-gradient(
 -webkit-text-fill-color:transparent;
 margin-bottom:10px;
 ">
-🌌 스페이스타임
+스페이스타임
 </h1>
 
 <p style="
@@ -262,6 +262,7 @@ margin-bottom:20px;
         )
 # =========================
 # 가능한 날짜 선택
+# 기존 달력 코드 전체 삭제 후 교체
 # =========================
 
 import calendar
@@ -272,7 +273,7 @@ st.markdown(
     """
 <h3 style="
 margin-top:25px;
-margin-bottom:15px;
+margin-bottom:18px;
 ">
 📅 가능한 날짜
 </h3>
@@ -301,20 +302,24 @@ weekdays = [
     "일"
 ]
 
+# =========================
 # 요일 헤더
+# =========================
 
-cols = st.columns(7)
+header_cols = st.columns(7)
 
 for idx, day_name in enumerate(
     weekdays
 ):
 
-    cols[idx].markdown(
+    header_cols[idx].markdown(
         f"""
 <div style="
 text-align:center;
 font-weight:700;
-margin-bottom:10px;
+font-size:17px;
+margin-bottom:12px;
+opacity:0.75;
 ">
 {day_name}
 </div>
@@ -322,17 +327,26 @@ margin-bottom:10px;
         unsafe_allow_html=True
     )
 
-# 달력 출력
+# =========================
+# 달력
+# =========================
 
-for week in cal:
+for week_idx, week in enumerate(cal):
 
     cols = st.columns(7)
 
-    for idx, day in enumerate(week):
+    for day_idx, day in enumerate(week):
 
         if day == 0:
 
-            cols[idx].write("")
+            cols[day_idx].markdown(
+                """
+<div style="
+height:85px;
+"></div>
+""",
+                unsafe_allow_html=True
+            )
 
         else:
 
@@ -346,19 +360,61 @@ for week in cal:
                 st.session_state.selected_dates
             )
 
-            button_label = str(day)
+            bg = (
+                "linear-gradient(135deg,#8b5cf6,#60a5fa)"
+                if selected
+                else "rgba(255,255,255,0.72)"
+            )
 
-            if selected:
+            color = (
+                "white"
+                if selected
+                else "#334155"
+            )
 
-                button_label = (
-                    f"🟣 {day}"
-                )
+            border = (
+                "2px solid #8b5cf6"
+                if selected
+                else "1px solid rgba(148,163,184,0.18)"
+            )
 
-            if cols[idx].button(
+            shadow = (
+                "0 8px 24px rgba(139,92,246,0.28)"
+                if selected
+                else "0 4px 14px rgba(0,0,0,0.05)"
+            )
 
-                button_label,
+            cols[day_idx].markdown(
+                f"""
+<div style="
+height:85px;
+border-radius:22px;
+background:{bg};
+border:{border};
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+font-weight:700;
+color:{color};
+margin-bottom:8px;
+box-shadow:{shadow};
+backdrop-filter:blur(10px);
+transition:0.2s;
+">
+{day}
+</div>
+""",
+                unsafe_allow_html=True
+            )
 
-                key=f"date_{date_str}"
+            if cols[day_idx].button(
+
+                "",
+
+                key=f"calendar_button_{date_str}",
+
+                use_container_width=True
             ):
 
                 if selected:
@@ -375,15 +431,16 @@ for week in cal:
 
                 st.rerun()
 
-    # =========================
-    # 정보 저장
-    # =========================
+   # =========================
+# 정보 저장 버튼 수정
+# 기존 key=\"save_user\" 교체
+# =========================
 
-    if st.button(
-        "정보 저장",
-        key="save_user"
-    ):
-
+if st.button(
+    "정보 저장",
+    key=f"save_user_{st.session_state.current_room}"
+):
+        
         st.session_state.nickname = (
             nickname
         )
@@ -417,12 +474,11 @@ for week in cal:
     # 참가자 목록
     # =========================
 
-    users_data = get_room_users(
+users_data = get_room_users(
 
-        st.session_state.current_room
-    )
+st.session_state.current_room)
 
-    st.markdown(
+st.markdown(
         """
 <h2 style="
 margin-top:40px;
@@ -434,9 +490,8 @@ margin-bottom:20px;
         unsafe_allow_html=True
     )
 
-    for user in users_data:
-
-        st.markdown(
+for user in users_data:
+    st.markdown(
             f"""
 <div class="card">
 
