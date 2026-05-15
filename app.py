@@ -329,8 +329,10 @@ opacity:0.75;
 
 # =========================
 # 가능한 날짜 선택
-# 기존 달력 부분 전체 교체
+# 기존 달력 코드 전체 삭제 후 교체
 # =========================
+
+# 방 입장 후에만 표시
 
 if st.session_state.current_room:
 
@@ -340,8 +342,10 @@ if st.session_state.current_room:
     st.markdown(
         """
 <h3 style="
-margin-top:25px;
-margin-bottom:18px;
+margin-top:30px;
+margin-bottom:20px;
+font-size:24px;
+font-weight:700;
 ">
 📅 가능한 날짜
 </h3>
@@ -371,44 +375,132 @@ margin-bottom:18px;
     ]
 
     # =========================
-    # 달력 전체 스타일
+    # 달력 CSS
     # =========================
 
     st.markdown(
         """
 <style>
 
-/* 달력 버튼 */
+/* 달력 wrapper */
 
-div[data-testid="column"] button {
+.calendar-wrapper {
 
-    height:78px !important;
+    background:white;
 
-    border-radius:0px !important;
+    border:1px solid rgba(148,163,184,0.15);
 
-    border:none !important;
+    overflow:hidden;
 
-    font-size:22px !important;
+    margin-bottom:20px;
+}
 
-    font-weight:700 !important;
 
-    transition:0.15s !important;
+/* 요일 헤더 */
 
-    margin-top:-78px !important;
+.calendar-header {
+
+    background:#f8fafc;
+
+    border-bottom:1px solid rgba(148,163,184,0.15);
+
+    text-align:center;
+
+    font-weight:700;
+
+    padding:14px 0;
+
+    font-size:16px;
+}
+
+
+/* 날짜 칸 */
+
+.calendar-day {
+
+    height:90px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:22px;
+
+    font-weight:700;
+
+    border-right:1px solid rgba(148,163,184,0.12);
+
+    border-bottom:1px solid rgba(148,163,184,0.12);
+
+    background:white;
+
+    color:#334155;
+
+    transition:0.15s;
+}
+
+
+/* 선택된 날짜 */
+
+.calendar-selected {
+
+    background:
+    linear-gradient(
+        135deg,
+        #8b5cf6,
+        #60a5fa
+    );
+
+    color:white;
+
+    box-shadow:
+        inset 0 0 0 2px #7c3aed;
+}
+
+
+/* 빈칸 */
+
+.calendar-empty {
+
+    height:90px;
+
+    background:#f8fafc;
+
+    border-right:1px solid rgba(148,163,184,0.08);
+
+    border-bottom:1px solid rgba(148,163,184,0.08);
+}
+
+
+/* 실제 클릭 버튼 */
+
+.calendar-button button {
+
+    width:100% !important;
+
+    height:90px !important;
 
     opacity:0 !important;
+
+    margin-top:-90px !important;
+
+    border-radius:0px !important;
 
     position:relative !important;
 
     z-index:10 !important;
+
+    padding:0px !important;
 }
 
 
-/* hover */
+/* 버튼 hover */
 
-div[data-testid="column"] button:hover {
+.calendar-button button:hover {
 
-    transform:scale(1.02);
+    transform:none !important;
 }
 
 </style>
@@ -422,28 +514,21 @@ div[data-testid="column"] button:hover {
 
     header_cols = st.columns(7)
 
-    for idx, day_name in enumerate(
+    for idx, weekday in enumerate(
         weekdays
     ):
 
         header_cols[idx].markdown(
             f"""
-<div style="
-text-align:center;
-font-weight:700;
-font-size:16px;
-padding:12px;
-background:rgba(255,255,255,0.7);
-border:1px solid rgba(148,163,184,0.15);
-">
-{day_name}
+<div class="calendar-header">
+{weekday}
 </div>
 """,
             unsafe_allow_html=True
         )
 
     # =========================
-    # 달력 본문
+    # 날짜 출력
     # =========================
 
     for week_idx, week in enumerate(cal):
@@ -452,19 +537,18 @@ border:1px solid rgba(148,163,184,0.15);
 
         for day_idx, day in enumerate(week):
 
+            # 빈칸
+
             if day == 0:
 
                 cols[day_idx].markdown(
                     """
-<div style="
-height:78px;
-background:rgba(255,255,255,0.15);
-border:1px solid rgba(148,163,184,0.08);
-">
-</div>
+<div class="calendar-empty"></div>
 """,
                     unsafe_allow_html=True
                 )
+
+            # 날짜 칸
 
             else:
 
@@ -478,72 +562,33 @@ border:1px solid rgba(148,163,184,0.08);
                     st.session_state.selected_dates
                 )
 
-                # 선택된 날짜
-
-                if selected:
-
-                    bg = (
-                        "linear-gradient(135deg,#8b5cf6,#60a5fa)"
-                    )
-
-                    color = "white"
-
-                    border = (
-                        "2px solid #7c3aed"
-                    )
-
-                    shadow = (
-                        "0 6px 18px rgba(139,92,246,0.25)"
-                    )
-
-                # 선택 안된 날짜
-
-                else:
-
-                    bg = (
-                        "rgba(255,255,255,0.72)"
-                    )
-
-                    color = "#334155"
-
-                    border = (
-                        "1px solid rgba(148,163,184,0.15)"
-                    )
-
-                    shadow = (
-                        "none"
-                    )
-
-                # 실제 달력 칸
+                class_name = (
+                    "calendar-day calendar-selected"
+                    if selected
+                    else "calendar-day"
+                )
 
                 cols[day_idx].markdown(
                     f"""
-<div style="
-height:78px;
-background:{bg};
-border:{border};
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:22px;
-font-weight:700;
-color:{color};
-box-shadow:{shadow};
-user-select:none;
-">
+<div class="{class_name}">
 {day}
 </div>
 """,
                     unsafe_allow_html=True
                 )
 
-                # 투명 클릭 영역
+                # 실제 클릭 영역
+
+                cols[day_idx].markdown(
+                    '<div class="calendar-button">',
+                    unsafe_allow_html=True
+                )
 
                 if cols[day_idx].button(
 
-                    " ",
+                    f"{date_str}",
 
-                    key=f"calendar_click_{date_str}",
+                    key=f"calendar_{date_str}",
 
                     use_container_width=True
                 ):
@@ -561,7 +606,12 @@ user-select:none;
                         )
 
                     st.rerun()
-                    
+
+                cols[day_idx].markdown(
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
 # =========================
 # 정보 저장 버튼 수정
 # =========================
@@ -600,15 +650,18 @@ if st.button(
 
         st.rerun()
 
-    # =========================
-    # 참가자 목록
-    # =========================
+# =========================
+# 참가자 목록
+# =========================
 
-users_data = get_room_users(
+if st.session_state.current_room:
 
-st.session_state.current_room)
+    users_data = get_room_users(
 
-st.markdown(
+        st.session_state.current_room
+    )
+
+    st.markdown(
         """
 <h2 style="
 margin-top:40px;
@@ -620,8 +673,9 @@ margin-bottom:20px;
         unsafe_allow_html=True
     )
 
-for user in users_data:
-    st.markdown(
+    for user in users_data:
+
+        st.markdown(
             f"""
 <div class="card">
 
@@ -658,7 +712,7 @@ opacity:0.85;
 """,
             unsafe_allow_html=True
         )
-
+        
     # =========================
     # 추천 장소
     # =========================
