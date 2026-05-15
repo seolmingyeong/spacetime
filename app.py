@@ -4,17 +4,16 @@
 
 import random
 import string
+import calendar
+
+from datetime import datetime
 
 import streamlit as st
 
 from database import *
-
 from recommendation import *
-
 from route_api import *
-
 from map_utils import *
-
 from ui import *
 
 from theme import apply_theme
@@ -47,7 +46,7 @@ init_db()
 
 
 # =========================
-# session_state
+# session state
 # =========================
 
 if "current_room" not in st.session_state:
@@ -80,7 +79,8 @@ st.markdown(
 text-align:center;
 font-size:58px;
 font-weight:800;
-background: linear-gradient(
+background:
+linear-gradient(
     90deg,
     #8b5cf6,
     #60a5fa
@@ -89,7 +89,7 @@ background: linear-gradient(
 -webkit-text-fill-color:transparent;
 margin-bottom:10px;
 ">
-스페이스타임
+🌌 스페이스타임
 </h1>
 
 <p style="
@@ -106,7 +106,7 @@ opacity:0.8;
 
 
 # =========================
-# 방 입장 전
+# 시작 화면
 # =========================
 
 if not st.session_state.current_room:
@@ -201,7 +201,7 @@ if not st.session_state.current_room:
 # 방 입장 후
 # =========================
 
-if st.session_state.current_room:
+else:
 
     st.markdown(
         f"""
@@ -260,78 +260,14 @@ margin-bottom:20px;
                 "자동차"
             ]
         )
+
     # =========================
     # 가능한 날짜 선택
-    # 기존 달력 코드 전체 삭제 후 교체
+    # 기존 날짜 선택 코드 전체 삭제 후 교체
     # =========================
 
-    import calendar
-    from datetime import datetime
+    from datetime import date
 
-
-    st.markdown(
-        """
-    <h3 style="
-    margin-top:25px;
-    margin-bottom:18px;
-    ">
-    📅 가능한 날짜
-    </h3>
-    """,
-        unsafe_allow_html=True
-    )
-
-    today = datetime.today()
-
-    year = today.year
-
-    month = today.month
-
-    cal = calendar.monthcalendar(
-        year,
-        month
-    )
-
-    weekdays = [
-        "월",
-        "화",
-        "수",
-        "목",
-        "금",
-        "토",
-        "일"
-    ]
-
-    # =========================
-    # 요일 헤더
-    # =========================
-
-    header_cols = st.columns(7)
-
-    for idx, day_name in enumerate(
-        weekdays
-    ):
-
-        header_cols[idx].markdown(
-            f"""
-    <div style="
-    text-align:center;
-    font-weight:700;
-    font-size:17px;
-    margin-bottom:12px;
-    opacity:0.75;
-    ">
-    {day_name}
-    </div>
-    """,
-            unsafe_allow_html=True
-        )
-    # =========================
-    # 가능한 날짜 선택
-    # =========================
-
-    import calendar
-    from datetime import datetime
 
     st.markdown(
         """
@@ -340,7 +276,6 @@ margin-bottom:20px;
     margin-bottom:20px;
     font-size:24px;
     font-weight:700;
-    color:#334155;
     ">
     📅 가능한 날짜
     </h3>
@@ -356,299 +291,129 @@ margin-bottom:20px;
 
         st.session_state.selected_dates = []
 
-    # =========================
-    # 달력 데이터
-    # =========================
-
-    today = datetime.today()
-
-    year = today.year
-
-    month = today.month
-
-    cal = calendar.monthcalendar(
-        year,
-        month
-    )
-
-    weekdays = [
-        "월",
-        "화",
-        "수",
-        "목",
-        "금",
-        "토",
-        "일"
-    ]
 
     # =========================
-    # CSS
+    # 달력 날짜 선택
     # =========================
 
-    st.markdown(
-        """
-    <style>
+    selected_date = st.date_input(
 
-    /* 달력 전체 */
+        "날짜 선택",
 
-    .calendar-wrapper {
+        value=None,
 
-        border:1px solid rgba(148,163,184,0.15);
-
-        overflow:hidden;
-
-        margin-bottom:30px;
-    }
-
-
-    /* 요일 */
-
-    .calendar-header {
-
-        background:#f8fafc;
-
-        border-right:1px solid rgba(148,163,184,0.1);
-
-        border-bottom:1px solid rgba(148,163,184,0.1);
-
-        text-align:center;
-
-        padding:14px 0;
-
-        font-weight:700;
-
-        color:#64748b;
-    }
-
-
-    /* 날짜칸 */
-
-    .calendar-cell {
-
-        position:relative;
-
-        height:92px;
-
-        display:flex;
-
-        align-items:center;
-
-        justify-content:center;
-
-        background:#f8fafc;
-
-        border-right:1px solid rgba(148,163,184,0.08);
-
-        border-bottom:1px solid rgba(148,163,184,0.08);
-
-        font-size:22px;
-
-        font-weight:700;
-
-        color:#334155;
-
-        cursor:pointer;
-
-        transition:0.15s;
-    }
-
-
-    /* hover */
-
-    .calendar-cell:hover {
-
-        background:#eef2ff;
-    }
-
-
-    /* 선택됨 */
-
-    .calendar-selected {
-
-        background:
-        linear-gradient(
-            135deg,
-            #8b5cf6,
-            #60a5fa
-        ) !important;
-
-        color:white !important;
-    }
-
-
-    /* 빈칸 */
-
-    .calendar-empty {
-
-        height:92px;
-
-        background:white;
-
-        border-right:1px solid rgba(148,163,184,0.06);
-
-        border-bottom:1px solid rgba(148,163,184,0.06);
-    }
-
-
-    /* 버튼 */
-
-    .calendar-button button {
-
-        position:absolute !important;
-
-        top:0 !important;
-
-        left:0 !important;
-
-        width:100% !important;
-
-        height:100% !important;
-
-        opacity:0 !important;
-
-        z-index:20 !important;
-
-        border-radius:0px !important;
-
-        padding:0px !important;
-
-        margin:0px !important;
-
-        min-height:100% !important;
-    }
-
-    </style>
-    """,
-        unsafe_allow_html=True
+        min_value=date.today()
     )
 
     # =========================
-    # 달력 시작
+    # 날짜 추가 버튼
     # =========================
 
-    st.markdown(
-        '<div class="calendar-wrapper">',
-        unsafe_allow_html=True
-    )
-
-    # =========================
-    # 요일 헤더
-    # =========================
-
-    header_cols = st.columns(7)
-
-    for idx, weekday in enumerate(
-        weekdays
+    if st.button(
+        "날짜 추가",
+        key="add_date_button"
     ):
 
-        header_cols[idx].markdown(
-            f"""
-    <div class="calendar-header">
-    {weekday}
-    </div>
+        if selected_date:
+
+            date_str = selected_date.strftime(
+                "%Y-%m-%d"
+            )
+
+            # 중복 방지
+
+            if (
+                date_str
+                not in
+                st.session_state.selected_dates
+            ):
+
+                st.session_state.selected_dates.append(
+                    date_str
+                )
+
+                st.success(
+                    f"{date_str} 추가 완료"
+                )
+
+                st.rerun()
+
+
+    # =========================
+    # 선택된 날짜 목록
+    # =========================
+
+    if st.session_state.selected_dates:
+
+        st.markdown(
+            """
+    <h4 style="
+    margin-top:20px;
+    margin-bottom:12px;
+    ">
+    선택된 날짜
+    </h4>
     """,
             unsafe_allow_html=True
         )
 
-    # =========================
-    # 날짜 출력
-    # =========================
+        for idx, d in enumerate(
+            sorted(
+                st.session_state.selected_dates
+            )
+        ):
 
-    for week_idx, week in enumerate(cal):
+            col1, col2 = st.columns(
+                [8, 1]
+            )
 
-        cols = st.columns(7)
+            with col1:
 
-        for day_idx, day in enumerate(week):
-
-            # 빈칸
-
-            if day == 0:
-
-                cols[day_idx].markdown(
-                    """
-    <div class="calendar-empty"></div>
-    """,
-                    unsafe_allow_html=True
-                )
-
-            # 실제 날짜
-
-            else:
-
-                date_str = (
-                    f"{year}-{month:02d}-{day:02d}"
-                )
-
-                selected = (
-                    date_str
-                    in
-                    st.session_state.selected_dates
-                )
-
-                class_name = (
-                    "calendar-cell calendar-selected"
-                    if selected
-                    else "calendar-cell"
-                )
-
-                cols[day_idx].markdown(
+                st.markdown(
                     f"""
-    <div class="{class_name}">
-    {day}
-    <div class="calendar-button">
+    <div style="
+    padding:14px;
+    margin-bottom:10px;
+    background:
+    linear-gradient(
+        90deg,
+        #8b5cf6,
+        #60a5fa
+    );
+    color:white;
+    font-weight:700;
+    ">
+    📅 {d}
+    </div>
     """,
                     unsafe_allow_html=True
                 )
 
-                if cols[day_idx].button(
+            with col2:
 
-                    label="",
+                if st.button(
 
-                    key=f"calendar_{date_str}",
+                    "❌",
 
-                    use_container_width=True
+                    key=f"remove_date_{idx}"
                 ):
 
-                    # 선택 해제
-
-                    if selected:
-
-                        st.session_state.selected_dates.remove(
-                            date_str
-                        )
-
-                    # 선택
-
-                    else:
-
-                        st.session_state.selected_dates.append(
-                            date_str
-                        )
+                    st.session_state.selected_dates.remove(
+                        d
+                    )
 
                     st.rerun()
-
-                cols[day_idx].markdown(
-                    """
-    </div>
-    </div>
-    """,
-                    unsafe_allow_html=True
-                )
-
-    st.markdown(
-        "</div>",
-        unsafe_allow_html=True
-    )
-                    
-# =========================
-# 정보 저장 버튼 수정
-# =========================
+    # =========================
+    # 저장 버튼
+    # =========================
 
     if st.button(
+
         "정보 저장",
-        key=f"save_user_button_{st.session_state.current_room}"
+
+        key=f"save_user_{st.session_state.current_room}"
     ):
-        
+
         st.session_state.nickname = (
             nickname
         )
@@ -678,11 +443,9 @@ margin-bottom:20px;
 
         st.rerun()
 
-# =========================
-# 참가자 목록
-# =========================
-
-if st.session_state.current_room:
+    # =========================
+    # 참가자 목록
+    # =========================
 
     users_data = get_room_users(
 
@@ -740,7 +503,7 @@ opacity:0.85;
 """,
             unsafe_allow_html=True
         )
-        
+
     # =========================
     # 추천 장소
     # =========================
