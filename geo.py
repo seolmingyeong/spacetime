@@ -12,13 +12,13 @@ KAKAO_REST_API_KEY = st.secrets[
 
 
 # =========================
-# 주소 → 좌표 변환
+# 장소명 → 좌표 변환
 # =========================
 
 def geocode_location(query):
 
     url = (
-        "https://dapi.kakao.com/v2/local/search/address.json"
+        "https://dapi.kakao.com/v2/local/search/keyword.json"
     )
 
     headers = {
@@ -45,36 +45,22 @@ def geocode_location(query):
     documents = data.get("documents")
 
     # =========================
-    # 주소 검색 실패 시
-    # 키워드 검색
+    # 검색 실패
     # =========================
 
     if not documents:
 
-        url = (
-            "https://dapi.kakao.com/v2/local/search/keyword.json"
-        )
+        return None, None, None
 
-        response = requests.get(
-
-            url,
-
-            headers=headers,
-
-            params=params
-        )
-
-        data = response.json()
-
-        documents = data.get("documents")
-
-        if not documents:
-
-            return None, None
+    # =========================
+    # 첫 검색 결과 사용
+    # =========================
 
     first = documents[0]
+
+    place_name = first["place_name"]
 
     lat = float(first["y"])
     lng = float(first["x"])
 
-    return lat, lng
+    return place_name, lat, lng

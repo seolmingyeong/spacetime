@@ -409,7 +409,6 @@ margin-bottom:20px;
 
                     st.rerun()
 
-
     # =========================
     # 저장 버튼
     # =========================
@@ -440,15 +439,17 @@ margin-bottom:20px;
         else:
 
             # =========================
-            # 주소 → 좌표 변환
+            # 장소 검색
             # =========================
 
-            lat, lng = geocode_location(
-                location_name.strip()
+            place_name, lat, lng = (
+                geocode_location(
+                    location_name.strip()
+                )
             )
 
             # =========================
-            # 실제 검색 실패
+            # 검색 실패
             # =========================
 
             if lat is None:
@@ -473,7 +474,8 @@ margin-bottom:20px;
                         st.session_state.selected_dates
                     ),
 
-                    location_name,
+                    # 실제 검색된 장소명 저장
+                    place_name,
 
                     lat,
 
@@ -568,7 +570,7 @@ opacity:0.85;
     if len(users_data) >= 2:
 
         if st.button(
-            "✨ 추천 장소 찾기",
+            "추천 장소 찾기",
             key="recommend_button"
         ):
 
@@ -578,14 +580,16 @@ opacity:0.85;
 
                 users.append({
 
-                    "nickname": user[2],
+                "nickname": user[2],
 
-                    "lat": user[5],
+                "location_name": user[4],
 
-                    "lng": user[6],
+                "lat": user[5],
 
-                    "transport": user[7]
-                })
+                "lng": user[6],
+
+                "transport": user[7]
+            })
 
             middle_lat, middle_lng = (
                 get_middle_point(users)

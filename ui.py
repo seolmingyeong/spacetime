@@ -1,44 +1,89 @@
 import streamlit as st
 
 
+# =========================
+# 추천 장소 카드
+# =========================
+
 def render_place_card(place):
 
     st.markdown(
+
         f"""
-<div style="
-background:#1e293b;
-padding:24px;
-border-radius:20px;
-border:2px solid #22c55e;
-margin-bottom:20px;
-">
+        <div style="
 
-<h1 style="
-color:#22c55e;
-">
-🌟 추천 장소
-</h1>
+        padding:28px;
 
-<h2 style="
-color:white;
-">
-{place["name"]}
-</h2>
+        border-radius:20px;
 
-<p style="
-color:#d1fae5;
-">
-⏱ 평균 이동시간:
-{place["avg_time"]}분
-</p>
+        background:white;
 
-<p style="
-color:#d1fae5;
-">
-📍 {place["address"]}
-</p>
+        border:1px solid #e2e8f0;
 
-</div>
-""",
+        margin-top:30px;
+
+        margin-bottom:30px;
+
+        ">
+
+            <div style="
+
+            font-size:28px;
+
+            font-weight:700;
+
+            color:#8b5cf6;
+
+            margin-bottom:18px;
+
+            ">
+
+            추천 장소
+
+            </div>
+
+            <div style="
+
+            font-size:22px;
+
+            font-weight:600;
+
+            margin-bottom:14px;
+
+            color:#334155;
+
+            ">
+
+            {place["name"]}
+
+            </div>
+
+            <div style="
+
+            color:#64748b;
+
+            margin-bottom:8px;
+
+            ">
+
+            평균 이동시간:
+            {place["avg_time"]}분
+
+            </div>
+
+            <div style="
+
+            color:#64748b;
+
+            ">
+
+            최대 이동시간:
+            {place["max_time"]}분
+
+            </div>
+
+        </div>
+        """,
+
         unsafe_allow_html=True
     )
