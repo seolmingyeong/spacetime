@@ -409,141 +409,97 @@ margin-bottom:20px;
 
                     st.rerun()
     # =========================
-    # 저장 버튼
+# 저장 버튼
+# =========================
+
+if st.button(
+
+    "정보 저장",
+
+    key=f"save_user_{st.session_state.current_room}"
+):
+
+    # =========================
+    # 입력값 검증
     # =========================
 
-    if st.button(
+    if not nickname.strip():
 
-        "정보 저장",
+        st.error(
+            "닉네임을 입력하세요."
+        )
 
-        key=f"save_user_{st.session_state.current_room}"
-    ):
+    elif not location_name.strip():
+
+        st.error(
+            "출발 위치를 입력하세요."
+        )
+
+    elif len(location_name.strip()) < 2:
+
+        st.error(
+            "출발 위치를 정확히 입력하세요."
+        )
+
+    else:
 
         # =========================
-        # 입력값 검증
+        # 주소 → 좌표 변환
         # =========================
 
-        if not nickname.strip():
+        lat, lng = geocode_location(
+            location_name.strip()
+        )
+
+        # 실제 검색 실패 시만 출력
+
+        if lat is None:
 
             st.error(
-                "닉네임을 입력하세요."
-            )
-
-        elif not location_name.strip():
-
-            st.error(
-                "출발 위치를 입력하세요."
-            )
-
-        elif len(location_name.strip()) < 2:
-
-            st.error(
-                "출발 위치를 정확히 입력하세요."
+                "위치를 찾을 수 없습니다."
             )
 
         else:
 
-            # =========================
-            # 주소 → 좌표 변환
-            # =========================
-
-            lat, lng = geocode_location(
-                location_name.strip()
+            st.session_state.nickname = (
+                nickname
             )
 
-            # 실제 검색 실패 시만 출력
+            save_user(
 
-            if lat is None:
+                st.session_state.current_room,
 
-                st.error(
-                    "위치를 찾을 수 없습니다."
-                )
+                nickname,
 
-            else:
+                ",".join(
+                    st.session_state.selected_dates
+                ),
 
-                st.session_state.nickname = (
-                    nickname
-                )
+                location_name,
 
-                save_user(
+                lat,
 
-                    st.session_state.current_room,
+                lng,
 
-                    nickname,
-
-                    ",".join(
-                        st.session_state.selected_dates
-                    ),
-
-                    location_name,
-
-                    lat,
-
-                    lng,
-
-                    transport
-                )
-
-                st.session_state.save_success = True
-
-                st.rerun()
-                
-            # =========================
-            # 주소 → 좌표 변환
-            # =========================
-
-            lat, lng = geocode_location(
-                location_name
+                transport
             )
 
-            if lat is None:
+            st.session_state.save_success = True
 
-                st.error(
-                    "위치를 찾을 수 없습니다."
-                )
-
-            else:
-
-                st.session_state.nickname = (
-                    nickname
-                )
-
-                save_user(
-
-                    st.session_state.current_room,
-
-                    nickname,
-
-                    ",".join(
-                        st.session_state.selected_dates
-                    ),
-
-                    location_name,
-
-                    lat,
-
-                    lng,
-
-                    transport
-                )
-
-                st.session_state.save_success = True
-
-                st.rerun()
+            st.rerun()
 
 
-    # =========================
-    # 저장 완료 메시지
-    # =========================
+# =========================
+# 저장 완료 메시지
+# =========================
 
-    if st.session_state.save_success:
+if st.session_state.save_success:
 
-        st.success(
-            "정보 저장 완료!"
-        )
+    st.success(
+        "정보 저장 완료!"
+    )
 
-        st.session_state.save_success = False
-        
+    st.session_state.save_success = False
     # =========================
     # 주소 → 좌표 변환
     # =========================
