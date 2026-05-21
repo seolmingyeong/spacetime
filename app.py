@@ -17,7 +17,7 @@ from map_utils import *
 from ui import *
 
 from theme import apply_theme
-
+from geo import geocode_location
 
 # =========================
 # 페이지 설정
@@ -418,6 +418,22 @@ margin-bottom:20px;
             nickname
         )
 
+        # =========================
+        # 주소 → 좌표 변환
+        # =========================
+
+        lat, lng = geocode_location(
+            location_name
+        )
+
+        if lat is None:
+
+            st.error(
+                "위치를 찾을 수 없습니다."
+            )
+
+            st.stop()
+
         save_user(
 
             st.session_state.current_room,
@@ -430,9 +446,9 @@ margin-bottom:20px;
 
             location_name,
 
-            37.5665,
+            lat,
 
-            126.9780,
+            lng,
 
             transport
         )
@@ -442,6 +458,48 @@ margin-bottom:20px;
         )
 
         st.rerun()
+
+    # =========================
+    # 주소 → 좌표 변환
+    # =========================
+
+    lat, lng = geocode_location(
+        location_name
+    )
+
+    if lat is None:
+
+        st.error(
+            "위치를 찾을 수 없습니다."
+        )
+
+        st.stop()
+
+
+    save_user(
+
+        st.session_state.current_room,
+
+        nickname,
+
+        ",".join(
+            st.session_state.selected_dates
+        ),
+
+        location_name,
+
+        lat,
+
+        lng,
+
+        transport
+    )
+
+    st.success(
+        "정보 저장 완료!"
+    )
+
+    st.rerun()
 
     # =========================
     # 참가자 목록
