@@ -69,6 +69,11 @@ if "selected_dates" not in st.session_state:
     st.session_state.selected_dates = []
 
 
+if "save_success" not in st.session_state:
+
+    st.session_state.save_success = False
+
+
 # =========================
 # 제목
 # =========================
@@ -414,51 +419,80 @@ margin-bottom:20px;
         key=f"save_user_{st.session_state.current_room}"
     ):
 
-        st.session_state.nickname = (
-            nickname
-        )
-
         # =========================
-        # 주소 → 좌표 변환
+        # 입력값 검증
         # =========================
 
-        lat, lng = geocode_location(
-            location_name
-        )
-
-        if lat is None:
+        if not nickname.strip():
 
             st.error(
-                "위치를 찾을 수 없습니다."
+                "닉네임을 입력하세요."
             )
 
-            st.stop()
+        elif not location_name.strip():
 
-        save_user(
+            st.error(
+                "출발 위치를 입력하세요."
+            )
 
-            st.session_state.current_room,
+        else:
 
-            nickname,
+            # =========================
+            # 주소 → 좌표 변환
+            # =========================
 
-            ",".join(
-                st.session_state.selected_dates
-            ),
+            lat, lng = geocode_location(
+                location_name
+            )
 
-            location_name,
+            if lat is None:
 
-            lat,
+                st.error(
+                    "위치를 찾을 수 없습니다."
+                )
 
-            lng,
+            else:
 
-            transport
-        )
+                st.session_state.nickname = (
+                    nickname
+                )
+
+                save_user(
+
+                    st.session_state.current_room,
+
+                    nickname,
+
+                    ",".join(
+                        st.session_state.selected_dates
+                    ),
+
+                    location_name,
+
+                    lat,
+
+                    lng,
+
+                    transport
+                )
+
+                st.session_state.save_success = True
+
+                st.rerun()
+
+
+    # =========================
+    # 저장 완료 메시지
+    # =========================
+
+    if st.session_state.save_success:
 
         st.success(
             "정보 저장 완료!"
         )
 
-        st.rerun()
-
+        st.session_state.save_success = False
+        
     # =========================
     # 주소 → 좌표 변환
     # =========================
