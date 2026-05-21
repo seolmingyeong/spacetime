@@ -409,6 +409,7 @@ margin-bottom:20px;
 
                     st.rerun()
 
+
     # =========================
     # 저장 버튼
     # =========================
@@ -420,15 +421,15 @@ margin-bottom:20px;
         key=f"save_user_{st.session_state.current_room}"
     ):
 
-        # 닉네임 검증
+        # =========================
+        # 입력값 검증
+        # =========================
 
         if not nickname.strip():
 
             st.error(
                 "닉네임을 입력하세요."
             )
-
-        # 위치 검증
 
         elif not location_name.strip():
 
@@ -440,14 +441,15 @@ margin-bottom:20px;
 
             # =========================
             # 주소 → 좌표 변환
-            # 버튼 클릭 시에만 실행
             # =========================
 
             lat, lng = geocode_location(
                 location_name.strip()
             )
 
-            # 실제 검색 실패 시만 출력
+            # =========================
+            # 실제 검색 실패
+            # =========================
 
             if lat is None:
 
@@ -495,7 +497,9 @@ margin-bottom:20px;
             "정보 저장 완료!"
         )
 
-    st.session_state.save_success = False
+        st.session_state.save_success = False
+
+
     # =========================
     # 참가자 목록
     # =========================
