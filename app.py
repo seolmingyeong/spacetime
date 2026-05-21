@@ -4,9 +4,8 @@
 
 import random
 import string
-import calendar
 
-from datetime import datetime
+from datetime import date
 
 import streamlit as st
 
@@ -18,6 +17,7 @@ from ui import *
 
 from theme import apply_theme
 from geo import geocode_location
+
 
 # =========================
 # 페이지 설정
@@ -267,39 +267,22 @@ margin-bottom:20px;
         )
 
     # =========================
-    # 가능한 날짜 선택
-    # 기존 날짜 선택 코드 전체 삭제 후 교체
+    # 가능한 날짜
     # =========================
-
-    from datetime import date
-
 
     st.markdown(
         """
-    <h3 style="
-    margin-top:30px;
-    margin-bottom:20px;
-    font-size:24px;
-    font-weight:700;
-    ">
-    가능한 날짜
-    </h3>
-    """,
+<h3 style="
+margin-top:30px;
+margin-bottom:20px;
+font-size:24px;
+font-weight:700;
+">
+가능한 날짜
+</h3>
+""",
         unsafe_allow_html=True
     )
-
-    # =========================
-    # session state
-    # =========================
-
-    if "selected_dates" not in st.session_state:
-
-        st.session_state.selected_dates = []
-
-
-    # =========================
-    # 달력 날짜 선택
-    # =========================
 
     selected_date = st.date_input(
 
@@ -325,8 +308,6 @@ margin-bottom:20px;
                 "%Y-%m-%d"
             )
 
-            # 중복 방지
-
             if (
                 date_str
                 not in
@@ -337,12 +318,7 @@ margin-bottom:20px;
                     date_str
                 )
 
-                st.success(
-                    f"{date_str} 추가 완료"
-                )
-
                 st.rerun()
-
 
     # =========================
     # 선택된 날짜 목록
@@ -352,17 +328,18 @@ margin-bottom:20px;
 
         st.markdown(
             """
-    <h4 style="
-    margin-top:20px;
-    margin-bottom:12px;
-    ">
-    선택된 날짜
-    </h4>
-    """,
+<h4 style="
+margin-top:20px;
+margin-bottom:12px;
+">
+선택된 날짜
+</h4>
+""",
             unsafe_allow_html=True
         )
 
         for idx, d in enumerate(
+
             sorted(
                 st.session_state.selected_dates
             )
@@ -376,21 +353,22 @@ margin-bottom:20px;
 
                 st.markdown(
                     f"""
-    <div style="
-    padding:14px;
-    margin-bottom:10px;
-    background:
-    linear-gradient(
-        90deg,
-        #8b5cf6,
-        #60a5fa
-    );
-    color:white;
-    font-weight:700;
-    ">
-    {d}
-    </div>
-    """,
+<div style="
+padding:14px;
+margin-bottom:10px;
+background:
+linear-gradient(
+    90deg,
+    #8b5cf6,
+    #60a5fa
+);
+color:white;
+font-weight:700;
+border-radius:12px;
+">
+{d}
+</div>
+""",
                     unsafe_allow_html=True
                 )
 
@@ -398,7 +376,7 @@ margin-bottom:20px;
 
                 if st.button(
 
-                    "X",
+                    "삭제",
 
                     key=f"remove_date_{idx}"
                 ):
@@ -419,10 +397,6 @@ margin-bottom:20px;
 
         key=f"save_user_{st.session_state.current_room}"
     ):
-
-        # =========================
-        # 입력값 검증
-        # =========================
 
         if not nickname.strip():
 
@@ -474,7 +448,6 @@ margin-bottom:20px;
                         st.session_state.selected_dates
                     ),
 
-                    # 실제 검색된 장소명 저장
                     place_name,
 
                     lat,
@@ -488,7 +461,6 @@ margin-bottom:20px;
 
                 st.rerun()
 
-
     # =========================
     # 저장 완료 메시지
     # =========================
@@ -500,7 +472,6 @@ margin-bottom:20px;
         )
 
         st.session_state.save_success = False
-
 
     # =========================
     # 참가자 목록
@@ -580,16 +551,16 @@ opacity:0.85;
 
                 users.append({
 
-                "nickname": user[2],
+                    "nickname": user[2],
 
-                "location_name": user[4],
+                    "location_name": user[4],
 
-                "lat": user[5],
+                    "lat": user[5],
 
-                "lng": user[6],
+                    "lng": user[6],
 
-                "transport": user[7]
-            })
+                    "transport": user[7]
+                })
 
             middle_lat, middle_lng = (
                 get_middle_point(users)
@@ -628,11 +599,30 @@ opacity:0.85;
             st.session_state.recommendations
         )
 
-        best_place = recommendations[0]
+        # =========================
+        # 추천 장소 존재 확인
+        # =========================
+
+        best_place = None
+
+        if (
+            recommendations
+            and len(recommendations) > 0
+        ):
+
+            best_place = recommendations[0]
+
+        # =========================
+        # 추천 장소 출력
+        # =========================
 
         render_place_card(
             best_place
         )
+
+        # =========================
+        # 지도용 사용자 데이터
+        # =========================
 
         users = []
 
@@ -642,6 +632,8 @@ opacity:0.85;
 
                 "nickname": user[2],
 
+                "location_name": user[4],
+
                 "lat": user[5],
 
                 "lng": user[6],
@@ -649,17 +641,25 @@ opacity:0.85;
                 "transport": user[7]
             })
 
+        # =========================
+        # 지도 제목
+        # =========================
+
         st.markdown(
             """
-<h2 style="
-margin-top:40px;
-margin-bottom:20px;
-">
-추천 지도
-</h2>
-""",
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    지도
+    </h2>
+    """,
             unsafe_allow_html=True
         )
+
+        # =========================
+        # 지도 출력
+        # =========================
 
         render_map(
 
