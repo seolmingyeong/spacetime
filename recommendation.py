@@ -2,7 +2,9 @@ from route_api import (
     get_car_travel_time
 )
 
-import streamlit as st
+from place_api import (
+    search_places
+)
 
 
 # =========================
@@ -35,47 +37,6 @@ def get_middle_point(users):
 
 
 # =========================
-# 후보 위치 생성
-# =========================
-
-def generate_candidates(
-
-    middle_lat,
-    middle_lng
-):
-
-    offset = 0.005
-
-    return [
-
-        (
-            middle_lat,
-            middle_lng
-        ),
-
-        (
-            middle_lat + offset,
-            middle_lng
-        ),
-
-        (
-            middle_lat - offset,
-            middle_lng
-        ),
-
-        (
-            middle_lat,
-            middle_lng + offset
-        ),
-
-        (
-            middle_lat,
-            middle_lng - offset
-        )
-    ]
-
-
-# =========================
 # 추천 장소 생성
 # =========================
 
@@ -86,17 +47,27 @@ def recommend_places(
     middle_lat,
     middle_lng
 ):
-    candidates = generate_candidates(
+
+    # =========================
+    # 중간지점 근처 카페 검색
+    # =========================
+
+    places = search_places(
 
         middle_lat,
-        middle_lng
+        middle_lng,
+
+        "카페"
     )
 
     best_place = None
 
     best_score = float("inf")
 
-    for lat, lng in candidates:
+    for place in places:
+
+        lat = place["lat"]
+        lng = place["lng"]
 
         times = []
 
@@ -116,10 +87,6 @@ def recommend_places(
                 )
             )
 
-            # =========================
-            # 실패
-            # =========================
-
             if travel_time is None:
 
                 continue
@@ -138,7 +105,7 @@ def recommend_places(
             })
 
         # =========================
-        # 계산 실패
+        # 이동시간 계산 실패
         # =========================
 
         if len(times) == 0:
@@ -165,7 +132,7 @@ def recommend_places(
             best_place = {
 
                 "name":
-                "최적 약속 장소",
+                place["name"],
 
                 "lat":
                 lat,
@@ -174,7 +141,7 @@ def recommend_places(
                 lng,
 
                 "address":
-                "이동시간 기반 추천",
+                place["address"],
 
                 "avg_time":
                 avg_time,
@@ -186,6 +153,9 @@ def recommend_places(
                 user_times
             }
 
+    # =========================
+    # 추천 실패
+    # =========================
 
     if best_place is None:
 
