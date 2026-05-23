@@ -1,192 +1,184 @@
-from route_api import (
-    get_car_travel_time
+import requests
+import streamlit as st
+
+
+# =========================
+# Google API Key
+# =========================
+
+GOOGLE_MAPS_API_KEY = st.secrets.get(
+    "GOOGLE_MAPS_API_KEY"
 )
 
 
 # =========================
-# 평균 좌표 계산
+# 자동차 이동시간 계산
 # =========================
 
-def get_middle_point(users):
+def get_car_travel_time(
 
-    avg_lat = sum(
+    start_lat,
+    start_lng,
 
-        user["lat"]
-
-        for user in users
-
-    ) / len(users)
-
-    avg_lng = sum(
-
-        user["lng"]
-
-        for user in users
-
-    ) / len(users)
-
-    return avg_lat, avg_lng
-
-
-# =========================
-# 후보 위치 생성
-# =========================
-
-def generate_candidates(
-
-    middle_lat,
-    middle_lng
+    end_lat,
+    end_lng
 ):
 
-    offset = 0.005
+    # =========================
+    # API 키 확인
+    # =========================
 
-    return [
+    if not GOOGLE_MAPS_API_KEY:
 
-        (
-            middle_lat,
-            middle_lng
-        ),
-
-        (
-            middle_lat + offset,
-            middle_lng
-        ),
-
-        (
-            middle_lat - offset,
-            middle_lng
-        ),
-
-        (
-            middle_lat,
-            middle_lng + offset
-        ),
-
-        (
-            middle_lat,
-            middle_lng - offset
+        st.error(
+            "GOOGLE_MAPS_API_KEY 없음"
         )
-    ]
 
+        return None
 
-# =========================
-# 추천 장소 생성
-# =========================
+    # =========================
+    # Google Routes API URL
+    # =========================
 
-def recommend_places(
-
-    users,
-
-    middle_lat,
-    middle_lng
-):
-
-    candidates = generate_candidates(
-
-        middle_lat,
-        middle_lng
+    url = (
+        "https://routes.googleapis.com/directions/v2:computeRoutes"
     )
 
-    best_place = None
+    # =========================
+    # 요청 헤더
+    # =========================
 
-    best_score = float("inf")
+    headers = {
 
-    for lat, lng in candidates:
+        "Content-Type":
+        "application/json",
 
-        times = []
+        "X-Goog-Api-Key":
+        GOOGLE_MAPS_API_KEY,
 
-        user_times = []
+        "X-Goog-FieldMask":
+        "routes.duration"
+    }
 
-        for user in users:
+    # =========================
+    # 요청 body
+    # =========================
 
-            travel_time = (
+    body = {
 
-                get_car_travel_time(
+        "origin": {
 
-                    user["lat"],
-                    user["lng"],
+            "location": {
 
-                    lat,
-                    lng
-                )
-            )
+                "latLng": {
 
-            # =========================
-            # API 실패
-            # =========================
+                    "latitude":
+                    float(start_lat),
 
-            if travel_time is None:
-
-                continue
-
-            times.append(
-                travel_time
-            )
-
-            user_times.append({
-
-                "nickname":
-                user["nickname"],
-
-                "travel_time":
-                travel_time
-            })
-
-        # =========================
-        # 아무도 계산 실패
-        # =========================
-
-        if len(times) == 0:
-
-            continue
-
-        avg_time = int(
-
-            sum(times)
-            / len(times)
-        )
-
-        max_time = max(times)
-
-        score = (
-            avg_time
-            + max_time
-        )
-
-        if score < best_score:
-
-            best_score = score
-
-            best_place = {
-
-                "name":
-                "최적 약속 장소",
-
-                "lat":
-                lat,
-
-                "lng":
-                lng,
-
-                "address":
-                "이동시간 기반 추천",
-
-                "avg_time":
-                avg_time,
-
-                "max_time":
-                max_time,
-
-                "user_times":
-                user_times
+                    "longitude":
+                    float(start_lng)
+                }
             }
+        },
 
-    # =========================
-    # 최종 추천 실패
-    # =========================
+        "destination": {
 
-    if best_place is None:
+            "location": {
 
-        return []
+                "latLng": {
 
-    return [best_place]
+                    "latitude":
+                    float(end_lat),
+
+                    "longitude":
+                    float(end_lng)
+                }
+            }
+        },
+
+        "travelMode":
+        "DRIVE"
+    }
+
+    try:
+
+        response = requests.post(
+
+            url,
+
+            headers=headers,
+
+            json=body
+        )
+
+        data = response.json()
+
+        # =========================
+        # 디버그 출력
+        # =========================
+
+        st.write(
+            "Google Status:",
+            response.status_code
+        )
+
+        st.json(data)
+
+        # =========================
+        # routes 확인
+        # =========================
+
+        routes = data.get(
+            "routes"
+        )
+
+        if not routes:
+
+            st.error(
+                "routes 없음"
+            )
+
+            return None
+
+        route = routes[0]
+
+        # =========================
+        # duration 확인
+        # =========================
+
+        duration = route.get(
+            "duration"
+        )
+
+        if not duration:
+
+            st.error(
+                "duration 없음"
+            )
+
+            return None
+
+        # 예:
+        # "1520s"
+
+        seconds = int(
+
+            duration.replace(
+                "s",
+                ""
+            )
+        )
+
+        minutes = int(
+            seconds / 60
+        )
+
+        return minutes
+
+    except Exception as e:
+
+        st.error(
+            f"Google API 오류: {e}"
+        )
+
+        return None
