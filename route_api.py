@@ -2,18 +2,10 @@ import requests
 import streamlit as st
 
 
-# =========================
-# Google API Key
-# =========================
-
 GOOGLE_MAPS_API_KEY = st.secrets.get(
     "GOOGLE_MAPS_API_KEY"
 )
 
-
-# =========================
-# 자동차 이동시간 계산
-# =========================
 
 def get_car_travel_time(
 
@@ -32,89 +24,32 @@ def get_car_travel_time(
 
         return None
 
-    # =========================
-    # URL
-    # =========================
-
     url = (
-        "https://routes.googleapis.com/directions/v2:computeRoutes"
+        "https://maps.googleapis.com/maps/api/distancematrix/json"
     )
-
-    # =========================
-    # Query Params
-    # =========================
 
     params = {
 
-        # 매우 중요
-        "$fields":
-        "routes.duration"
-    }
+        "origins":
+        f"{start_lat},{start_lng}",
 
-    # =========================
-    # Headers
-    # =========================
+        "destinations":
+        f"{end_lat},{end_lng}",
 
-    headers = {
+        "mode":
+        "driving",
 
-        "Content-Type":
-        "application/json",
-
-        "X-Goog-Api-Key":
+        "key":
         GOOGLE_MAPS_API_KEY
-    }
-
-    # =========================
-    # Body
-    # =========================
-
-    body = {
-
-        "origin": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    float(start_lat),
-
-                    "longitude":
-                    float(start_lng)
-                }
-            }
-        },
-
-        "destination": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    float(end_lat),
-
-                    "longitude":
-                    float(end_lng)
-                }
-            }
-        },
-
-        "travelMode":
-        "DRIVE"
     }
 
     try:
 
-        response = requests.post(
+        response = requests.get(
 
             url,
 
-            headers=headers,
-
-            params=params,
-
-            json=body
+            params=params
         )
 
         data = response.json()
@@ -126,39 +61,38 @@ def get_car_travel_time(
 
         st.json(data)
 
-        routes = data.get(
-            "routes"
+        rows = data.get(
+            "rows"
         )
 
-        if not routes:
-
-            st.error(
-                "routes 없음"
-            )
+        if not rows:
 
             return None
 
-        duration = routes[0].get(
+        elements = rows[0].get(
+            "elements"
+        )
+
+        if not elements:
+
+            return None
+
+        element = elements[0]
+
+        if element.get("status") != "OK":
+
+            return None
+
+        duration = element.get(
             "duration"
         )
 
         if not duration:
 
-            st.error(
-                "duration 없음"
-            )
-
             return None
 
-        # 예:
-        # "1520s"
-
-        seconds = int(
-
-            duration.replace(
-                "s",
-                ""
-            )
+        seconds = duration.get(
+            "value"
         )
 
         minutes = int(
