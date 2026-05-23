@@ -2,18 +2,10 @@ import requests
 import streamlit as st
 
 
-# =========================
-# Google API Key
-# =========================
-
 GOOGLE_MAPS_API_KEY = st.secrets.get(
     "GOOGLE_MAPS_API_KEY"
 )
 
-
-# =========================
-# 자동차 이동시간 계산
-# =========================
 
 def get_car_travel_time(
 
@@ -23,14 +15,6 @@ def get_car_travel_time(
     end_lat,
     end_lng
 ):
-
-    if not GOOGLE_MAPS_API_KEY:
-
-        st.error(
-            "GOOGLE_MAPS_API_KEY 없음"
-        )
-
-        return None
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -42,12 +26,12 @@ def get_car_travel_time(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_MAPS_API_KEY
-    }
+        GOOGLE_MAPS_API_KEY,
 
-    # =========================
-    # 최소 요청 body
-    # =========================
+        # 중요
+        "X-Goog-FieldMask":
+        "routes.duration"
+    }
 
     body = {
 
@@ -85,77 +69,45 @@ def get_car_travel_time(
         "DRIVE"
     }
 
-    try:
+    response = requests.post(
 
-        response = requests.post(
+        url,
 
-            url,
+        headers=headers,
 
-            headers=headers,
+        json=body
+    )
 
-            json=body
-        )
+    data = response.json()
 
-        data = response.json()
+    st.write(
+        "Google Status:",
+        response.status_code
+    )
 
-        # =========================
-        # 디버그 출력
-        # =========================
+    st.json(data)
 
-        st.write(
-            "Google Status:",
-            response.status_code
-        )
+    routes = data.get(
+        "routes"
+    )
 
-        st.json(data)
-
-        routes = data.get(
-            "routes"
-        )
-
-        if not routes:
-
-            st.error(
-                "routes 없음"
-            )
-
-            return None
-
-        route = routes[0]
-
-        duration = route.get(
-            "duration"
-        )
-
-        if not duration:
-
-            st.error(
-                "duration 없음"
-            )
-
-            return None
-
-        # 예:
-        # "1520s"
-
-        seconds = int(
-
-            duration.replace(
-                "s",
-                ""
-            )
-        )
-
-        minutes = int(
-            seconds / 60
-        )
-
-        return minutes
-
-    except Exception as e:
-
-        st.error(
-            f"Google API 오류: {e}"
-        )
+    if not routes:
 
         return None
+
+    duration = routes[0].get(
+        "duration"
+    )
+
+    if not duration:
+
+        return None
+
+    seconds = int(
+        duration.replace(
+            "s",
+            ""
+        )
+    )
+
+    return int(seconds / 60)
