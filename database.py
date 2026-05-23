@@ -128,3 +128,28 @@ def get_room_users(room_id):
     conn.close()
 
     return users
+
+# =========================
+# 방 존재 여부 확인
+# =========================
+
+def room_exists(room_id):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM users
+        WHERE room_id=?
+        """,
+        (room_id,)
+    )
+
+    count = cursor.fetchone()[0]
+
+    conn.close()
+
+    return count > 0
