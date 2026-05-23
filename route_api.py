@@ -24,10 +24,6 @@ def get_car_travel_time(
     end_lng
 ):
 
-    # =========================
-    # API 키 확인
-    # =========================
-
     if not GOOGLE_MAPS_API_KEY:
 
         st.error(
@@ -37,7 +33,7 @@ def get_car_travel_time(
         return None
 
     # =========================
-    # Google Routes API URL
+    # URL
     # =========================
 
     url = (
@@ -45,7 +41,18 @@ def get_car_travel_time(
     )
 
     # =========================
-    # 요청 헤더
+    # Query Params
+    # =========================
+
+    params = {
+
+        # 매우 중요
+        "$fields":
+        "routes.duration"
+    }
+
+    # =========================
+    # Headers
     # =========================
 
     headers = {
@@ -54,15 +61,11 @@ def get_car_travel_time(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_MAPS_API_KEY,
-
-        # routes 전체 요청
-        "X-Goog-FieldMask":
-        "routes"
+        GOOGLE_MAPS_API_KEY
     }
 
     # =========================
-    # 요청 body
+    # Body
     # =========================
 
     body = {
@@ -109,14 +112,12 @@ def get_car_travel_time(
 
             headers=headers,
 
+            params=params,
+
             json=body
         )
 
         data = response.json()
-
-        # =========================
-        # 디버그 출력
-        # =========================
 
         st.write(
             "Google Status:",
@@ -124,10 +125,6 @@ def get_car_travel_time(
         )
 
         st.json(data)
-
-        # =========================
-        # routes 확인
-        # =========================
 
         routes = data.get(
             "routes"
@@ -141,13 +138,7 @@ def get_car_travel_time(
 
             return None
 
-        route = routes[0]
-
-        # =========================
-        # duration 확인
-        # =========================
-
-        duration = route.get(
+        duration = routes[0].get(
             "duration"
         )
 
