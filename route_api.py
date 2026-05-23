@@ -24,6 +24,10 @@ def get_car_travel_time(
     end_lng
 ):
 
+    # =========================
+    # API 키 없음
+    # =========================
+
     if not GOOGLE_MAPS_API_KEY:
 
         st.error(
@@ -42,10 +46,7 @@ def get_car_travel_time(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_MAPS_API_KEY,
-
-        "X-Goog-FieldMask":
-        "routes.duration"
+        GOOGLE_MAPS_API_KEY
     }
 
     body = {
@@ -115,6 +116,10 @@ def get_car_travel_time(
             "routes"
         )
 
+        # =========================
+        # routes 없음
+        # =========================
+
         if not routes:
 
             st.error(
@@ -123,9 +128,15 @@ def get_car_travel_time(
 
             return None
 
-        duration = routes[0].get(
+        route = routes[0]
+
+        duration = route.get(
             "duration"
         )
+
+        # =========================
+        # duration 없음
+        # =========================
 
         if not duration:
 
@@ -136,7 +147,7 @@ def get_car_travel_time(
             return None
 
         # 예:
-        # "1320s"
+        # "1520s"
 
         seconds = int(
 
