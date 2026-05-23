@@ -49,25 +49,19 @@ def render_place_card(place):
         users_html += f"""
 
 <div style="
-margin-bottom:12px;
-padding:14px;
-border-radius:14px;
-background:rgba(255,255,255,0.05);
-display:flex;
-justify-content:space-between;
-align-items:center;
+margin-bottom:10px;
+padding:12px;
+border-radius:12px;
+background:rgba(148,163,184,0.08);
 ">
 
-<div style="
-font-weight:600;
-">
-{nickname}
-</div>
+<b>{nickname}</b>
 
 <div style="
-font-weight:700;
-color:#c4b5fd;
+margin-top:4px;
+opacity:0.8;
 ">
+이동시간:
 {travel_time}분
 </div>
 
@@ -81,77 +75,44 @@ color:#c4b5fd;
     st.markdown(
         f"""
 <div style="
-
-padding:32px;
-
-border-radius:24px;
-
-background:
-linear-gradient(
-    135deg,
-    rgba(139,92,246,0.18),
-    rgba(96,165,250,0.12)
-);
-
-border:2px solid rgba(139,92,246,0.4);
-
-margin-top:24px;
-
-margin-bottom:32px;
-
-box-shadow:
-0 8px 30px rgba(139,92,246,0.15);
-
+padding:28px;
+border-radius:20px;
+border:1px solid rgba(148,163,184,0.2);
+margin-top:30px;
+margin-bottom:30px;
 ">
 
 <div style="
 font-size:28px;
-font-weight:800;
+font-weight:700;
+color:#8b5cf6;
+margin-bottom:18px;
+">
+추천 장소
+</div>
+
+<div style="
+font-size:22px;
+font-weight:600;
 margin-bottom:14px;
-color:#ddd6fe;
 ">
 {place.get("name", "추천 실패")}
 </div>
 
 <div style="
-opacity:0.75;
-margin-bottom:20px;
-font-size:15px;
+opacity:0.8;
+margin-bottom:8px;
 ">
-{place.get("address", "")}
-</div>
-
-<div style="
-display:flex;
-gap:16px;
-flex-wrap:wrap;
-margin-bottom:22px;
-">
-
-<div style="
-padding:12px 18px;
-border-radius:14px;
-background:rgba(139,92,246,0.18);
-font-weight:600;
-">
-
 평균 이동시간:
 {place.get("avg_time", "-")}분
-
 </div>
 
 <div style="
-padding:12px 18px;
-border-radius:14px;
-background:rgba(96,165,250,0.18);
-font-weight:600;
+opacity:0.8;
+margin-bottom:20px;
 ">
-
 최대 이동시간:
 {place.get("max_time", "-")}분
-
-</div>
-
 </div>
 
 <div style="
