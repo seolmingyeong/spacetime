@@ -522,57 +522,63 @@ border-radius:12px;
         st.session_state.current_room
     )
 
-    st.markdown(
-        """
-<h2 style="
-margin-top:40px;
-margin-bottom:20px;
-">
-참가자
-</h2>
-""",
-        unsafe_allow_html=True
-    )
+    # =========================
+    # 참가자 존재 시만 출력
+    # =========================
 
-    for user in users_data:
+    if len(users_data) > 0:
 
         st.markdown(
-            f"""
-<div class="card">
-
-<div style="
-font-size:22px;
-font-weight:700;
-color:#8b5cf6;
-margin-bottom:10px;
-">
-{user[2]}
-</div>
-
-<div style="
-margin-bottom:6px;
-opacity:0.85;
-">
-{user[4]}
-</div>
-
-<div style="
-margin-bottom:6px;
-opacity:0.85;
-">
-{user[7]}
-</div>
-
-<div style="
-opacity:0.85;
-">
-{user[3]}
-</div>
-
-</div>
-""",
+            """
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    참가자
+    </h2>
+    """,
             unsafe_allow_html=True
         )
+
+        for user in users_data:
+
+            st.markdown(
+                f"""
+    <div class="card">
+
+    <div style="
+    font-size:22px;
+    font-weight:700;
+    color:#8b5cf6;
+    margin-bottom:10px;
+    ">
+    {user[2]}
+    </div>
+
+    <div style="
+    margin-bottom:6px;
+    opacity:0.85;
+    ">
+    {user[4]}
+    </div>
+
+    <div style="
+    margin-bottom:6px;
+    opacity:0.85;
+    ">
+    {user[7]}
+    </div>
+
+    <div style="
+    opacity:0.85;
+    ">
+    {user[3]}
+    </div>
+
+    </div>
+    """,
+                unsafe_allow_html=True
+            )
 
 
     # =========================
