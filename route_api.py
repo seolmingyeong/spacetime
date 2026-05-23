@@ -56,8 +56,9 @@ def get_car_travel_time(
         "X-Goog-Api-Key":
         GOOGLE_MAPS_API_KEY,
 
+        # routes 전체 요청
         "X-Goog-FieldMask":
-        "routes.duration"
+        "routes"
     }
 
     # =========================
