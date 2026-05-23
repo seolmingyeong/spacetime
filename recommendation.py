@@ -2,12 +2,18 @@ from route_api import (
     get_car_travel_time
 )
 
+import streamlit as st
+
 
 # =========================
 # 평균 좌표 계산
 # =========================
 
 def get_middle_point(users):
+
+    if len(users) == 0:
+
+        return None, None
 
     avg_lat = sum(
 
@@ -81,6 +87,10 @@ def recommend_places(
     middle_lng
 ):
 
+    st.write(
+        "recommend_places 실행됨"
+    )
+
     candidates = generate_candidates(
 
         middle_lat,
@@ -93,11 +103,22 @@ def recommend_places(
 
     for lat, lng in candidates:
 
+        st.write(
+            "후보 위치:",
+            lat,
+            lng
+        )
+
         times = []
 
         user_times = []
 
         for user in users:
+
+            st.write(
+                "사용자:",
+                user["nickname"]
+            )
 
             travel_time = (
 
@@ -111,25 +132,47 @@ def recommend_places(
                 )
             )
 
-            if travel_time is not None:
+            st.write(
+                "이동시간:",
+                travel_time
+            )
 
-                times.append(
-                    travel_time
-                )
+            # =========================
+            # 실패
+            # =========================
 
-                user_times.append({
+            if travel_time is None:
 
-                    "nickname":
-                    user["nickname"],
+                continue
 
-                    "travel_time":
-                    travel_time
-                })
+            times.append(
+                travel_time
+            )
 
-        if not times:
+            user_times.append({
+
+                "nickname":
+                user["nickname"],
+
+                "travel_time":
+                travel_time
+            })
+
+        st.write(
+            "times:",
+            times
+        )
+
+        # =========================
+        # 계산 실패
+        # =========================
+
+        if len(times) == 0:
+
             continue
 
         avg_time = int(
+
             sum(times)
             / len(times)
         )
@@ -139,6 +182,11 @@ def recommend_places(
         score = (
             avg_time
             + max_time
+        )
+
+        st.write(
+            "score:",
+            score
         )
 
         if score < best_score:
@@ -168,5 +216,14 @@ def recommend_places(
                 "user_times":
                 user_times
             }
+
+    st.write(
+        "best_place:",
+        best_place
+    )
+
+    if best_place is None:
+
+        return []
 
     return [best_place]
