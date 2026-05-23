@@ -60,9 +60,11 @@ def recommend_places(
         "카페"
     )
 
-    best_place = None
+    recommendations = []
 
-    best_score = float("inf")
+    # =========================
+    # 장소별 이동시간 계산
+    # =========================
 
     for place in places:
 
@@ -105,7 +107,7 @@ def recommend_places(
             })
 
         # =========================
-        # 이동시간 계산 실패
+        # 계산 실패
         # =========================
 
         if len(times) == 0:
@@ -125,40 +127,45 @@ def recommend_places(
             + max_time
         )
 
-        if score < best_score:
+        recommendations.append({
 
-            best_score = score
+            "name":
+            place["name"],
 
-            best_place = {
+            "lat":
+            lat,
 
-                "name":
-                place["name"],
+            "lng":
+            lng,
 
-                "lat":
-                lat,
+            "address":
+            place["address"],
 
-                "lng":
-                lng,
+            "avg_time":
+            avg_time,
 
-                "address":
-                place["address"],
+            "max_time":
+            max_time,
 
-                "avg_time":
-                avg_time,
+            "score":
+            score,
 
-                "max_time":
-                max_time,
-
-                "user_times":
-                user_times
-            }
+            "user_times":
+            user_times
+        })
 
     # =========================
-    # 추천 실패
+    # score 기준 정렬
     # =========================
 
-    if best_place is None:
+    recommendations.sort(
 
-        return []
+        key=lambda x:
+        x["score"]
+    )
 
-    return [best_place]
+    # =========================
+    # 상위 3개 반환
+    # =========================
+
+    return recommendations[:3]
