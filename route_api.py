@@ -6,9 +6,9 @@ import streamlit as st
 # Google API Key
 # =========================
 
-GOOGLE_MAPS_API_KEY = st.secrets[
+GOOGLE_MAPS_API_KEY = st.secrets.get(
     "GOOGLE_MAPS_API_KEY"
-]
+)
 
 
 # =========================
@@ -23,6 +23,18 @@ def get_car_travel_time(
     end_lat,
     end_lng
 ):
+
+    # =========================
+    # API 키 없음
+    # =========================
+
+    if not GOOGLE_MAPS_API_KEY:
+
+        st.error(
+            "GOOGLE_MAPS_API_KEY 없음"
+        )
+
+        return None
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -88,18 +100,15 @@ def get_car_travel_time(
         )
 
         # =========================
-        # 응답 출력
+        # 디버그 출력
         # =========================
 
-        print(
-            "Google Routes Response:"
-        )
-
-        print(
+        st.write(
+            "Google Status:",
             response.status_code
         )
 
-        print(
+        st.write(
             response.text
         )
 
@@ -109,7 +118,15 @@ def get_car_travel_time(
             "routes"
         )
 
+        # =========================
+        # routes 없음
+        # =========================
+
         if not routes:
+
+            st.error(
+                "routes 없음"
+            )
 
             return None
 
@@ -136,10 +153,8 @@ def get_car_travel_time(
 
     except Exception as e:
 
-        print(
-            "Google Routes Error:"
+        st.error(
+            f"Google API 오류: {e}"
         )
-
-        print(e)
 
         return None
