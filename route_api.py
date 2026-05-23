@@ -66,13 +66,6 @@ def get_car_travel_time(
 
         data = response.json()
 
-        st.write(
-            "Kakao Status:",
-            response.status_code
-        )
-
-        st.json(data)
-
         routes = data.get(
             "routes"
         )

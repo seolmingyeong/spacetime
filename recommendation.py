@@ -86,11 +86,6 @@ def recommend_places(
     middle_lat,
     middle_lng
 ):
-
-    st.write(
-        "recommend_places 실행됨"
-    )
-
     candidates = generate_candidates(
 
         middle_lat,
@@ -103,22 +98,11 @@ def recommend_places(
 
     for lat, lng in candidates:
 
-        st.write(
-            "후보 위치:",
-            lat,
-            lng
-        )
-
         times = []
 
         user_times = []
 
         for user in users:
-
-            st.write(
-                "사용자:",
-                user["nickname"]
-            )
 
             travel_time = (
 
@@ -130,11 +114,6 @@ def recommend_places(
                     lat,
                     lng
                 )
-            )
-
-            st.write(
-                "이동시간:",
-                travel_time
             )
 
             # =========================
@@ -158,11 +137,6 @@ def recommend_places(
                 travel_time
             })
 
-        st.write(
-            "times:",
-            times
-        )
-
         # =========================
         # 계산 실패
         # =========================
@@ -182,11 +156,6 @@ def recommend_places(
         score = (
             avg_time
             + max_time
-        )
-
-        st.write(
-            "score:",
-            score
         )
 
         if score < best_score:
@@ -217,10 +186,6 @@ def recommend_places(
                 user_times
             }
 
-    st.write(
-        "best_place:",
-        best_place
-    )
 
     if best_place is None:
 
