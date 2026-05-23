@@ -585,49 +585,56 @@ opacity:0.85;
             key="recommend_button"
         ):
 
-            users = []
+            with st.spinner(
+                "추천 장소를 찾는 중..."
+            ):
 
-            for user in users_data:
+                users = []
 
-                users.append({
+                for user in users_data:
 
-                    "nickname": user[2],
+                    users.append({
 
-                    "location_name": user[4],
+                        "nickname": user[2],
 
-                    "lat": user[5],
+                        "location_name": user[4],
 
-                    "lng": user[6],
+                        "lat": user[5],
 
-                    "transport": user[7]
-                })
+                        "lng": user[6],
 
-            middle_lat, middle_lng = (
-                get_middle_point(users)
-            )
+                        "transport": user[7]
+                    })
 
-            recommendations = (
-                recommend_places(
+                middle_lat, middle_lng = (
+                    get_middle_point(users)
+                )
 
-                    users,
+                recommendations = (
+                    recommend_places(
 
-                    middle_lat,
+                        users,
 
+                        middle_lat,
+
+                        middle_lng
+                    )
+                )
+
+                st.session_state.recommendations = (
+                    recommendations
+                )
+
+                st.session_state.middle_lat = (
+                    middle_lat
+                )
+
+                st.session_state.middle_lng = (
                     middle_lng
                 )
-            )
 
-            st.session_state.recommendations = (
-                recommendations
-            )
+            st.rerun()
 
-            st.session_state.middle_lat = (
-                middle_lat
-            )
-
-            st.session_state.middle_lng = (
-                middle_lng
-            )
 
     # =========================
     # 추천 결과
