@@ -1,113 +1,192 @@
-import requests
-import streamlit as st
-
-
-GOOGLE_MAPS_API_KEY = st.secrets.get(
-    "GOOGLE_MAPS_API_KEY"
+from route_api import (
+    get_car_travel_time
 )
 
 
-def get_car_travel_time(
+# =========================
+# 평균 좌표 계산
+# =========================
 
-    start_lat,
-    start_lng,
+def get_middle_point(users):
 
-    end_lat,
-    end_lng
+    avg_lat = sum(
+
+        user["lat"]
+
+        for user in users
+
+    ) / len(users)
+
+    avg_lng = sum(
+
+        user["lng"]
+
+        for user in users
+
+    ) / len(users)
+
+    return avg_lat, avg_lng
+
+
+# =========================
+# 후보 위치 생성
+# =========================
+
+def generate_candidates(
+
+    middle_lat,
+    middle_lng
 ):
 
-    url = (
-        "https://routes.googleapis.com/directions/v2:computeRoutes"
-    )
+    offset = 0.005
 
-    headers = {
+    return [
 
-        "Content-Type":
-        "application/json",
+        (
+            middle_lat,
+            middle_lng
+        ),
 
-        "X-Goog-Api-Key":
-        GOOGLE_MAPS_API_KEY,
+        (
+            middle_lat + offset,
+            middle_lng
+        ),
 
-        # 중요
-        "X-Goog-FieldMask":
-        "routes.duration"
-    }
+        (
+            middle_lat - offset,
+            middle_lng
+        ),
 
-    body = {
+        (
+            middle_lat,
+            middle_lng + offset
+        ),
 
-        "origin": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    float(start_lat),
-
-                    "longitude":
-                    float(start_lng)
-                }
-            }
-        },
-
-        "destination": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    float(end_lat),
-
-                    "longitude":
-                    float(end_lng)
-                }
-            }
-        },
-
-        "travelMode":
-        "DRIVE"
-    }
-
-    response = requests.post(
-
-        url,
-
-        headers=headers,
-
-        json=body
-    )
-
-    data = response.json()
-
-    st.write(
-        "Google Status:",
-        response.status_code
-    )
-
-    st.json(data)
-
-    routes = data.get(
-        "routes"
-    )
-
-    if not routes:
-
-        return None
-
-    duration = routes[0].get(
-        "duration"
-    )
-
-    if not duration:
-
-        return None
-
-    seconds = int(
-        duration.replace(
-            "s",
-            ""
+        (
+            middle_lat,
+            middle_lng - offset
         )
+    ]
+
+
+# =========================
+# 추천 장소 생성
+# =========================
+
+def recommend_places(
+
+    users,
+
+    middle_lat,
+    middle_lng
+):
+
+    candidates = generate_candidates(
+
+        middle_lat,
+        middle_lng
     )
 
-    return int(seconds / 60)
+    best_place = None
+
+    best_score = float("inf")
+
+    for lat, lng in candidates:
+
+        times = []
+
+        user_times = []
+
+        for user in users:
+
+            travel_time = (
+
+                get_car_travel_time(
+
+                    user["lat"],
+                    user["lng"],
+
+                    lat,
+                    lng
+                )
+            )
+
+            # =========================
+            # API 실패
+            # =========================
+
+            if travel_time is None:
+
+                continue
+
+            times.append(
+                travel_time
+            )
+
+            user_times.append({
+
+                "nickname":
+                user["nickname"],
+
+                "travel_time":
+                travel_time
+            })
+
+        # =========================
+        # 아무도 계산 실패
+        # =========================
+
+        if len(times) == 0:
+
+            continue
+
+        avg_time = int(
+
+            sum(times)
+            / len(times)
+        )
+
+        max_time = max(times)
+
+        score = (
+            avg_time
+            + max_time
+        )
+
+        if score < best_score:
+
+            best_score = score
+
+            best_place = {
+
+                "name":
+                "최적 약속 장소",
+
+                "lat":
+                lat,
+
+                "lng":
+                lng,
+
+                "address":
+                "이동시간 기반 추천",
+
+                "avg_time":
+                avg_time,
+
+                "max_time":
+                max_time,
+
+                "user_times":
+                user_times
+            }
+
+    # =========================
+    # 최종 추천 실패
+    # =========================
+
+    if best_place is None:
+
+        return []
+
+    return [best_place]
