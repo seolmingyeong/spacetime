@@ -44,11 +44,10 @@ def get_car_travel_time(
 
     params = {
 
-        # 출발지
+        # 카카오는 lng,lat 순서
         "origin":
         f"{start_lng},{start_lat}",
 
-        # 도착지
         "destination":
         f"{end_lng},{end_lat}"
     }
@@ -61,7 +60,9 @@ def get_car_travel_time(
 
             headers=headers,
 
-            params=params
+            params=params,
+
+            timeout=5
         )
 
         data = response.json()
@@ -72,10 +73,6 @@ def get_car_travel_time(
 
         if not routes:
 
-            st.error(
-                "routes 없음"
-            )
-
             return None
 
         summary = routes[0].get(
@@ -83,10 +80,6 @@ def get_car_travel_time(
         )
 
         if not summary:
-
-            st.error(
-                "summary 없음"
-            )
 
             return None
 
@@ -96,23 +89,23 @@ def get_car_travel_time(
 
         if duration is None:
 
-            st.error(
-                "duration 없음"
-            )
-
             return None
 
-        # ms -> 분
+        # =========================
+        # 카카오는 초(second) 단위
+        # =========================
+
         minutes = int(
-            duration / 1000 / 60
+            duration / 60
         )
+
+        # 최소 1분 처리
+        if minutes <= 0:
+
+            minutes = 1
 
         return minutes
 
-    except Exception as e:
-
-        st.error(
-            f"Kakao API 오류: {e}"
-        )
+    except Exception:
 
         return None
