@@ -24,10 +24,6 @@ def get_car_travel_time(
     end_lng
 ):
 
-    # =========================
-    # API 키 없음
-    # =========================
-
     if not GOOGLE_MAPS_API_KEY:
 
         st.error(
@@ -48,6 +44,10 @@ def get_car_travel_time(
         "X-Goog-Api-Key":
         GOOGLE_MAPS_API_KEY
     }
+
+    # =========================
+    # 최소 요청 body
+    # =========================
 
     body = {
 
@@ -82,10 +82,7 @@ def get_car_travel_time(
         },
 
         "travelMode":
-        "DRIVE",
-
-        "routingPreference":
-        "TRAFFIC_AWARE"
+        "DRIVE"
     }
 
     try:
@@ -116,10 +113,6 @@ def get_car_travel_time(
             "routes"
         )
 
-        # =========================
-        # routes 없음
-        # =========================
-
         if not routes:
 
             st.error(
@@ -133,10 +126,6 @@ def get_car_travel_time(
         duration = route.get(
             "duration"
         )
-
-        # =========================
-        # duration 없음
-        # =========================
 
         if not duration:
 
