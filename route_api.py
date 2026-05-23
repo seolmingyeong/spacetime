@@ -2,10 +2,18 @@ import requests
 import streamlit as st
 
 
-GOOGLE_MAPS_API_KEY = st.secrets.get(
-    "GOOGLE_MAPS_API_KEY"
+# =========================
+# Kakao API Key
+# =========================
+
+KAKAO_REST_API_KEY = st.secrets.get(
+    "KAKAO_REST_API_KEY"
 )
 
+
+# =========================
+# 자동차 이동시간 계산
+# =========================
 
 def get_car_travel_time(
 
@@ -16,31 +24,33 @@ def get_car_travel_time(
     end_lng
 ):
 
-    if not GOOGLE_MAPS_API_KEY:
+    if not KAKAO_REST_API_KEY:
 
         st.error(
-            "GOOGLE_MAPS_API_KEY 없음"
+            "KAKAO_REST_API_KEY 없음"
         )
 
         return None
 
     url = (
-        "https://maps.googleapis.com/maps/api/distancematrix/json"
+        "https://apis-navi.kakaomobility.com/v1/directions"
     )
+
+    headers = {
+
+        "Authorization":
+        f"KakaoAK {KAKAO_REST_API_KEY}"
+    }
 
     params = {
 
-        "origins":
-        f"{start_lat},{start_lng}",
+        # 출발지
+        "origin":
+        f"{start_lng},{start_lat}",
 
-        "destinations":
-        f"{end_lat},{end_lng}",
-
-        "mode":
-        "driving",
-
-        "key":
-        GOOGLE_MAPS_API_KEY
+        # 도착지
+        "destination":
+        f"{end_lng},{end_lat}"
     }
 
     try:
@@ -49,54 +59,59 @@ def get_car_travel_time(
 
             url,
 
+            headers=headers,
+
             params=params
         )
 
         data = response.json()
 
         st.write(
-            "Google Status:",
+            "Kakao Status:",
             response.status_code
         )
 
         st.json(data)
 
-        rows = data.get(
-            "rows"
+        routes = data.get(
+            "routes"
         )
 
-        if not rows:
+        if not routes:
+
+            st.error(
+                "routes 없음"
+            )
 
             return None
 
-        elements = rows[0].get(
-            "elements"
+        summary = routes[0].get(
+            "summary"
         )
 
-        if not elements:
+        if not summary:
+
+            st.error(
+                "summary 없음"
+            )
 
             return None
 
-        element = elements[0]
-
-        if element.get("status") != "OK":
-
-            return None
-
-        duration = element.get(
+        duration = summary.get(
             "duration"
         )
 
-        if not duration:
+        if duration is None:
+
+            st.error(
+                "duration 없음"
+            )
 
             return None
 
-        seconds = duration.get(
-            "value"
-        )
-
+        # ms -> 분
         minutes = int(
-            seconds / 60
+            duration / 1000 / 60
         )
 
         return minutes
@@ -104,7 +119,7 @@ def get_car_travel_time(
     except Exception as e:
 
         st.error(
-            f"Google API 오류: {e}"
+            f"Kakao API 오류: {e}"
         )
 
         return None
