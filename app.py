@@ -574,67 +574,6 @@ opacity:0.85;
             unsafe_allow_html=True
         )
 
-    # =========================
-    # 추천 장소
-    # =========================
-
-    if len(users_data) >= 2:
-
-        if st.button(
-            "추천 장소 찾기",
-            key="recommend_button"
-        ):
-
-            with st.spinner(
-                "추천 장소를 찾는 중..."
-            ):
-
-                users = []
-
-                for user in users_data:
-
-                    users.append({
-
-                        "nickname": user[2],
-
-                        "location_name": user[4],
-
-                        "lat": user[5],
-
-                        "lng": user[6],
-
-                        "transport": user[7]
-                    })
-
-                middle_lat, middle_lng = (
-                    get_middle_point(users)
-                )
-
-                recommendations = (
-                    recommend_places(
-
-                        users,
-
-                        middle_lat,
-
-                        middle_lng
-                    )
-                )
-
-                st.session_state.recommendations = (
-                    recommendations
-                )
-
-                st.session_state.middle_lat = (
-                    middle_lat
-                )
-
-                st.session_state.middle_lng = (
-                    middle_lng
-                )
-
-            st.rerun()
-
 
     # =========================
     # 추천 결과
@@ -646,6 +585,43 @@ opacity:0.85;
             st.session_state.recommendations
         )
 
+        st.markdown(
+            """
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    추천 장소
+    </h2>
+    """,
+            unsafe_allow_html=True
+        )
+
+        # =========================
+        # 추천 장소 여러 개 출력
+        # =========================
+
+        for idx, place in enumerate(
+            recommendations
+        ):
+
+            st.markdown(
+                f"""
+    <h3 style="
+    margin-top:25px;
+    margin-bottom:10px;
+    color:#8b5cf6;
+    ">
+    #{idx + 1} 추천
+    </h3>
+    """,
+                unsafe_allow_html=True
+            )
+
+            render_place_card(
+                place
+            )
+            
         # =========================
         # 추천 장소 존재 확인
         # =========================
