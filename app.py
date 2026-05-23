@@ -1,25 +1,40 @@
+# =========================
+# app.py
+# =========================
+
+import random
+import string
+
+from datetime import date
+
 import streamlit as st
 
 from database import *
 from recommendation import *
+from route_api import *
 from map_utils import *
-from ui import render_place_card
+from ui import *
 
-from room import (
-    generate_room_code
-)
-
-from geopy.geocoders import Nominatim
-
+from theme import apply_theme
+from geo import geocode_location
 
 # =========================
 # 페이지 설정
 # =========================
 
 st.set_page_config(
+
     page_title="스페이스타임",
+
     layout="wide"
 )
+
+
+# =========================
+# 테마 적용
+# =========================
+
+apply_theme()
 
 
 # =========================
@@ -30,62 +45,32 @@ init_db()
 
 
 # =========================
-# Session State 초기화
+# session state
 # =========================
 
 if "current_room" not in st.session_state:
 
     st.session_state.current_room = None
 
-if "recommended_places" not in st.session_state:
 
-    st.session_state.recommended_places = []
+if "recommendations" not in st.session_state:
 
-if "middle_lat" not in st.session_state:
-
-    st.session_state.middle_lat = None
-
-if "middle_lng" not in st.session_state:
-
-    st.session_state.middle_lng = None
+    st.session_state.recommendations = None
 
 
-# =========================
-# 테마 CSS
-# =========================
+if "nickname" not in st.session_state:
 
-st.markdown(
-    """
-<style>
+    st.session_state.nickname = ""
 
-.block-container{
-    padding-top:2rem;
-    padding-bottom:4rem;
-}
 
-.main-title{
-    font-size:48px;
-    font-weight:800;
-    margin-bottom:10px;
-}
+if "selected_dates" not in st.session_state:
 
-.sub-title{
-    font-size:20px;
-    color:#64748b;
-    margin-bottom:40px;
-}
+    st.session_state.selected_dates = []
 
-.card{
-    padding:24px;
-    border-radius:20px;
-    border:1px solid rgba(148,163,184,0.2);
-    margin-bottom:20px;
-}
 
-</style>
-""",
-    unsafe_allow_html=True
-)
+if "save_success" not in st.session_state:
+
+    st.session_state.save_success = False
 
 
 # =========================
@@ -94,190 +79,372 @@ st.markdown(
 
 st.markdown(
     """
-<div class="main-title">
+<h1 style="
+text-align:center;
+font-size:58px;
+font-weight:800;
+background:
+linear-gradient(
+    90deg,
+    #8b5cf6,
+    #60a5fa
+);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+margin-bottom:10px;
+">
 스페이스타임
-</div>
+</h1>
 
-<div class="sub-title">
+<p style="
+text-align:center;
+font-size:18px;
+margin-bottom:35px;
+opacity:0.8;
+">
 모두의 시간과 공간을 연결하는 약속 플랫폼
-</div>
+</p>
 """,
     unsafe_allow_html=True
 )
 
 
 # =========================
-# 방 생성 / 입장
+# 시작 화면
 # =========================
 
-col1, col2 = st.columns(2)
+if not st.session_state.current_room:
 
-# =========================
-# 방 생성
-# =========================
+    col1, col2 = st.columns(2)
 
-with col1:
+    # =========================
+    # 방 만들기
+    # =========================
 
-    st.markdown(
-        "### 방 생성"
-    )
+    with col1:
 
-    if st.button(
-        "새 방 만들기",
-        use_container_width=True
-    ):
+        st.markdown(
+            """
+<div class="card">
 
-        room_code = generate_room_code()
+<h3>
+새 방 만들기
+</h3>
 
-        st.session_state.current_room = (
-            room_code
+<p>
+새로운 약속 공간 생성
+</p>
+
+</div>
+""",
+            unsafe_allow_html=True
         )
 
-        st.success(
-            f"방 생성 완료: {room_code}"
-        )
+        if st.button(
+            "방 만들기",
+            key="create_room"
+        ):
 
-        st.rerun()
+            # =========================
+            # 중복 없는 방 코드 생성
+            # =========================
 
+            while True:
 
-# =========================
-# 방 입장
-# =========================
+                room_id = "".join(
 
-with col2:
+                    random.choices(
 
-    st.markdown(
-        "### 방 입장"
-    )
+                        string.ascii_uppercase
+                        + string.digits,
 
-    room_code_input = st.text_input(
-        "방 코드 입력"
-    )
+                        k=6
+                    )
+                )
 
-    if st.button(
-        "방 입장",
-        use_container_width=True
-    ):
+                # =========================
+                # 중복 방지
+                # =========================
 
-        room_code = room_code_input.strip()
+                if not room_exists(room_id):
 
-        # =========================
-        # 입력 없음
-        # =========================
-
-        if not room_code:
-
-            st.error(
-                "방 코드를 입력하세요."
-            )
-
-        # =========================
-        # 방 존재 확인
-        # =========================
-
-        elif not room_exists(room_code):
-
-            st.error(
-                "존재하지 않는 방입니다."
-            )
-
-        # =========================
-        # 정상 입장
-        # =========================
-
-        else:
+                    break
 
             st.session_state.current_room = (
-                room_code
-            )
-
-            st.success(
-                f"{room_code} 방에 입장했습니다."
+                room_id
             )
 
             st.rerun()
 
+    # =========================
+    # 방 입장
+    # =========================
+
+    with col2:
+
+        st.markdown(
+            """
+<div class="card">
+
+<h3>
+방 입장
+</h3>
+
+<p>
+기존 약속 공간 참여
+</p>
+
+</div>
+""",
+            unsafe_allow_html=True
+        )
+
+        join_room = st.text_input(
+            "방 코드 입력"
+        )
+
+        if st.button(
+            "입장하기",
+            key="join_room"
+        ):
+
+            join_room = join_room.strip()
+
+            # =========================
+            # 입력 없음
+            # =========================
+
+            if not join_room:
+
+                st.error(
+                    "방 코드를 입력하세요."
+                )
+
+            # =========================
+            # 존재하지 않는 방
+            # =========================
+
+            elif not room_exists(join_room):
+
+                st.error(
+                    "존재하지 않는 방입니다."
+                )
+
+            # =========================
+            # 정상 입장
+            # =========================
+
+            else:
+
+                st.session_state.current_room = (
+                    join_room
+                )
+
+                st.rerun()
 
 # =========================
-# 현재 방 표시
+# 방 입장 후
 # =========================
 
-if st.session_state.current_room:
+else:
 
     st.markdown(
         f"""
 <div class="card">
 
-<h3>
-현재 방
-</h3>
-
-<p>
+<h2>
+방 코드:
 {st.session_state.current_room}
-</p>
+</h2>
 
 </div>
 """,
         unsafe_allow_html=True
     )
 
-
-# =========================
-# 사용자 정보 입력
-# =========================
-
-if st.session_state.current_room:
+    # =========================
+    # 사용자 정보 입력
+    # =========================
 
     st.markdown(
-        "## 사용자 정보 입력"
+        """
+<h3 style="
+margin-top:20px;
+margin-bottom:20px;
+">
+내 정보 입력
+</h3>
+""",
+        unsafe_allow_html=True
     )
 
-    nickname = st.text_input(
-        "닉네임"
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        nickname = st.text_input(
+
+            "닉네임",
+
+            value=st.session_state.nickname
+        )
+
+        location_name = st.text_input(
+            "출발 위치"
+        )
+
+    with col2:
+
+        transport = st.selectbox(
+
+            "이동수단",
+
+            [
+                "도보",
+                "대중교통",
+                "자동차"
+            ]
+        )
+
+    # =========================
+    # 가능한 날짜
+    # =========================
+
+    st.markdown(
+        """
+<h3 style="
+margin-top:30px;
+margin-bottom:20px;
+font-size:24px;
+font-weight:700;
+">
+가능한 날짜
+</h3>
+""",
+        unsafe_allow_html=True
     )
 
-    location_name = st.text_input(
-        "출발 위치"
-    )
+    selected_date = st.date_input(
 
-    transport = st.selectbox(
+        "날짜 선택",
 
-        "이동수단",
+        value=None,
 
-        [
-            "자동차"
-        ]
+        min_value=date.today()
     )
 
     # =========================
-    # 날짜 선택
+    # 날짜 추가 버튼
     # =========================
 
-    selected_dates = st.date_input(
-        "가능한 날짜",
-        value=[]
-    )
+    if st.button(
+        "날짜 추가",
+        key="add_date_button"
+    ):
+
+        if selected_date:
+
+            date_str = selected_date.strftime(
+                "%Y-%m-%d"
+            )
+
+            if (
+                date_str
+                not in
+                st.session_state.selected_dates
+            ):
+
+                st.session_state.selected_dates.append(
+                    date_str
+                )
+
+                st.rerun()
+
+    # =========================
+    # 선택된 날짜 목록
+    # =========================
+
+    if st.session_state.selected_dates:
+
+        st.markdown(
+            """
+<h4 style="
+margin-top:20px;
+margin-bottom:12px;
+">
+선택된 날짜
+</h4>
+""",
+            unsafe_allow_html=True
+        )
+
+        for idx, d in enumerate(
+
+            sorted(
+                st.session_state.selected_dates
+            )
+        ):
+
+            col1, col2 = st.columns(
+                [8, 1]
+            )
+
+            with col1:
+
+                st.markdown(
+                    f"""
+<div style="
+padding:14px;
+margin-bottom:10px;
+background:
+linear-gradient(
+    90deg,
+    #8b5cf6,
+    #60a5fa
+);
+color:white;
+font-weight:700;
+border-radius:12px;
+">
+{d}
+</div>
+""",
+                    unsafe_allow_html=True
+                )
+
+            with col2:
+
+                if st.button(
+
+                    "삭제",
+
+                    key=f"remove_date_{idx}"
+                ):
+
+                    st.session_state.selected_dates.remove(
+                        d
+                    )
+
+                    st.rerun()
 
     # =========================
     # 저장 버튼
     # =========================
 
     if st.button(
+
         "정보 저장",
-        use_container_width=True
+
+        key=f"save_user_{st.session_state.current_room}"
     ):
 
-        # =========================
-        # 입력 확인
-        # =========================
-
-        if not nickname:
+        if not nickname.strip():
 
             st.error(
                 "닉네임을 입력하세요."
             )
 
-        elif not location_name:
+        elif not location_name.strip():
 
             st.error(
                 "출발 위치를 입력하세요."
@@ -285,167 +452,173 @@ if st.session_state.current_room:
 
         else:
 
-            try:
+            # =========================
+            # 장소 검색
+            # =========================
 
-                geolocator = Nominatim(
-                    user_agent="spacetime"
+            place_name, lat, lng = (
+                geocode_location(
+                    location_name.strip()
                 )
+            )
 
-                location = geolocator.geocode(
-                    location_name
-                )
+            # =========================
+            # 검색 실패
+            # =========================
 
-                # =========================
-                # 위치 실패
-                # =========================
-
-                if not location:
-
-                    st.error(
-                        "위치를 찾을 수 없습니다."
-                    )
-
-                else:
-
-                    lat = location.latitude
-                    lng = location.longitude
-
-                    dates_text = ",".join(
-
-                        [
-                            str(d)
-                            for d in selected_dates
-                        ]
-                    )
-
-                    save_user(
-
-                        st.session_state.current_room,
-
-                        nickname,
-
-                        dates_text,
-
-                        location_name,
-
-                        lat,
-
-                        lng,
-
-                        transport
-                    )
-
-                    st.success(
-                        "정보 저장 완료"
-                    )
-
-                    st.rerun()
-
-            except Exception:
+            if lat is None:
 
                 st.error(
                     "위치를 찾을 수 없습니다."
                 )
 
+            else:
 
-# =========================
-# 참가자 목록
-# =========================
+                st.session_state.nickname = (
+                    nickname
+                )
 
-if st.session_state.current_room:
+                save_user(
+
+                    st.session_state.current_room,
+
+                    nickname,
+
+                    ",".join(
+                        st.session_state.selected_dates
+                    ),
+
+                    place_name,
+
+                    lat,
+
+                    lng,
+
+                    transport
+                )
+
+                st.session_state.save_success = True
+
+                st.rerun()
+
+    # =========================
+    # 저장 완료 메시지
+    # =========================
+
+    if st.session_state.save_success:
+
+        st.success(
+            "정보 저장 완료!"
+        )
+
+        st.session_state.save_success = False
+
+    # =========================
+    # 참가자 목록
+    # =========================
 
     users_data = get_room_users(
 
         st.session_state.current_room
     )
 
-    users = []
+    st.markdown(
+        """
+<h2 style="
+margin-top:40px;
+margin-bottom:20px;
+">
+참가자
+</h2>
+""",
+        unsafe_allow_html=True
+    )
 
     for user in users_data:
 
-        users.append({
-
-            "id":
-            user[0],
-
-            "room_id":
-            user[1],
-
-            "nickname":
-            user[2],
-
-            "dates":
-            user[3],
-
-            "location_name":
-            user[4],
-
-            "lat":
-            user[5],
-
-            "lng":
-            user[6],
-
-            "transport":
-            user[7]
-        })
-
-    # =========================
-    # 참가자 출력
-    # =========================
-
-    if len(users) > 0:
-
         st.markdown(
-            "## 참가자 목록"
-        )
-
-        for user in users:
-
-            st.markdown(
-                f"""
+            f"""
 <div class="card">
 
-<h3>
-{user["nickname"]}
-</h3>
+<div style="
+font-size:22px;
+font-weight:700;
+color:#8b5cf6;
+margin-bottom:10px;
+">
+{user[2]}
+</div>
 
-<p>
-출발 위치:
-{user["location_name"]}
-</p>
+<div style="
+margin-bottom:6px;
+opacity:0.85;
+">
+{user[4]}
+</div>
 
-<p>
-이동수단:
-{user["transport"]}
-</p>
+<div style="
+margin-bottom:6px;
+opacity:0.85;
+">
+{user[7]}
+</div>
 
-<p>
-가능 날짜:
-{user["dates"]}
-</p>
+<div style="
+opacity:0.85;
+">
+{user[3]}
+</div>
 
 </div>
 """,
-                unsafe_allow_html=True
-            )
+            unsafe_allow_html=True
+        )
 
     # =========================
-    # 추천 장소 찾기
+    # 추천 장소
     # =========================
 
-    if len(users) >= 2:
+    if len(users_data) >= 2:
 
         if st.button(
             "추천 장소 찾기",
-            use_container_width=True
+            key="recommend_button"
         ):
 
-            middle_lat, middle_lng = (
+            users = []
 
-                get_middle_point(
-                    users
+            for user in users_data:
+
+                users.append({
+
+                    "nickname": user[2],
+
+                    "location_name": user[4],
+
+                    "lat": user[5],
+
+                    "lng": user[6],
+
+                    "transport": user[7]
+                })
+
+            middle_lat, middle_lng = (
+                get_middle_point(users)
+            )
+
+            recommendations = (
+                recommend_places(
+
+                    users,
+
+                    middle_lat,
+
+                    middle_lng
                 )
+            )
+
+            st.session_state.recommendations = (
+                recommendations
             )
 
             st.session_state.middle_lat = (
@@ -456,98 +629,85 @@ if st.session_state.current_room:
                 middle_lng
             )
 
-            recommended_places = (
+    # =========================
+    # 추천 결과
+    # =========================
 
-                recommend_places(
+    if st.session_state.recommendations:
 
-                    users,
-
-                    middle_lat,
-                    middle_lng
-                )
-            )
-
-            st.session_state.recommended_places = (
-                recommended_places
-            )
-
-            st.rerun()
-
-
-# =========================
-# 추천 장소 출력
-# =========================
-
-if st.session_state.recommended_places:
-
-    st.markdown(
-        "## 추천 장소"
-    )
-
-    for place in st.session_state.recommended_places:
-
-        render_place_card(
-            place
+        recommendations = (
+            st.session_state.recommendations
         )
 
+        # =========================
+        # 추천 장소 존재 확인
+        # =========================
 
-# =========================
-# 지도 출력
-# =========================
+        best_place = None
 
-if (
+        if (
+            recommendations
+            and len(recommendations) > 0
+        ):
 
-    st.session_state.recommended_places
+            best_place = recommendations[0]
 
-    and
+        # =========================
+        # 추천 장소 출력
+        # =========================
 
-    st.session_state.middle_lat
-    is not None
+        render_place_card(
+            best_place
+        )
 
-    and
+        # =========================
+        # 지도용 사용자 데이터
+        # =========================
 
-    st.session_state.middle_lng
-    is not None
-):
+        users = []
 
-    users_data = get_room_users(
+        for user in users_data:
 
-        st.session_state.current_room
-    )
+            users.append({
 
-    users = []
+                "nickname": user[2],
 
-    for user in users_data:
+                "location_name": user[4],
 
-        users.append({
+                "lat": user[5],
 
-            "nickname":
-            user[2],
+                "lng": user[6],
 
-            "location_name":
-            user[4],
+                "transport": user[7]
+            })
 
-            "lat":
-            user[5],
+        # =========================
+        # 지도 제목
+        # =========================
 
-            "lng":
-            user[6],
+        st.markdown(
+            """
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    지도
+    </h2>
+    """,
+            unsafe_allow_html=True
+        )
 
-            "transport":
-            user[7]
-        })
+        # =========================
+        # 지도 출력
+        # =========================
 
-    st.markdown(
-        "## 지도"
-    )
+        render_map(
 
-    render_map(
+            users,
 
-        users,
+            recommendations,
 
-        st.session_state.recommended_places,
+            st.session_state.middle_lat,
 
-        st.session_state.middle_lat,
-
-        st.session_state.middle_lng
-    )
+            st.session_state.middle_lng
+        )
