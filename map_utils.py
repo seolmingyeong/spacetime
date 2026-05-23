@@ -1,5 +1,7 @@
 import folium
 
+import streamlit as st
+
 from streamlit_folium import (
     st_folium
 )
@@ -10,13 +12,25 @@ from streamlit_folium import (
 # =========================
 
 def render_map(
+
     users,
+
     recommendations,
+
     middle_lat,
     middle_lng
 ):
 
-    if middle_lat is None:
+    # =========================
+    # 추천 장소 없음
+    # =========================
+
+    if not recommendations:
+
+        st.warning(
+            "추천 장소가 없습니다."
+        )
+
         return
 
     # =========================
@@ -34,50 +48,42 @@ def render_map(
 
         tiles="OpenStreetMap",
 
-        scrollWheelZoom=True
+        control_scale=True
     )
 
     # =========================
-    # 사용자 위치
+    # 사용자 위치 마커
     # =========================
 
     for user in users:
 
-        if (
-            user["lat"] is None
-            or user["lng"] is None
-        ):
-            continue
-
         popup_html = f"""
+<div style="
+width:220px;
+">
 
-        <div style="
-        width:220px;
-        ">
+<div style="
+font-size:18px;
+font-weight:700;
+margin-bottom:8px;
+">
+{user["nickname"]}
+</div>
 
-            <div style="
-            font-size:18px;
-            font-weight:700;
-            margin-bottom:10px;
-            color:#2563eb;
-            ">
-            {user["nickname"]}
-            </div>
+<div style="
+margin-bottom:6px;
+">
+출발 위치:
+{user["location_name"]}
+</div>
 
-            <div style="
-            margin-bottom:6px;
-            ">
-            출발 위치:
-            {user.get("location_name", "-")}
-            </div>
+<div>
+이동수단:
+{user["transport"]}
+</div>
 
-            <div>
-            이동수단:
-            {user["transport"]}
-            </div>
-
-        </div>
-        """
+</div>
+"""
 
         folium.CircleMarker(
 
@@ -88,7 +94,7 @@ def render_map(
 
             radius=10,
 
-            color="#60a5fa",
+            color="#3b82f6",
 
             fill=True,
 
@@ -98,48 +104,51 @@ def render_map(
 
             popup=folium.Popup(
                 popup_html,
-                max_width=260
+                max_width=300
             ),
 
             tooltip=user["nickname"]
-
         ).add_to(m)
 
     # =========================
-    # 추천 장소
+    # 추천 장소 마커
     # =========================
 
     for place in recommendations:
 
+        # None 방지
+
+        if not place:
+            continue
+
         popup_html = f"""
+<div style="
+width:240px;
+">
 
-        <div style="
-        width:240px;
-        ">
+<div style="
+font-size:18px;
+font-weight:700;
+margin-bottom:10px;
+color:#8b5cf6;
+">
+{place.get("name", "추천 장소")}
+</div>
 
-            <div style="
-            font-size:18px;
-            font-weight:700;
-            margin-bottom:10px;
-            color:#8b5cf6;
-            ">
-            {place["name"]}
-            </div>
+<div style="
+margin-bottom:6px;
+">
+평균 이동시간:
+{place.get("avg_time", "-")}분
+</div>
 
-            <div style="
-            margin-bottom:6px;
-            ">
-            평균 이동시간:
-            {place["avg_time"]}분
-            </div>
+<div>
+최대 이동시간:
+{place.get("max_time", "-")}분
+</div>
 
-            <div>
-            최대 이동시간:
-            {place["max_time"]}분
-            </div>
-
-        </div>
-        """
+</div>
+"""
 
         folium.CircleMarker(
 
@@ -154,17 +163,19 @@ def render_map(
 
             fill=True,
 
-            fill_color="#8b5cf6",
+            fill_color="#a78bfa",
 
-            fill_opacity=1,
+            fill_opacity=0.95,
 
             popup=folium.Popup(
                 popup_html,
-                max_width=280
+                max_width=300
             ),
 
-            tooltip=place["name"]
-
+            tooltip=place.get(
+                "name",
+                "추천 장소"
+            )
         ).add_to(m)
 
     # =========================
@@ -175,7 +186,7 @@ def render_map(
 
         m,
 
-        height=720,
+        height=700,
 
         use_container_width=True
     )
