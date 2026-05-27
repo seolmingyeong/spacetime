@@ -1,5 +1,6 @@
 import requests
 import streamlit as st
+
 from datetime import datetime
 
 
@@ -13,16 +14,70 @@ GOOGLE_API_KEY = st.secrets.get(
 
 
 # =========================
-# Routes API 호출
+# Google Place ID 검색
+# =========================
+
+def get_google_place_id(query):
+
+    url = (
+        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    )
+
+    params = {
+
+        "input":
+        query,
+
+        "inputtype":
+        "textquery",
+
+        "fields":
+        "place_id",
+
+        "key":
+        GOOGLE_API_KEY
+    }
+
+    try:
+
+        response = requests.get(
+
+            url,
+
+            params=params,
+
+            timeout=5
+        )
+
+        data = response.json()
+
+        candidates = data.get(
+            "candidates",
+            []
+        )
+
+        if not candidates:
+
+            return None
+
+        return candidates[0].get(
+            "place_id"
+        )
+
+    except Exception:
+
+        return None
+
+
+# =========================
+# Routes API
 # =========================
 
 def compute_route_duration(
 
-    start_lat,
-    start_lng,
+    origin_place_id,
 
-    end_lat,
-    end_lng,
+    destination_place_id,
 
     travel_mode
 ):
@@ -39,41 +94,22 @@ def compute_route_duration(
         "X-Goog-Api-Key":
         GOOGLE_API_KEY,
 
-        # 필요한 정보만 요청
         "X-Goog-FieldMask":
-        "routes.duration,routes.distanceMeters,routes.legs"
+        "routes.duration"
     }
 
     body = {
 
         "origin": {
 
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    start_lat,
-
-                    "longitude":
-                    start_lng
-                }
-            }
+            "placeId":
+            origin_place_id
         },
 
         "destination": {
 
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    end_lat,
-
-                    "longitude":
-                    end_lng
-                }
-            }
+            "placeId":
+            destination_place_id
         },
 
         "travelMode":
@@ -84,7 +120,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # TRANSIT 설정
+    # TRANSIT 옵션
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -100,23 +136,9 @@ def compute_route_duration(
             + "Z"
         )
 
-        # =========================
-        # 대중교통 routing 최적화
-        # =========================
-
         body["routingPreference"] = (
             "LESS_WALKING"
         )
-
-        body["transitPreferences"] = {
-
-            "allowedTravelModes": [
-
-                "BUS",
-                "SUBWAY"
-            ]
-        }
-
 
     try:
 
@@ -133,15 +155,13 @@ def compute_route_duration(
 
             json=body,
 
-            timeout=50
+            timeout=20
         )
 
         print(
-            "STATUS CODE:",
+            "STATUS:",
             response.status_code
-            )
-
-
+        )
 
         data = response.json()
 
@@ -157,10 +177,6 @@ def compute_route_duration(
 
         if not routes:
 
-            print(
-                "NO ROUTES"
-            )
-
             return None
 
         duration_str = routes[0].get(
@@ -169,13 +185,7 @@ def compute_route_duration(
 
         if not duration_str:
 
-            print(
-                "NO DURATION"
-            )
-
             return None
-
-        # 예: "1234s"
 
         seconds = int(
 
@@ -192,11 +202,6 @@ def compute_route_duration(
         if minutes <= 0:
 
             minutes = 1
-
-        print(
-            "MINUTES:",
-            minutes
-        )
 
         return minutes
 
@@ -216,20 +221,36 @@ def compute_route_duration(
 
 def get_car_travel_time(
 
-    start_lat,
-    start_lng,
+    origin_query,
 
-    end_lat,
-    end_lng
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     return compute_route_duration(
 
-        start_lat,
-        start_lng,
+        origin_place_id,
 
-        end_lat,
-        end_lng,
+        destination_place_id,
 
         "DRIVE"
     )
@@ -241,20 +262,36 @@ def get_car_travel_time(
 
 def get_walk_travel_time(
 
-    start_lat,
-    start_lng,
+    origin_query,
 
-    end_lat,
-    end_lng
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     return compute_route_duration(
 
-        start_lat,
-        start_lng,
+        origin_place_id,
 
-        end_lat,
-        end_lng,
+        destination_place_id,
 
         "WALK"
     )
@@ -266,20 +303,36 @@ def get_walk_travel_time(
 
 def get_transit_travel_time(
 
-    start_lat,
-    start_lng,
+    origin_query,
 
-    end_lat,
-    end_lng
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     return compute_route_duration(
 
-        start_lat,
-        start_lng,
+        origin_place_id,
 
-        end_lat,
-        end_lng,
+        destination_place_id,
 
         "TRANSIT"
     )
