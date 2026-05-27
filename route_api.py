@@ -64,11 +64,14 @@ def get_google_place_id(query):
             timeout=10
         )
 
-        st.subheader("PLACE SEARCH")
+        st.error("PLACE SEARCH RESPONSE")
 
         st.code(
             response.text
         )
+
+
+        st.stop()
 
         data = response.json()
 
