@@ -1,10 +1,5 @@
 from route_api import (
-
-    get_car_travel_time,
-
-    get_walk_travel_time,
-
-    get_transit_travel_time
+    compute_route_duration
 )
 
 from place_api import (
@@ -34,18 +29,25 @@ def get_real_travel_time(
 
     ).strip().lower()
 
-    origin_query = (
-        user["location_name"]
-    
-    + "서울"
+    origin_place_id = (
+        user.get(
+            "place_id"
+        )
     )
 
-    destination_query = (
-        place["name"]
-
-        + " "
-        + place["address"]
+    destination_place_id = (
+        place.get(
+            "place_id"
+        )
     )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     # =========================
     # 자동차
@@ -58,11 +60,13 @@ def get_real_travel_time(
         "drive"
     ]:
 
-        return get_car_travel_time(
+        return compute_route_duration(
 
-            origin_query,
+            origin_place_id,
 
-            destination_query
+            destination_place_id,
+
+            "DRIVE"
         )
 
     # =========================
@@ -76,11 +80,13 @@ def get_real_travel_time(
         "walking"
     ]:
 
-        return get_walk_travel_time(
+        return compute_route_duration(
 
-            origin_query,
+            origin_place_id,
 
-            destination_query
+            destination_place_id,
+
+            "WALK"
         )
 
     # =========================
@@ -95,14 +101,17 @@ def get_real_travel_time(
         "subway"
     ]:
 
-        return get_transit_travel_time(
+        return compute_route_duration(
 
-            origin_query,
+            origin_place_id,
 
-            destination_query
+            destination_place_id,
+
+            "TRANSIT"
         )
 
     return None
+
 
 
 # =========================
