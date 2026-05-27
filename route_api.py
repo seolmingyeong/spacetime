@@ -41,7 +41,7 @@ def compute_route_duration(
 
         # 필요한 정보만 요청
         "X-Goog-FieldMask":
-        "routes.duration,routes.distanceMeters"
+        "routes.duration,routes.distanceMeters,routes.legs"
     }
 
     body = {
@@ -93,10 +93,30 @@ def compute_route_duration(
 
             datetime.utcnow()
 
+            .replace(microsecond=0)
+
             .isoformat()
-            
+
             + "Z"
         )
+
+        # =========================
+        # 대중교통 routing 최적화
+        # =========================
+
+        body["routingPreference"] = (
+            "LESS_WALKING"
+        )
+
+        body["transitPreferences"] = {
+
+            "allowedTravelModes": [
+
+                "BUS",
+                "SUBWAY"
+            ]
+        }
+
 
     try:
 
@@ -113,8 +133,15 @@ def compute_route_duration(
 
             json=body,
 
-            timeout=10
+            timeout=50
         )
+
+        print(
+            "STATUS CODE:",
+            response.status_code
+            )
+
+
 
         data = response.json()
 
