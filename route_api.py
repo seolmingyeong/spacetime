@@ -3,12 +3,8 @@ import streamlit as st
 
 
 # =========================
-# API Keys
+# API KEY
 # =========================
-
-KAKAO_REST_API_KEY = st.secrets.get(
-    "KAKAO_REST_API_KEY"
-)
 
 GOOGLE_API_KEY = st.secrets.get(
     "GOOGLE_API_KEY"
@@ -16,7 +12,138 @@ GOOGLE_API_KEY = st.secrets.get(
 
 
 # =========================
-# 자동차 이동시간
+# Routes API 호출
+# =========================
+
+def compute_route_duration(
+
+    start_lat,
+    start_lng,
+
+    end_lat,
+    end_lng,
+
+    travel_mode
+):
+
+    url = (
+        "https://routes.googleapis.com/directions/v2:computeRoutes"
+    )
+
+    headers = {
+
+        "Content-Type":
+        "application/json",
+
+        "X-Goog-Api-Key":
+        GOOGLE_API_KEY,
+
+        # duration만 받기
+        "X-Goog-FieldMask":
+        "routes.duration"
+    }
+
+    body = {
+
+        "origin": {
+
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    start_lat,
+
+                    "longitude":
+                    start_lng
+                }
+            }
+        },
+
+        "destination": {
+
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    end_lat,
+
+                    "longitude":
+                    end_lng
+                }
+            }
+        },
+
+        "travelMode":
+        travel_mode
+    }
+
+    # =========================
+    # 대중교통 옵션
+    # =========================
+
+    if travel_mode == "TRANSIT":
+
+        body["computeAlternativeRoutes"] = False
+
+    try:
+
+        response = requests.post(
+
+            url,
+
+            headers=headers,
+
+            json=body,
+
+            timeout=5
+        )
+
+        data = response.json()
+
+        routes = data.get(
+            "routes",
+            []
+        )
+
+        if not routes:
+
+            return None
+
+        duration_str = routes[0].get(
+            "duration"
+        )
+
+        if not duration_str:
+
+            return None
+
+        # 예: "1234s"
+        seconds = int(
+            duration_str.replace(
+                "s",
+                ""
+            )
+        )
+
+        minutes = int(
+            seconds / 60
+        )
+
+        if minutes <= 0:
+
+            minutes = 1
+
+        return minutes
+
+    except Exception:
+
+        return None
+
+
+# =========================
+# 자동차
 # =========================
 
 def get_car_travel_time(
@@ -28,171 +155,63 @@ def get_car_travel_time(
     end_lng
 ):
 
-    url = (
-        "https://apis-navi.kakaomobility.com/v1/directions"
+    return compute_route_duration(
+
+        start_lat,
+        start_lng,
+
+        end_lat,
+        end_lng,
+
+        "DRIVE"
     )
-
-    headers = {
-
-        "Authorization":
-        f"KakaoAK {KAKAO_REST_API_KEY}"
-    }
-
-    params = {
-
-        "origin":
-        f"{start_lng},{start_lat}",
-
-        "destination":
-        f"{end_lng},{end_lat}"
-    }
-
-    try:
-
-        response = requests.get(
-
-            url,
-
-            headers=headers,
-
-            params=params,
-
-            timeout=3
-        )
-
-        data = response.json()
-
-        routes = data.get(
-            "routes"
-        )
-
-        if not routes:
-
-            return None
-
-        duration = routes[0][
-            "summary"
-        ][
-            "duration"
-        ]
-
-        return int(
-            duration / 60
-        )
-
-    except Exception:
-
-        return None
 
 
 # =========================
-# Google 도보 이동시간
+# 도보
 # =========================
 
 def get_walk_travel_time(
 
-    origin_address,
+    start_lat,
+    start_lng,
 
-    destination_address
+    end_lat,
+    end_lng
 ):
 
-    url = (
-        "https://maps.googleapis.com/maps/api/distancematrix/json"
+    return compute_route_duration(
+
+        start_lat,
+        start_lng,
+
+        end_lat,
+        end_lng,
+
+        "WALK"
     )
-
-    params = {
-
-        "origins":
-        origin_address,
-
-        "destinations":
-        destination_address,
-
-        "mode":
-        "walking",
-
-        "language":
-        "ko",
-
-        "region":
-        "kr",
-
-        "key":
-        GOOGLE_API_KEY
-    }
-
-    try:
-
-        response = requests.get(
-
-            url,
-
-            params=params,
-
-            timeout=3
-        )
-
-        data = response.json()
-
-        rows = data.get(
-            "rows",
-            []
-        )
-
-        if not rows:
-
-            return None
-
-        elements = rows[0].get(
-            "elements",
-            []
-        )
-
-        if not elements:
-
-            return None
-
-        result = elements[0]
-
-        if result.get(
-            "status"
-        ) != "OK":
-
-            return None
-
-        duration = result[
-            "duration"
-        ][
-            "value"
-        ]
-
-        return int(
-            duration / 60
-        )
-
-    except Exception:
-
-        return None
 
 
 # =========================
-# 대중교통 이동시간
+# 대중교통
 # =========================
 
 def get_transit_travel_time(
 
-    origin_address,
+    start_lat,
+    start_lng,
 
-    destination_address
+    end_lat,
+    end_lng
 ):
 
-    # =========================
-    # 임시 fallback
-    # =========================
+    return compute_route_duration(
 
-    return get_walk_travel_time(
+        start_lat,
+        start_lng,
 
-        origin_address,
+        end_lat,
+        end_lng,
 
-        destination_address
+        "TRANSIT"
     )

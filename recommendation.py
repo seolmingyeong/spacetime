@@ -34,7 +34,9 @@ def get_real_travel_time(
 
     ).strip().lower()
 
+    # =========================
     # 자동차
+    # =========================
 
     if transport in [
 
@@ -52,7 +54,9 @@ def get_real_travel_time(
             place["lng"]
         )
 
+    # =========================
     # 도보
+    # =========================
 
     elif transport in [
 
@@ -63,12 +67,16 @@ def get_real_travel_time(
 
         return get_walk_travel_time(
 
-            user["address"],
+            user["lat"],
+            user["lng"],
 
-            place["address"]
+            place["lat"],
+            place["lng"]
         )
 
+    # =========================
     # 대중교통
+    # =========================
 
     elif transport in [
 
@@ -80,9 +88,11 @@ def get_real_travel_time(
 
         return get_transit_travel_time(
 
-            user["address"],
+            user["lat"],
+            user["lng"],
 
-            place["address"]
+            place["lat"],
+            place["lng"]
         )
 
     return None
@@ -98,7 +108,9 @@ def collect_candidate_places(users):
 
     search_points = []
 
+    # =========================
     # 사용자 위치
+    # =========================
 
     for user in users:
 
@@ -110,7 +122,9 @@ def collect_candidate_places(users):
             )
         )
 
+    # =========================
     # corridor 생성
+    # =========================
 
     for i in range(len(users)):
 
@@ -147,7 +161,9 @@ def collect_candidate_places(users):
                     (lat, lng)
                 )
 
+    # =========================
     # 장소 검색
+    # =========================
 
     for lat, lng in search_points:
 
@@ -163,7 +179,9 @@ def collect_candidate_places(users):
             places
         )
 
+    # =========================
     # 중복 제거
+    # =========================
 
     unique_places = []
 
@@ -189,24 +207,30 @@ def collect_candidate_places(users):
 # =========================
 
 def recommend_places(users):
+
     st.write("recommend_places 진입")
 
     places = collect_candidate_places(
         users
     )
-    st.write("후보 장소 개수:", len(places))
+
+    st.write(
+        "후보 장소 개수:",
+        len(places)
+    )
 
     recommendations = []
 
     for place in places:
 
-        st.write("현재 평가 장소:", place["name"])
+        st.write(
+            "현재 평가 장소:",
+            place["name"]
+        )
 
         times = []
 
         user_times = []
-
-        valid = True
 
         for user in users:
 
@@ -219,40 +243,49 @@ def recommend_places(users):
                     place
                 )
 
-            except Exception:
+            except Exception as e:
+
+                st.write(
+                    "ERROR:",
+                    str(e)
+                )
 
                 travel_time = None
 
+            # =========================
+            # 경로 실패 패널티
+            # =========================
+
             if travel_time is None:
 
-                valid = False
-                break
+                travel_time = 999
 
-            # 현실적 제한
+            # =========================
+            # 너무 먼 경우 패널티
+            # =========================
 
             transport = user.get(
                 "transport",
                 "자동차"
             )
 
-            limit = 999
-
             if transport == "도보":
 
-                limit = 45
+                if travel_time > 45:
+
+                    travel_time += 300
 
             elif transport == "대중교통":
 
-                limit = 100
+                if travel_time > 100:
+
+                    travel_time += 200
 
             elif transport == "자동차":
 
-                limit = 100
+                if travel_time > 100:
 
-            if travel_time > limit:
-
-                valid = False
-                break
+                    travel_time += 100
 
             times.append(
                 travel_time
@@ -267,9 +300,9 @@ def recommend_places(users):
                 travel_time
             })
 
-        if not valid:
-
-            continue
+        # =========================
+        # 시간 균형 score
+        # =========================
 
         balance_score = (
 
@@ -318,6 +351,13 @@ def recommend_places(users):
 
         key=lambda x:
         x["score"]
+    )
+
+    st.write(
+
+        "최종 추천 개수:",
+
+        len(recommendations)
     )
 
     return recommendations[:3]
