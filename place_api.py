@@ -44,11 +44,17 @@ def search_places(
         "y":
         lat,
 
+        # 검색 반경 확대
         "radius":
-        3000,
+        8000,
 
+        # 후보 더 많이 확보
         "size":
-        10
+        15,
+
+        # 거리순 정렬
+        "sort":
+        "distance"
     }
 
     try:
