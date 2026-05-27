@@ -59,6 +59,16 @@ def get_google_place_id(query):
         if not candidates:
 
             return None
+        
+        print(
+            "PLACE QUERY:",
+            query
+        )
+
+        print(
+            "PLACE RESPONSE:",
+            data
+        )
 
         return candidates[0].get(
             "place_id"
