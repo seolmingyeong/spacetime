@@ -231,6 +231,8 @@ def recommend_places(users):
 
         times = []
 
+        valid = True
+
         for user in users:
 
             estimated = estimate_time(
@@ -241,9 +243,50 @@ def recommend_places(users):
                 lng
             )
 
+            transport = user.get(
+                "transport",
+                "자동차"
+            )
+
+            # =========================
+            # 이동수단별 현실적 제한
+            # =========================
+
+            limit = 999
+
+            if transport == "도보":
+
+                limit = 40
+
+            elif transport == "대중교통":
+
+                limit = 90
+
+            elif transport == "자동차":
+
+                limit = 90
+
+            # =========================
+            # 현실적으로 불가능한 후보 제거
+            # =========================
+
+            if estimated > limit:
+
+                valid = False
+                break
+
             times.append(
                 estimated
             )
+
+        # =========================
+        # 탈락 후보 제거
+        # =========================
+
+        if not valid:
+
+            continue
+
 
         score = (
 
