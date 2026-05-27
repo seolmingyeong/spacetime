@@ -28,19 +28,19 @@ def get_google_place_id(query):
 
     url = (
         "https://places.googleapis.com/v1/places:searchText"
+        f"?key={GOOGLE_API_KEY}"
     )
 
     headers = {
 
-        "Content-Type":
-        "application/json",
+    "Content-Type":
+    "application/json",
 
-        "X-Goog-Api-Key":
-        GOOGLE_API_KEY,
-
-        "X-Goog-FieldMask":
-        "places.id,places.displayName"
+    "X-Goog-FieldMask":
+    "places.id,places.displayName"
     }
+
+
 
     body = {
 
