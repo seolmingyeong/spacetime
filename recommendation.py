@@ -11,6 +11,8 @@ from place_api import (
     search_places
 )
 
+import streamlit as st
+
 
 # =========================
 # 평균 좌표 계산
@@ -53,6 +55,8 @@ def recommend_places(
     middle_lng
 ):
 
+    st.write("recommend_places 실행됨")
+
     # =========================
     # 중간지점 근처 장소 검색
     # =========================
@@ -65,6 +69,8 @@ def recommend_places(
         "카페"
     )
 
+    st.write("검색된 장소 수:", len(places))
+
     recommendations = []
 
     # =========================
@@ -76,6 +82,11 @@ def recommend_places(
         lat = place["lat"]
         lng = place["lng"]
 
+        st.write(
+            "후보 장소:",
+            place["name"]
+        )
+
         times = []
 
         user_times = []
@@ -86,14 +97,25 @@ def recommend_places(
 
         for user in users:
 
+            raw_transport = user.get(
+                "transport"
+            )
+
             transport = str(
 
-                user.get(
-                    "transport",
-                    "자동차"
-                )
+                raw_transport
 
             ).strip().lower()
+
+            st.write(
+                "RAW TRANSPORT =",
+                raw_transport
+            )
+
+            st.write(
+                "NORMALIZED =",
+                transport
+            )
 
             # =========================
             # 자동차
@@ -105,6 +127,10 @@ def recommend_places(
                 "car",
                 "drive"
             ]:
+
+                st.write(
+                    "자동차 분기 진입"
+                )
 
                 travel_time = (
 
@@ -118,6 +144,11 @@ def recommend_places(
                     )
                 )
 
+                st.write(
+                    "CAR =",
+                    travel_time
+                )
+
             # =========================
             # 도보
             # =========================
@@ -129,6 +160,10 @@ def recommend_places(
                 "walking"
             ]:
 
+                st.write(
+                    "도보 분기 진입"
+                )
+
                 travel_time = (
 
                     get_walk_travel_time(
@@ -139,6 +174,11 @@ def recommend_places(
                         lat,
                         lng
                     )
+                )
+
+                st.write(
+                    "WALK =",
+                    travel_time
                 )
 
             # =========================
@@ -153,6 +193,10 @@ def recommend_places(
                 "subway"
             ]:
 
+                st.write(
+                    "대중교통 분기 진입"
+                )
+
                 travel_time = (
 
                     get_transit_travel_time(
@@ -165,11 +209,20 @@ def recommend_places(
                     )
                 )
 
+                st.write(
+                    "TRANSIT =",
+                    travel_time
+                )
+
             # =========================
             # 기본값
             # =========================
 
             else:
+
+                st.write(
+                    "기본 자동차 분기 진입"
+                )
 
                 travel_time = (
 
@@ -183,11 +236,20 @@ def recommend_places(
                     )
                 )
 
+                st.write(
+                    "DEFAULT CAR =",
+                    travel_time
+                )
+
             # =========================
             # 계산 실패
             # =========================
 
             if travel_time is None:
+
+                st.write(
+                    "travel_time is None"
+                )
 
                 continue
 
@@ -208,11 +270,17 @@ def recommend_places(
                 travel_time
             })
 
+        st.write("times =", times)
+
         # =========================
         # 계산 실패
         # =========================
 
         if len(times) == 0:
+
+            st.write(
+                "times 비어있음 → skip"
+            )
 
             continue
 
@@ -228,6 +296,16 @@ def recommend_places(
 
         max_time = max(times)
 
+        st.write(
+            "avg_time =",
+            avg_time
+        )
+
+        st.write(
+            "max_time =",
+            max_time
+        )
+
         # =========================
         # 추천 점수
         # =========================
@@ -235,6 +313,11 @@ def recommend_places(
         score = (
             avg_time
             + max_time
+        )
+
+        st.write(
+            "score =",
+            score
         )
 
         # =========================
@@ -268,6 +351,11 @@ def recommend_places(
             user_times
         })
 
+    st.write(
+        "최종 recommendations 개수 =",
+        len(recommendations)
+    )
+
     # =========================
     # score 기준 정렬
     # =========================
@@ -278,8 +366,19 @@ def recommend_places(
         x["score"]
     )
 
+    st.write(
+        "정렬 완료"
+    )
+
     # =========================
     # 상위 3개 반환
     # =========================
 
-    return recommendations[:3]
+    result = recommendations[:3]
+
+    st.write(
+        "최종 반환값 =",
+        result
+    )
+
+    return result
