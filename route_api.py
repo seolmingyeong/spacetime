@@ -421,10 +421,28 @@ def get_car_travel_time(
 
 def get_walk_travel_time(
 
-    origin_place_id,
+    origin_query,
 
-    destination_place_id
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+        return None
+
+    if not destination_place_id:
+        return None
 
     return compute_route_duration(
 
@@ -442,16 +460,16 @@ def get_walk_travel_time(
 
 def get_transit_travel_time(
 
-    origin_place_id,
+    user_place_id,
 
-    destination_place_id
+    candidate_place_id
 ):
 
     return compute_route_duration(
 
-        origin_place_id,
+        user_place_id,
 
-        destination_place_id,
+        candidate_place_id,
 
         "TRANSIT"
     )
