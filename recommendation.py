@@ -11,6 +11,8 @@ from place_api import (
     search_places
 )
 
+import streamlit as st
+
 
 # =========================
 # 실제 이동시간 계산
@@ -187,14 +189,18 @@ def collect_candidate_places(users):
 # =========================
 
 def recommend_places(users):
+    st.write("recommend_places 진입")
 
     places = collect_candidate_places(
         users
     )
+    st.write("후보 장소 개수:", len(places))
 
     recommendations = []
 
     for place in places:
+
+        st.write("현재 평가 장소:", place["name"])
 
         times = []
 
