@@ -14,10 +14,6 @@ GOOGLE_API_KEY = (
     .strip()
 )
 
-st.code(
-    f"KEY LENGTH: {len(GOOGLE_API_KEY)}"
-)
-
 
 # =========================
 # 장소 검색
@@ -192,10 +188,6 @@ def get_place_location(place_id):
 
             return None
 
-        st.success(
-            f"LAT/LNG: {lat}, {lng}"
-        )
-
         return (
             lat,
             lng
@@ -211,6 +203,27 @@ def get_place_location(place_id):
 
 
 # =========================
+# 이동수단 변환
+# =========================
+
+def convert_travel_mode(mode):
+
+    if mode == "도보":
+
+        return "WALK"
+
+    elif mode == "자동차":
+
+        return "DRIVE"
+
+    elif mode == "대중교통":
+
+        return "TRANSIT"
+
+    return mode
+
+
+# =========================
 # Routes API
 # =========================
 
@@ -222,6 +235,14 @@ def compute_route_duration(
 
     travel_mode
 ):
+
+    travel_mode = convert_travel_mode(
+        travel_mode
+    )
+
+    st.code(
+        f"TRAVEL MODE: {travel_mode}"
+    )
 
     origin_location = (
         get_place_location(
@@ -275,61 +296,100 @@ def compute_route_duration(
         "routes.duration"
     }
 
-    body = {
-
-        "origin": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    origin_lat,
-
-                    "longitude":
-                    origin_lng
-                }
-            }
-        },
-
-        "destination": {
-
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    dest_lat,
-
-                    "longitude":
-                    dest_lng
-                }
-            }
-        },
-
-        "travelMode":
-        travel_mode,
-
-        "computeAlternativeRoutes":
-        False
-    }
-
     # =========================
-    # 대중교통
+    # TRANSIT
     # =========================
 
     if travel_mode == "TRANSIT":
 
-        body["departureTime"] = (
+        body = {
 
-            datetime.utcnow()
+            "origin": {
 
-            .replace(microsecond=0)
+                "location": {
 
-            .isoformat()
+                    "latLng": {
 
-            + "Z"
-        )
+                        "latitude":
+                        origin_lat,
+
+                        "longitude":
+                        origin_lng
+                    }
+                }
+            },
+
+            "destination": {
+
+                "location": {
+
+                    "latLng": {
+
+                        "latitude":
+                        dest_lat,
+
+                        "longitude":
+                        dest_lng
+                    }
+                }
+            },
+
+            "travelMode":
+            "TRANSIT",
+
+            "departureTime": (
+
+                datetime.utcnow()
+
+                .replace(microsecond=0)
+
+                .isoformat()
+
+                + "Z"
+            )
+        }
+
+    # =========================
+    # WALK / DRIVE
+    # =========================
+
+    else:
+
+        body = {
+
+            "origin": {
+
+                "location": {
+
+                    "latLng": {
+
+                        "latitude":
+                        origin_lat,
+
+                        "longitude":
+                        origin_lng
+                    }
+                }
+            },
+
+            "destination": {
+
+                "location": {
+
+                    "latLng": {
+
+                        "latitude":
+                        dest_lat,
+
+                        "longitude":
+                        dest_lng
+                    }
+                }
+            },
+
+            "travelMode":
+            travel_mode
+        }
 
     try:
 
@@ -457,10 +517,6 @@ def get_car_travel_time(
         )
     )
 
-    st.code(
-        f"CAR PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
-    )
-
     if not origin_place_id:
 
         return None
@@ -502,10 +558,6 @@ def get_walk_travel_time(
         )
     )
 
-    st.code(
-        f"WALK PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
-    )
-
     if not origin_place_id:
 
         return None
@@ -545,10 +597,6 @@ def get_transit_travel_time(
         get_google_place_id(
             destination_query
         )
-    )
-
-    st.code(
-        f"TRANSIT PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
     )
 
     if not origin_place_id:
