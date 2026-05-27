@@ -1,3 +1,5 @@
+from math import sqrt
+
 from route_api import (
 
     get_car_travel_time,
@@ -13,10 +15,86 @@ from place_api import (
 
 
 # =========================
-# 이동시간 계산
+# 이동수단별 평균 속도
 # =========================
 
-def get_travel_time(
+TRANSPORT_SPEED = {
+
+    "도보": 4,
+    "대중교통": 25,
+    "자동차": 50
+}
+
+
+# =========================
+# 직선거리 계산
+# =========================
+
+def calculate_distance(
+
+    lat1,
+    lng1,
+
+    lat2,
+    lng2
+):
+
+    return sqrt(
+
+        (lat1 - lat2) ** 2
+        +
+        (lng1 - lng2) ** 2
+    )
+
+
+# =========================
+# 빠른 예상시간 계산
+# =========================
+
+def estimate_time(
+
+    user,
+
+    lat,
+    lng
+):
+
+    distance = calculate_distance(
+
+        user["lat"],
+        user["lng"],
+
+        lat,
+        lng
+    )
+
+    transport = user.get(
+        "transport",
+        "자동차"
+    )
+
+    speed = TRANSPORT_SPEED.get(
+        transport,
+        30
+    )
+
+    # 대충 km 비슷하게 보정
+
+    distance_km = distance * 111
+
+    time_hour = (
+        distance_km
+        / speed
+    )
+
+    return time_hour * 60
+
+
+# =========================
+# 실제 이동시간 계산
+# =========================
+
+def get_real_travel_time(
 
     user,
 
@@ -88,16 +166,7 @@ def get_travel_time(
             lng
         )
 
-    # 기본값
-
-    return get_car_travel_time(
-
-        user["lat"],
-        user["lng"],
-
-        lat,
-        lng
-    )
+    return None
 
 
 # =========================
@@ -107,119 +176,191 @@ def get_travel_time(
 def recommend_places(users):
 
     # =========================
-    # 후보 장소 수집
+    # 중심 좌표
     # =========================
 
-    all_places = []
+    center_lat = sum(
+
+        user["lat"]
+
+        for user in users
+
+    ) / len(users)
+
+    center_lng = sum(
+
+        user["lng"]
+
+        for user in users
+
+    ) / len(users)
 
     # =========================
-    # 사용자 위치 수집
+    # 후보 좌표 생성
     # =========================
 
-    points = []
+    candidate_points = []
 
-    for user in users:
+    step = 0.03
 
-        points.append(
+    for lat_offset in range(-4, 5):
 
-            (
-                user["lat"],
-                user["lng"]
+        for lng_offset in range(-4, 5):
+
+            lat = (
+                center_lat
+                + lat_offset * step
             )
+
+            lng = (
+                center_lng
+                + lng_offset * step
+            )
+
+            candidate_points.append(
+                (lat, lng)
+            )
+
+    # =========================
+    # 빠른 탐색
+    # =========================
+
+    fast_scores = []
+
+    for lat, lng in candidate_points:
+
+        times = []
+
+        for user in users:
+
+            estimated = estimate_time(
+
+                user,
+
+                lat,
+                lng
+            )
+
+            times.append(
+                estimated
+            )
+
+        score = (
+
+            max(times)
+            - min(times)
         )
 
-    # =========================
-    # 사용자 사이 중간 지점들 생성
-    # =========================
+        score += (
+            sum(times)
+            / len(times)
+        ) * 0.2
 
-    for i in range(len(users)):
+        fast_scores.append({
 
-        for j in range(i + 1, len(users)):
+            "lat": lat,
+            "lng": lng,
 
-            lat1 = users[i]["lat"]
-            lng1 = users[i]["lng"]
-
-            lat2 = users[j]["lat"]
-            lng2 = users[j]["lng"]
-
-            # =========================
-            # 경로 위 여러 지점 생성
-            # =========================
-
-            for ratio in [
-
-                0.25,
-                0.5,
-                0.75
-            ]:
-
-                mid_lat = (
-
-                    lat1
-                    + (lat2 - lat1)
-                    * ratio
-                )
-
-                mid_lng = (
-
-                    lng1
-                    + (lng2 - lng1)
-                    * ratio
-                )
-
-                points.append(
-
-                    (
-                        mid_lat,
-                        mid_lng
-                    )
-                )
+            "score": score
+        })
 
     # =========================
-    # 각 포인트 주변 장소 검색
+    # 상위 후보만 선택
     # =========================
 
-    for lat, lng in points:
+    fast_scores.sort(
 
-        places = search_places(
+        key=lambda x:
+        x["score"]
+    )
 
-            lat,
-            lng,
-
-            "카페"
-        )
-
-        all_places.extend(
-            places
-        )
+    top_candidates = fast_scores[:8]
 
     # =========================
-    # 중복 제거
+    # 실제 API 기반 정밀 평가
     # =========================
 
-    unique_places = []
+    best_point = None
 
-    used_names = set()
+    best_score = float("inf")
 
-    for place in all_places:
+    for point in top_candidates:
 
-        name = place["name"]
+        lat = point["lat"]
+        lng = point["lng"]
 
-        if name in used_names:
+        times = []
+
+        valid = True
+
+        for user in users:
+
+            real_time = get_real_travel_time(
+
+                user,
+
+                lat,
+                lng
+            )
+
+            if real_time is None:
+
+                valid = False
+                break
+
+            times.append(
+                real_time
+            )
+
+        if not valid:
 
             continue
 
-        used_names.add(name)
+        score = (
 
-        unique_places.append(place)
+            max(times)
+            - min(times)
+        )
+
+        score += (
+            sum(times)
+            / len(times)
+        ) * 0.3
+
+        if score < best_score:
+
+            best_score = score
+
+            best_point = (
+                lat,
+                lng
+            )
+
+    # =========================
+    # 최적 좌표 실패
+    # =========================
+
+    if not best_point:
+
+        return []
+
+    best_lat, best_lng = best_point
+
+    # =========================
+    # 최적 지점 근처 장소 검색
+    # =========================
+
+    places = search_places(
+
+        best_lat,
+        best_lng,
+
+        "카페"
+    )
 
     recommendations = []
 
-    # =========================
-    # 장소별 이동시간 계산
-    # =========================
-
-    for place in unique_places:
+    for place in places:
 
         lat = place["lat"]
         lng = place["lng"]
@@ -232,7 +373,7 @@ def recommend_places(users):
 
         for user in users:
 
-            travel_time = get_travel_time(
+            real_time = get_real_travel_time(
 
                 user,
 
@@ -240,18 +381,13 @@ def recommend_places(users):
                 lng
             )
 
-            # =========================
-            # 경로 계산 실패
-            # =========================
-
-            if travel_time is None:
+            if real_time is None:
 
                 valid = False
-
                 break
 
             times.append(
-                travel_time
+                real_time
             )
 
             user_times.append({
@@ -260,40 +396,23 @@ def recommend_places(users):
                 user["nickname"],
 
                 "travel_time":
-                travel_time
+                real_time
             })
-
-        # =========================
-        # 한 명이라도 실패 시 제외
-        # =========================
 
         if not valid:
 
             continue
 
-        # =========================
-        # 시간 균형 score
-        # =========================
-
-        balance_score = (
+        score = (
 
             max(times)
             - min(times)
         )
 
-        avg_score = (
+        score += (
             sum(times)
             / len(times)
-        )
-
-        # =========================
-        # 최종 점수
-        # =========================
-
-        score = (
-            balance_score
-            + avg_score * 0.3
-        )
+        ) * 0.3
 
         recommendations.append({
 
@@ -310,7 +429,11 @@ def recommend_places(users):
             place["address"],
 
             "avg_time":
-            int(avg_score),
+            int(
+
+                sum(times)
+                / len(times)
+            ),
 
             "max_time":
             max(times),
@@ -321,10 +444,6 @@ def recommend_places(users):
             "user_times":
             user_times
         })
-
-    # =========================
-    # 점수 기준 정렬
-    # =========================
 
     recommendations.sort(
 
