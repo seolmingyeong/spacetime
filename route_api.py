@@ -60,16 +60,16 @@ def get_google_place_id(query):
             timeout=10
         )
 
-        print(
+      st.write(
             "PLACE STATUS:",
             response.status_code
         )
 
-        print(
-    "RAW TEXT:"
+        st.write(
+            "RAW TEXT:"
         )
 
-        print(
+        st.write(
             response.text
         )
 
@@ -77,7 +77,7 @@ def get_google_place_id(query):
 
 
 
-        print(
+        st.write(
             json.dumps(
                 data,
                 indent=2,
@@ -92,7 +92,7 @@ def get_google_place_id(query):
 
         if not places:
 
-            print(
+            st.write(
                 "NO PLACES"
             )
 
@@ -102,7 +102,7 @@ def get_google_place_id(query):
             "id"
         )
 
-        print(
+        st.write(
             "PLACE_ID:",
             place_id
         )
@@ -111,7 +111,7 @@ def get_google_place_id(query):
 
     except Exception as e:
 
-        print(
+        st.write(
             "PLACE ERROR:",
             str(e)
         )
@@ -191,12 +191,12 @@ def compute_route_duration(
 
     try:
 
-        print(
+        st.write(
             "REQUEST MODE:",
             travel_mode
         )
 
-        print(
+        st.write(
             "REQUEST BODY:",
             json.dumps(
                 body,
@@ -216,14 +216,14 @@ def compute_route_duration(
             timeout=20
         )
 
-        print(
+        st.write(
             "ROUTE STATUS:",
             response.status_code
         )
 
         data = response.json()
 
-        print(
+        st.write(
             json.dumps(
                 data,
                 indent=2,
@@ -238,7 +238,7 @@ def compute_route_duration(
 
         if not routes:
 
-            print(
+            st.write(
                 "NO ROUTES"
             )
 
@@ -250,7 +250,7 @@ def compute_route_duration(
 
         if not duration_str:
 
-            print(
+            st.write(
                 "NO DURATION"
             )
 
@@ -272,7 +272,7 @@ def compute_route_duration(
 
             minutes = 1
 
-        print(
+        st.write(
             "MINUTES:",
             minutes
         )
@@ -281,7 +281,7 @@ def compute_route_duration(
 
     except Exception as e:
 
-        print(
+        st.write(
             "ROUTE ERROR:",
             str(e)
         )
@@ -312,7 +312,7 @@ def get_car_travel_time(
         )
     )
 
-    print(
+    st.write(
         "CAR PLACE IDS:",
         origin_place_id,
         destination_place_id
@@ -359,7 +359,7 @@ def get_walk_travel_time(
         )
     )
 
-    print(
+    st.write(
         "WALK PLACE IDS:",
         origin_place_id,
         destination_place_id
@@ -406,7 +406,7 @@ def get_transit_travel_time(
         )
     )
 
-    print(
+    st.write(
         "TRANSIT PLACE IDS:",
         origin_place_id,
         destination_place_id
@@ -427,5 +427,5 @@ def get_transit_travel_time(
         destination_place_id,
 
         "TRANSIT"
-        
+
     )
