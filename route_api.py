@@ -32,39 +32,31 @@ def get_google_place_id(query):
     query = query + " 서울"
 
     url = (
-
-        "https://places.googleapis.com/v1/places:searchText"
-
-        f"?key={GOOGLE_API_KEY}"
+        "https://maps.googleapis.com/maps/api/place/textsearch/json"
     )
 
-    headers = {
+    params = {
 
-        "Content-Type":
-        "application/json",
-
-        "X-Goog-FieldMask":
-        "places.id,places.displayName"
-    }
-
-    body = {
-
-        "textQuery":
+        "query":
         query,
 
-        "languageCode":
-        "ko"
+        "language":
+        "ko",
+
+        "region":
+        "kr",
+
+        "key":
+        GOOGLE_API_KEY
     }
 
     try:
 
-        response = requests.post(
+        response = requests.get(
 
             url,
 
-            headers=headers,
-
-            json=body,
+            params=params,
 
             timeout=10
         )
@@ -79,8 +71,12 @@ def get_google_place_id(query):
 
         data = response.json()
 
+        # =========================
+        # Legacy Places API
+        # =========================
+
         places = data.get(
-            "places",
+            "results",
             []
         )
 
@@ -92,12 +88,10 @@ def get_google_place_id(query):
 
             return None
 
-        # =========================
-        # PLACE ID
-        # =========================
-
         place_id = (
-            places[0].get("id")
+            places[0].get(
+                "place_id"
+            )
         )
 
         st.success(
@@ -148,16 +142,14 @@ def compute_route_duration(
 
         "origin": {
 
-            # 중요
             "placeId":
-            "places/" + origin_place_id
+            origin_place_id
         },
 
         "destination": {
 
-            # 중요
             "placeId":
-            "places/" + destination_place_id
+            destination_place_id
         },
 
         "travelMode":
