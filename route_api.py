@@ -137,18 +137,29 @@ def compute_route_duration(
         "routes.duration"
     }
 
+    # =========================
+    # 중요:
+    # placeId 구조 수정
+    # =========================
+
     body = {
 
         "origin": {
 
-            "placeId":
-            f"places/{origin_place_id}"
+            "location": {
+
+                "placeId":
+                origin_place_id
+            }
         },
 
         "destination": {
 
-            "placeId":
-            f"places/{destination_place_id}"
+            "location": {
+
+                "placeId":
+                destination_place_id
+            }
         },
 
         "travelMode":
@@ -271,8 +282,7 @@ def compute_route_duration(
         )
 
         return None
-
-
+    
 # =========================
 # 자동차
 # =========================
