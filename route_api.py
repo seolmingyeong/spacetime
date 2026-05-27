@@ -60,7 +60,7 @@ def get_google_place_id(query):
             timeout=10
         )
 
-      st.write(
+        print(
             "PLACE STATUS:",
             response.status_code
         )
