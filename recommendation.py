@@ -121,16 +121,10 @@ def collect_candidate_places(users):
             lng2 = users[j]["lng"]
 
             for ratio in [
-
-                0.1,
                 0.2,
-                0.3,
                 0.4,
-                0.5,
                 0.6,
-                0.7,
                 0.8,
-                0.9
             ]:
 
                 lat = (
@@ -198,9 +192,13 @@ def recommend_places(users):
         users
     )
 
+    places = places[:20]
+
     recommendations = []
 
     for place in places:
+        print("평가 장소:", place["name"])
+
 
         times = []
 
@@ -209,6 +207,19 @@ def recommend_places(users):
         valid = True
 
         for user in users:
+             
+            print(
+                "이동시간 계산:",
+
+                user["nickname"],
+
+                "->",
+
+                place["name"],
+
+                user["transport"]
+                )
+
 
             travel_time = get_real_travel_time(
 
