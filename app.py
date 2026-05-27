@@ -17,7 +17,7 @@ from ui import *
 
 from theme import apply_theme
 from geo import geocode_location
-from route_api import ( get_google_place_id )
+from route_api import ( get_station_place_id )
 from place_api import ( search_places )
 
 # =========================
@@ -471,7 +471,7 @@ border-radius:12px;
         try:
 
             place_id = (
-                get_google_place_id(
+                get_station_place_id(
                     location_name.strip()
                 )
             )
