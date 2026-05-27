@@ -6,6 +6,7 @@ from route_api import (
 
     get_transit_travel_time
 )
+
 from place_api import (
     search_places
 )
@@ -53,7 +54,7 @@ def recommend_places(
 ):
 
     # =========================
-    # 중간지점 근처 카페 검색
+    # 중간지점 근처 장소 검색
     # =========================
 
     places = search_places(
@@ -79,18 +80,31 @@ def recommend_places(
 
         user_times = []
 
+        # =========================
+        # 사용자별 이동시간 계산
+        # =========================
+
         for user in users:
 
-            transport = user.get(
-                "transport",
-                "자동차"
-            )
+            transport = str(
+
+                user.get(
+                    "transport",
+                    "자동차"
+                )
+
+            ).strip().lower()
 
             # =========================
             # 자동차
             # =========================
 
-            if transport == "자동차":
+            if transport in [
+
+                "자동차",
+                "car",
+                "drive"
+            ]:
 
                 travel_time = (
 
@@ -108,7 +122,12 @@ def recommend_places(
             # 도보
             # =========================
 
-            elif transport == "도보":
+            elif transport in [
+
+                "도보",
+                "walk",
+                "walking"
+            ]:
 
                 travel_time = (
 
@@ -126,7 +145,13 @@ def recommend_places(
             # 대중교통
             # =========================
 
-            elif transport == "대중교통":
+            elif transport in [
+
+                "대중교통",
+                "transit",
+                "bus",
+                "subway"
+            ]:
 
                 travel_time = (
 
@@ -157,9 +182,18 @@ def recommend_places(
                         lng
                     )
                 )
+
+            # =========================
+            # 계산 실패
+            # =========================
+
             if travel_time is None:
 
                 continue
+
+            # =========================
+            # 이동시간 저장
+            # =========================
 
             times.append(
                 travel_time
@@ -182,6 +216,10 @@ def recommend_places(
 
             continue
 
+        # =========================
+        # 평균/최대 시간 계산
+        # =========================
+
         avg_time = int(
 
             sum(times)
@@ -190,10 +228,18 @@ def recommend_places(
 
         max_time = max(times)
 
+        # =========================
+        # 추천 점수
+        # =========================
+
         score = (
             avg_time
             + max_time
         )
+
+        # =========================
+        # 추천 장소 저장
+        # =========================
 
         recommendations.append({
 
