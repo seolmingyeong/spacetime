@@ -69,10 +69,7 @@ def get_google_place_id(query):
         st.code(
             response.text
         )
-
-
-        st.stop()
-
+        
         data = response.json()
 
         places = data.get(

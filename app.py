@@ -464,9 +464,11 @@ border-radius:12px;
                 )
             )
 
-            # =========================
-            # Google Place ID
-            # =========================
+        # =========================
+        # Google Place ID
+        # =========================
+
+        try:
 
             place_id = (
                 get_google_place_id(
@@ -474,65 +476,54 @@ border-radius:12px;
                 )
             )
 
-            st.write(
-                "PLACE ID:",
-                place_id
+        except Exception as e:
+
+            st.warning(
+                f"PLACE_ID 생성 실패: {str(e)}"
+            )
+
+            place_id = None
+
+
+        # =========================
+        # PLACE_ID 실패해도 저장 진행
+        # =========================
+
+        if place_id is None:
+
+            st.warning(
+                "Google Place ID 없이 저장합니다."
             )
 
 
-            # =========================
-            # 검색 실패
-            # =========================
+        # =========================
+        # 사용자 저장
+        # =========================
 
-            if lat is None:
+        save_user(
 
-                st.error(
-                    "위치를 찾을 수 없습니다."
-                )
+            st.session_state.current_room,
 
-            else:
+            nickname,
 
-                st.session_state.nickname = (
-                    nickname
-                )
+            ",".join(
+                st.session_state.selected_dates
+            ),
 
-                save_user(
+            place_name,
 
-                st.session_state.current_room,
+            lat,
 
-                nickname,
+            lng,
 
-                ",".join(
-                    st.session_state.selected_dates
-                ),
+            place_id,
 
-                place_name,
-
-                lat,
-
-                lng,
-
-                place_id,
-
-                transport
-            )
-
-
-                st.session_state.save_success = True
-
-                st.rerun()
-
-    # =========================
-    # 저장 완료 메시지
-    # =========================
-
-    if st.session_state.save_success:
+            transport
+        )
 
         st.success(
             "정보 저장 완료!"
         )
-
-        st.session_state.save_success = False
 
     # =========================
     # 참가자 목록
