@@ -4,6 +4,9 @@ import streamlit as st
 from datetime import datetime
 import json
 
+if "debug_logs" not in st.session_state: 
+    st.session_state.debug_logs = []
+
 
 # =========================
 # API KEY
@@ -77,13 +80,13 @@ def get_google_place_id(query):
 
 
 
-        st.code(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
+        st.session_state.debug_logs.append( 
+            json.dumps( 
+                data, 
+                indent=2, 
+                ensure_ascii=False 
+                ) 
             )
-        )
 
         places = data.get(
             "places",

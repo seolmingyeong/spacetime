@@ -760,3 +760,14 @@ border-radius:12px;
             recommendations
         )
 
+# =========================
+# DEBUG LOGS
+# =========================
+
+if "debug_logs" in st.session_state:
+
+    st.subheader("DEBUG LOGS")
+
+    for log in st.session_state.debug_logs:
+
+        st.code(log)
