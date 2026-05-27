@@ -1,7 +1,11 @@
 from route_api import (
-    get_car_travel_time
-)
 
+    get_car_travel_time,
+
+    get_walk_travel_time,
+
+    get_transit_travel_time
+)
 from place_api import (
     search_places
 )
@@ -77,18 +81,82 @@ def recommend_places(
 
         for user in users:
 
-            travel_time = (
-
-                get_car_travel_time(
-
-                    user["lat"],
-                    user["lng"],
-
-                    lat,
-                    lng
-                )
+            transport = user.get(
+                "transport",
+                "자동차"
             )
 
+            # =========================
+            # 자동차
+            # =========================
+
+            if transport == "자동차":
+
+                travel_time = (
+
+                    get_car_travel_time(
+
+                        user["lat"],
+                        user["lng"],
+
+                        lat,
+                        lng
+                    )
+                )
+
+            # =========================
+            # 도보
+            # =========================
+
+            elif transport == "도보":
+
+                travel_time = (
+
+                    get_walk_travel_time(
+
+                        user["lat"],
+                        user["lng"],
+
+                        lat,
+                        lng
+                    )
+                )
+
+            # =========================
+            # 대중교통
+            # =========================
+
+            elif transport == "대중교통":
+
+                travel_time = (
+
+                    get_transit_travel_time(
+
+                        user["lat"],
+                        user["lng"],
+
+                        lat,
+                        lng
+                    )
+                )
+
+            # =========================
+            # 기본값
+            # =========================
+
+            else:
+
+                travel_time = (
+
+                    get_car_travel_time(
+
+                        user["lat"],
+                        user["lng"],
+
+                        lat,
+                        lng
+                    )
+                )
             if travel_time is None:
 
                 continue
