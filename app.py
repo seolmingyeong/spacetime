@@ -579,7 +579,82 @@ border-radius:12px;
     """,
                 unsafe_allow_html=True
             )
+    # =========================
+    # 추천 장소 버튼
+    # =========================
 
+    if len(users_data) >= 2:
+
+        if st.button(
+            "추천 장소 찾기",
+            key="recommend_button"
+        ):
+
+            with st.spinner(
+                "추천 장소를 찾는 중..."
+            ):
+
+                # =========================
+                # 지도용 사용자 데이터
+                # =========================
+
+                users = []
+
+                for user in users_data:
+
+                    users.append({
+
+                        "nickname": user[2],
+
+                        "location_name": user[4],
+
+                        "lat": user[5],
+
+                        "lng": user[6],
+
+                        "transport": user[7]
+                    })
+
+                # =========================
+                # 중간 좌표 계산
+                # =========================
+
+                middle_lat, middle_lng = (
+                    get_middle_point(users)
+                )
+
+                # =========================
+                # 추천 장소 계산
+                # =========================
+
+                recommendations = (
+                    recommend_places(
+
+                        users,
+
+                        middle_lat,
+
+                        middle_lng
+                    )
+                )
+
+                # =========================
+                # session 저장
+                # =========================
+
+                st.session_state.recommendations = (
+                    recommendations
+                )
+
+                st.session_state.middle_lat = (
+                    middle_lat
+                )
+
+                st.session_state.middle_lng = (
+                    middle_lng
+                )
+
+            st.rerun()
 
     # =========================
     # 추천 결과
@@ -628,27 +703,7 @@ border-radius:12px;
                 place
             )
             
-        # =========================
-        # 추천 장소 존재 확인
-        # =========================
-
-        best_place = None
-
-        if (
-            recommendations
-            and len(recommendations) > 0
-        ):
-
-            best_place = recommendations[0]
-
-        # =========================
-        # 추천 장소 출력
-        # =========================
-
-        render_place_card(
-            best_place
-        )
-
+    
         # =========================
         # 지도용 사용자 데이터
         # =========================
