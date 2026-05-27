@@ -24,27 +24,28 @@ st.code(
 
 
 # =========================
-# Google Place ID 검색
+# 정확한 장소 검색
 # =========================
 
-def get_google_place_id(query):
-
-    query = query + " 서울"
+def get_station_place_id(query):
 
     url = (
-        "https://maps.googleapis.com/maps/api/place/textsearch/json"
+        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
     )
 
     params = {
 
-        "query":
+        "input":
         query,
+
+        "inputtype":
+        "textquery",
+
+        "fields":
+        "place_id,name",
 
         "language":
         "ko",
-
-        "region":
-        "kr",
 
         "key":
         GOOGLE_API_KEY
@@ -61,37 +62,35 @@ def get_google_place_id(query):
             timeout=10
         )
 
+        data = response.json()
+
         st.subheader(
-            "PLACE SEARCH RESPONSE"
+            "STATION SEARCH RESPONSE"
         )
 
         st.code(
-            response.text
+            json.dumps(
+                data,
+                indent=2,
+                ensure_ascii=False
+            )
         )
 
-        data = response.json()
-
-        # =========================
-        # Legacy Places API
-        # =========================
-
-        places = data.get(
-            "results",
+        candidates = data.get(
+            "candidates",
             []
         )
 
-        if not places:
+        if not candidates:
 
             st.error(
-                "NO PLACES FOUND"
+                "NO CANDIDATES"
             )
 
             return None
 
-        place_id = (
-            places[0].get(
-                "place_id"
-            )
+        place_id = candidates[0].get(
+            "place_id"
         )
 
         st.success(
@@ -142,14 +141,12 @@ def compute_route_duration(
 
         "origin": {
 
-            # 중요
             "placeId":
             f"places/{origin_place_id}"
         },
 
         "destination": {
 
-            # 중요
             "placeId":
             f"places/{destination_place_id}"
         },
@@ -162,7 +159,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # TRANSIT
+    # 대중교통
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -247,7 +244,6 @@ def compute_route_duration(
             return None
 
         seconds = int(
-
             duration_str.replace(
                 "s",
                 ""
@@ -289,13 +285,13 @@ def get_car_travel_time(
 ):
 
     origin_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             destination_query
         )
     )
@@ -334,13 +330,13 @@ def get_walk_travel_time(
 ):
 
     origin_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             destination_query
         )
     )
@@ -379,13 +375,13 @@ def get_transit_travel_time(
 ):
 
     origin_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_google_place_id(
+        get_station_place_id(
             destination_query
         )
     )
