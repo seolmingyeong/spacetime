@@ -1,4 +1,3 @@
-```python
 from route_api import (
 
     get_car_travel_time,
@@ -102,14 +101,10 @@ def get_travel_time(
 
 
 # =========================
-# 시간 균형 좌표 찾기
+# 시간 균형 좌표 탐색
 # =========================
 
 def find_best_point(users):
-
-    # =========================
-    # 중심 좌표 계산
-    # =========================
 
     center_lat = sum(
 
@@ -126,10 +121,6 @@ def find_best_point(users):
         for user in users
 
     ) / len(users)
-
-    # =========================
-    # 후보 좌표 생성
-    # =========================
 
     candidate_points = []
 
@@ -149,10 +140,6 @@ def find_best_point(users):
                     + lng_offset * step
                 )
             )
-
-    # =========================
-    # 최적 score 탐색
-    # =========================
 
     best_score = float("inf")
 
@@ -198,7 +185,7 @@ def find_best_point(users):
             - min(times)
         )
 
-        # 평균도 조금 반영
+        # 평균시간 반영
 
         score += (
             sum(times)
@@ -210,7 +197,6 @@ def find_best_point(users):
             best_score = score
 
             best_point = (
-
                 lat,
                 lng
             )
@@ -222,17 +208,7 @@ def find_best_point(users):
 # 추천 장소 생성
 # =========================
 
-def recommend_places(
-
-    users,
-
-    middle_lat,
-    middle_lng
-):
-
-    # =========================
-    # 시간 균형 좌표 찾기
-    # =========================
+def recommend_places(users):
 
     best_point = find_best_point(
         users
@@ -244,10 +220,6 @@ def recommend_places(
 
     best_lat, best_lng = best_point
 
-    # =========================
-    # 최적 지점 근처 장소 검색
-    # =========================
-
     places = search_places(
 
         best_lat,
@@ -257,10 +229,6 @@ def recommend_places(
     )
 
     recommendations = []
-
-    # =========================
-    # 장소별 이동시간 계산
-    # =========================
 
     for place in places:
 
@@ -306,17 +274,11 @@ def recommend_places(
 
             continue
 
-        # =========================
-        # 시간 균형 중심 score
-        # =========================
-
         score = (
 
             max(times)
             - min(times)
         )
-
-        # 평균시간도 조금 반영
 
         score += (
             sum(times)
@@ -354,10 +316,6 @@ def recommend_places(
             user_times
         })
 
-    # =========================
-    # score 기준 정렬
-    # =========================
-
     recommendations.sort(
 
         key=lambda x:
@@ -365,4 +323,3 @@ def recommend_places(
     )
 
     return recommendations[:3]
-```
