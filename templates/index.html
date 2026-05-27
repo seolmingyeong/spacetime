@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPACETIME — 시간을 맞추다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050810;--surface:#0d1117;--surface2:#141b26;--surface3:#1a2332;
+  --accent:#00e5ff;--accent2:#7c3aed;--accent3:#ff6b35;
+  --text:#e8eaf6;--muted:#546e8a;--border:rgba(0,229,255,0.15);
+  --glow:0 0 30px rgba(0,229,255,0.3);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0;}
+@keyframes twinkle{0%,100%{opacity:0}50%{opacity:var(--o,.6)}}
+.grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);
+  background-size:60px 60px;}
+
+nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:24px 48px;border-bottom:1px solid var(--border);}
+.logo{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--accent);text-shadow:var(--glow);}
+.logo span{color:var(--accent2);}
+.nav-hint{font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;letter-spacing:2px;}
+
+/* HERO */
+.hero{position:relative;z-index:5;min-height:calc(100vh - 80px);display:flex;gap:60px;align-items:center;justify-content:center;padding:60px 48px;flex-wrap:wrap;}
+.hero-left{flex:1;min-width:300px;max-width:560px;}
+.hero-eyebrow{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:5px;color:var(--accent);margin-bottom:24px;opacity:0.8;}
+.hero-title{font-size:clamp(56px,9vw,110px);font-family:'Space Mono',monospace;font-weight:700;line-height:0.9;letter-spacing:-2px;background:linear-gradient(135deg,#fff 0%,var(--accent) 50%,var(--accent2) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;animation:fadeUp 1s ease both;}
+.hero-sub{font-size:clamp(13px,2vw,16px);color:var(--muted);margin-top:20px;margin-bottom:48px;line-height:1.9;max-width:440px;animation:fadeUp 1s ease 0.15s both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;border:1px solid var(--border);border-radius:16px;overflow:hidden;animation:fadeUp 1s ease 0.3s both;}
+.action-card{background:var(--surface);padding:36px 28px;cursor:pointer;transition:background 0.2s;position:relative;overflow:hidden;}
+.action-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.3s;}
+.card-create::before{background:linear-gradient(135deg,rgba(0,229,255,0.1),transparent);}
+.card-join::before{background:linear-gradient(135deg,rgba(124,58,237,0.1),transparent);}
+.action-card:hover::before{opacity:1;}
+.action-card:hover{background:var(--surface2);}
+.action-card h3{font-size:18px;font-weight:700;margin-bottom:6px;font-family:'Space Mono',monospace;}
+.action-card p{font-size:12px;color:var(--muted);line-height:1.6;}
+.card-icon{font-size:28px;margin-bottom:14px;}
+.card-create h3{color:var(--accent);}
+.card-join h3{color:var(--accent2);}
+
+/* MY ROOMS PANEL */
+.hero-right{flex:0 0 340px;min-width:280px;animation:fadeUp 1s ease 0.45s both;}
+.rooms-panel{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.rooms-panel-header{padding:20px 24px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.rooms-panel-header h3{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--muted);}
+.rooms-panel-header span{font-size:10px;color:var(--muted);}
+.rooms-list{padding:12px;}
+.room-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;cursor:pointer;transition:background 0.15s;border:1px solid transparent;}
+.room-item:hover{background:var(--surface2);border-color:var(--border);}
+.room-dot{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:14px;font-family:'Space Mono',monospace;font-weight:700;color:#fff;flex-shrink:0;}
+.room-info{flex:1;min-width:0;}
+.room-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.room-meta{font-size:11px;color:var(--muted);margin-top:2px;font-family:'Space Mono',monospace;letter-spacing:1px;}
+.room-arrow{color:var(--muted);font-size:16px;}
+.rooms-empty{padding:32px 24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.7;}
+.rooms-empty .icon{font-size:36px;margin-bottom:12px;opacity:0.4;}
+.clear-rooms{width:100%;padding:12px;background:none;border:none;border-top:1px solid var(--border);color:var(--muted);font-size:11px;cursor:pointer;letter-spacing:2px;font-family:'Space Mono',monospace;transition:color 0.2s;}
+.clear-rooms:hover{color:var(--text);}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(5,8,16,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:48px;max-width:440px;width:90%;box-shadow:var(--glow),0 40px 80px rgba(0,0,0,0.6);animation:scaleIn 0.3s ease;}
+@keyframes scaleIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:none}}
+.modal h2{font-family:'Space Mono',monospace;font-size:18px;margin-bottom:28px;color:var(--accent);letter-spacing:2px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:11px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;}
+.field input,.field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px 16px;color:var(--text);font-size:14px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color 0.2s;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.btn{width:100%;padding:15px;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:2px;transition:all 0.2s;margin-top:6px;}
+.btn-primary{background:var(--accent);color:var(--bg);box-shadow:0 0 20px rgba(0,229,255,0.3);}
+.btn-primary:hover{box-shadow:0 0 40px rgba(0,229,255,0.5);transform:translateY(-1px);}
+.btn-secondary{background:var(--accent2);color:#fff;}
+.btn-secondary:hover{box-shadow:0 0 30px rgba(124,58,237,0.5);transform:translateY(-1px);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);margin-top:10px;}
+.btn-ghost:hover{color:var(--text);border-color:var(--text);}
+.error-msg{color:#ff6b6b;font-size:12px;margin-top:8px;display:none;}
+
+/* FEATURES */
+.features{position:relative;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);gap:1px;max-width:900px;margin:0 auto;border-top:1px solid var(--border);}
+.feature{padding:32px 28px;background:var(--surface);text-align:center;}
+.feature-num{font-family:'Space Mono',monospace;font-size:36px;color:rgba(0,229,255,0.12);font-weight:700;margin-bottom:10px;}
+.feature h4{font-size:13px;margin-bottom:6px;}
+.feature p{font-size:12px;color:var(--muted);line-height:1.7;}
+
+@media(max-width:768px){
+  nav{padding:18px 20px;}
+  .hero{padding:40px 20px;gap:40px;}
+  .action-grid{grid-template-columns:1fr;}
+  .hero-right{flex:none;width:100%;}
+  .features{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="grid-overlay"></div>
+
+<nav>
+  <div class="logo">SPACE<span>TIME</span></div>
+  <div class="nav-hint">// SCHEDULE SYNC ENGINE</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">✦ TEMPORAL COORDINATION SYSTEM</div>
+    <h1 class="hero-title">SPACE<br>TIME</h1>
+    <p class="hero-sub">모두가 가능한 시간을 찾고,<br>최적의 장소까지 — 한 번에.</p>
+    <div class="action-grid">
+      <div class="action-card card-create" onclick="openModal('create')">
+        <div class="card-icon">⊕</div>
+        <h3>방 만들기</h3>
+        <p>새 스페이스를 생성하고<br>코드를 공유하세요</p>
+      </div>
+      <div class="action-card card-join" onclick="openModal('join')">
+        <div class="card-icon">⊙</div>
+        <h3>방 입장하기</h3>
+        <p>코드를 입력해<br>스페이스에 참여하세요</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="rooms-panel">
+      <div class="rooms-panel-header">
+        <h3>MY SPACES</h3>
+        <span>최근 참여한 방</span>
+      </div>
+      <div class="rooms-list" id="rooms-list">
+        <div class="rooms-empty">
+          <div class="icon">🛸</div>
+          <p>아직 참여한 방이 없습니다.<br>방을 만들거나 참여해보세요!</p>
+        </div>
+      </div>
+      <button class="clear-rooms" id="clear-btn" onclick="clearRooms()" style="display:none">
+        // 기록 초기화
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="feature-num">01</div>
+    <h4>시간 조율</h4>
+    <p>날짜별 가능한 시간대를 직접 선택해<br>교집합을 자동 계산합니다</p>
+  </div>
+  <div class="feature">
+    <div class="feature-num">02</div>
+    <h4>장소 추천</h4>
+    <p>출발지·이동수단 기반으로<br>모두에게 최적인 장소를 찾아드립니다</p>
+  </div>
+  <div class="feature">
+    <div class="feature-num">03</div>
+    <h4>카테고리 매칭</h4>
+    <p>맛집·카페·관광 등 원하는 카테고리를<br>투표해 맞춤 장소를 제안받으세요</p>
+  </div>
+</section>
+
+<!-- Create Modal -->
+<div class="modal-overlay" id="modal-create">
+  <div class="modal">
+    <h2>// NEW SPACE</h2>
+    <div class="field">
+      <label>방 이름</label>
+      <input type="text" id="room-name" placeholder="예: 7월 MT 계획" maxlength="30">
+    </div>
+    <div class="field">
+      <label>내 이름</label>
+      <input type="text" id="host-name" placeholder="이름을 입력하세요" maxlength="20">
+    </div>
+    <div id="create-error" class="error-msg"></div>
+    <button class="btn btn-primary" onclick="createRoom()">CREATE SPACE →</button>
+    <button class="btn btn-ghost" onclick="closeModal('create')">취소</button>
+  </div>
+</div>
+
+<!-- Join Modal -->
+<div class="modal-overlay" id="modal-join">
+  <div class="modal">
+    <h2>// JOIN SPACE</h2>
+    <div class="field">
+      <label>방 코드</label>
+      <input type="text" id="join-code" placeholder="6자리 코드 입력" maxlength="6" style="text-transform:uppercase;letter-spacing:4px;font-family:'Space Mono',monospace">
+    </div>
+    <div class="field">
+      <label>내 이름</label>
+      <input type="text" id="join-name" placeholder="이름을 입력하세요" maxlength="20">
+    </div>
+    <div id="join-error" class="error-msg"></div>
+    <button class="btn btn-secondary" onclick="joinRoom()">ENTER SPACE →</button>
+    <button class="btn btn-ghost" onclick="closeModal('join')">취소</button>
+  </div>
+</div>
+
+<script>
+// ── STARS ──
+const starsEl=document.getElementById('stars');
+for(let i=0;i<120;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2.5+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${Math.random()*4+2}s;--o:${Math.random()*0.8+0.2};animation-delay:${Math.random()*5}s`;
+  starsEl.appendChild(s);
+}
+
+// ── MY ROOMS (localStorage) ──
+function getMyRooms(){
+  try{ return JSON.parse(localStorage.getItem('spacetime_rooms')||'[]'); }
+  catch{ return []; }
+}
+function saveMyRoom(code, name, myName){
+  let rooms = getMyRooms().filter(r=>r.code!==code);
+  rooms.unshift({code, name, myName, ts: Date.now()});
+  rooms = rooms.slice(0,10);
+  localStorage.setItem('spacetime_rooms', JSON.stringify(rooms));
+}
+function clearRooms(){
+  localStorage.removeItem('spacetime_rooms');
+  renderMyRooms();
+}
+function renderMyRooms(){
+  const rooms = getMyRooms();
+  const list = document.getElementById('rooms-list');
+  const clearBtn = document.getElementById('clear-btn');
+  if(!rooms.length){
+    list.innerHTML=`<div class="rooms-empty"><div class="icon">🛸</div><p>아직 참여한 방이 없습니다.<br>방을 만들거나 참여해보세요!</p></div>`;
+    clearBtn.style.display='none';
+    return;
+  }
+  clearBtn.style.display='block';
+  list.innerHTML = rooms.map(r=>{
+    const initials = r.name.slice(0,2);
+    const ago = timeAgo(r.ts);
+    return `<div class="room-item" onclick="rejoinRoom('${r.code}','${r.myName}')">
+      <div class="room-dot">${initials}</div>
+      <div class="room-info">
+        <div class="room-name">${r.name}</div>
+        <div class="room-meta">${r.code} · ${ago}</div>
+      </div>
+      <div class="room-arrow">›</div>
+    </div>`;
+  }).join('');
+}
+function timeAgo(ts){
+  const diff = Date.now()-ts;
+  const m=Math.floor(diff/60000), h=Math.floor(diff/3600000), d=Math.floor(diff/86400000);
+  if(d>0) return `${d}일 전`;
+  if(h>0) return `${h}시간 전`;
+  if(m>0) return `${m}분 전`;
+  return '방금';
+}
+async function rejoinRoom(code, name){
+  await fetch(`/api/room/${code}/join`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  sessionStorage.setItem('myName', name);
+  window.location.href=`/room/${code}`;
+}
+renderMyRooms();
+
+// ── MODAL ──
+function openModal(type){ document.getElementById('modal-'+type).classList.add('open'); }
+function closeModal(type){
+  document.getElementById('modal-'+type).classList.remove('open');
+  document.getElementById(type==='create'?'create-error':'join-error').style.display='none';
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+async function createRoom(){
+  const name=document.getElementById('room-name').value.trim();
+  const host=document.getElementById('host-name').value.trim();
+  const err=document.getElementById('create-error');
+  if(!name||!host){ err.textContent='모든 항목을 입력해주세요'; err.style.display='block'; return; }
+  const res=await fetch('/api/create-room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_name:name,host_name:host})});
+  const data=await res.json();
+  if(data.error){ err.textContent=data.error; err.style.display='block'; return; }
+  await fetch(`/api/room/${data.code}/join`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:host})});
+  saveMyRoom(data.code, data.room_name, host);
+  sessionStorage.setItem('myName', host);
+  window.location.href=`/room/${data.code}`;
+}
+async function joinRoom(){
+  const code=document.getElementById('join-code').value.trim().toUpperCase();
+  const name=document.getElementById('join-name').value.trim();
+  const err=document.getElementById('join-error');
+  if(!code||!name){ err.textContent='모든 항목을 입력해주세요'; err.style.display='block'; return; }
+  const chk=await fetch(`/api/room/${code}`);
+  if(!chk.ok){ err.textContent='방을 찾을 수 없습니다. 코드를 확인해주세요.'; err.style.display='block'; return; }
+  const roomData=await chk.json();
+  await fetch(`/api/room/${code}/join`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  saveMyRoom(code, roomData.name, name);
+  sessionStorage.setItem('myName', name);
+  window.location.href=`/room/${code}`;
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('modal-create').classList.contains('open')) createRoom();
+    if(document.getElementById('modal-join').classList.contains('open')) joinRoom();
+  }
+});
+</script>
+</body>
+</html>
