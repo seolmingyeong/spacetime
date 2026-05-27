@@ -201,11 +201,11 @@ def recommend_places(users):
 
     candidate_points = []
 
-    step = 0.03
+    step = 0.01
 
-    for lat_offset in range(-4, 5):
+    for lat_offset in range(-8, 9):
 
-        for lng_offset in range(-4, 5):
+        for lng_offset in range(-8, 9):
 
             lat = (
                 center_lat
@@ -317,7 +317,7 @@ def recommend_places(users):
         x["score"]
     )
 
-    top_candidates = fast_scores[:8]
+    top_candidates = fast_scores[:15]
 
     # =========================
     # 실제 API 기반 정밀 평가
