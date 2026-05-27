@@ -138,28 +138,21 @@ def compute_route_duration(
     }
 
     # =========================
-    # 중요:
-    # placeId 구조 수정
+    # 공식 Routes API 형식
     # =========================
 
     body = {
 
         "origin": {
 
-            "location": {
-
-                "placeId":
-                origin_place_id
-            }
+            "placeId":
+            origin_place_id
         },
 
         "destination": {
 
-            "location": {
-
-                "placeId":
-                destination_place_id
-            }
+            "placeId":
+            destination_place_id
         },
 
         "travelMode":
@@ -184,10 +177,6 @@ def compute_route_duration(
             .isoformat()
 
             + "Z"
-        )
-
-        body["routingPreference"] = (
-            "LESS_WALKING"
         )
 
     try:
@@ -215,19 +204,23 @@ def compute_route_duration(
             timeout=20
         )
 
-        data = response.json()
-
         st.subheader(
-            f"ROUTE RESPONSE ({travel_mode})"
+            f"ROUTE STATUS ({travel_mode})"
         )
 
         st.code(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
-            )
+            response.status_code
         )
+
+        st.subheader(
+            f"ROUTE RAW RESPONSE ({travel_mode})"
+        )
+
+        st.code(
+            response.text
+        )
+
+        data = response.json()
 
         routes = data.get(
             "routes",
@@ -242,11 +235,11 @@ def compute_route_duration(
 
             return None
 
-        duration_str = routes[0].get(
+        duration = routes[0].get(
             "duration"
         )
 
-        if not duration_str:
+        if not duration:
 
             st.error(
                 "NO DURATION"
@@ -254,23 +247,21 @@ def compute_route_duration(
 
             return None
 
+        # "1234s"
         seconds = int(
-            duration_str.replace(
+            duration.replace(
                 "s",
                 ""
             )
         )
 
-        minutes = int(
-            seconds / 60
+        minutes = max(
+            1,
+            seconds // 60
         )
 
-        if minutes <= 0:
-
-            minutes = 1
-
         st.success(
-            f"{travel_mode} TIME: {minutes}분"
+            f"{travel_mode}: {minutes}분"
         )
 
         return minutes
@@ -282,7 +273,8 @@ def compute_route_duration(
         )
 
         return None
-    
+
+
 # =========================
 # 자동차
 # =========================
