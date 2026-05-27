@@ -142,14 +142,16 @@ def compute_route_duration(
 
         "origin": {
 
+            # 중요
             "placeId":
-            origin_place_id
+            f"places/{origin_place_id}"
         },
 
         "destination": {
 
+            # 중요
             "placeId":
-            destination_place_id
+            f"places/{destination_place_id}"
         },
 
         "travelMode":
