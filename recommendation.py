@@ -121,10 +121,10 @@ def collect_candidate_places(users):
             lng2 = users[j]["lng"]
 
             for ratio in [
-                0.2,
-                0.4,
-                0.6,
-                0.8,
+
+                0.25,
+                0.5,
+                0.75
             ]:
 
                 lat = (
@@ -145,7 +145,7 @@ def collect_candidate_places(users):
                     (lat, lng)
                 )
 
-    # 실제 장소 검색
+    # 장소 검색
 
     for lat, lng in search_points:
 
@@ -179,7 +179,7 @@ def collect_candidate_places(users):
 
         unique_places.append(place)
 
-    return unique_places
+    return unique_places[:5]
 
 
 # =========================
@@ -192,13 +192,9 @@ def recommend_places(users):
         users
     )
 
-    places = places[:20]
-
     recommendations = []
 
     for place in places:
-        print("평가 장소:", place["name"])
-
 
         times = []
 
@@ -207,26 +203,19 @@ def recommend_places(users):
         valid = True
 
         for user in users:
-             
-            print(
-                "이동시간 계산:",
 
-                user["nickname"],
+            try:
 
-                "->",
+                travel_time = get_real_travel_time(
 
-                place["name"],
+                    user,
 
-                user["transport"]
+                    place
                 )
 
+            except Exception:
 
-            travel_time = get_real_travel_time(
-
-                user,
-
-                place
-            )
+                travel_time = None
 
             if travel_time is None:
 
@@ -275,8 +264,6 @@ def recommend_places(users):
         if not valid:
 
             continue
-
-        # 시간 균형 score
 
         balance_score = (
 

@@ -57,7 +57,7 @@ def get_car_travel_time(
 
             params=params,
 
-            timeout=5
+            timeout=3
         )
 
         data = response.json()
@@ -86,16 +86,14 @@ def get_car_travel_time(
 
 
 # =========================
-# Google Distance Matrix
+# Google 도보 이동시간
 # =========================
 
-def get_google_travel_time(
+def get_walk_travel_time(
 
-    origin,
+    origin_address,
 
-    destination,
-
-    mode
+    destination_address
 ):
 
     url = (
@@ -105,13 +103,13 @@ def get_google_travel_time(
     params = {
 
         "origins":
-        origin,
+        origin_address,
 
         "destinations":
-        destination,
+        destination_address,
 
         "mode":
-        mode,
+        "walking",
 
         "language":
         "ko",
@@ -123,16 +121,6 @@ def get_google_travel_time(
         GOOGLE_API_KEY
     }
 
-    # =========================
-    # transit 추가 설정
-    # =========================
-
-    if mode == "transit":
-
-        params["transit_mode"] = (
-            "bus|subway"
-        )
-
     try:
 
         response = requests.get(
@@ -141,7 +129,7 @@ def get_google_travel_time(
 
             params=params,
 
-            timeout=10
+            timeout=3
         )
 
         data = response.json()
@@ -188,27 +176,6 @@ def get_google_travel_time(
 
 
 # =========================
-# 도보 이동시간
-# =========================
-
-def get_walk_travel_time(
-
-    origin_address,
-
-    destination_address
-):
-
-    return get_google_travel_time(
-
-        origin_address,
-
-        destination_address,
-
-        "walking"
-    )
-
-
-# =========================
 # 대중교통 이동시간
 # =========================
 
@@ -219,11 +186,13 @@ def get_transit_travel_time(
     destination_address
 ):
 
-    return get_google_travel_time(
+    # =========================
+    # 임시 fallback
+    # =========================
+
+    return get_walk_travel_time(
 
         origin_address,
 
-        destination_address,
-
-        "transit"
+        destination_address
     )
