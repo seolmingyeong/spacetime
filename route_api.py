@@ -4,16 +4,13 @@ import streamlit as st
 from datetime import datetime
 import json
 
-if "debug_logs" not in st.session_state: 
-    st.session_state.debug_logs = []
-
 
 # =========================
 # API KEY
 # =========================
 
 GOOGLE_API_KEY = st.secrets.get(
-    "GOOGLE_API_KEY"
+    "GOOGLE_MAP_API_KEY"
 )
 
 st.code(
@@ -67,30 +64,13 @@ def get_google_place_id(query):
             timeout=10
         )
 
-        print(
-            "PLACE STATUS:",
-            response.status_code
-        )
-
-        st.write(
-            "RAW TEXT:"
-        )
+        st.subheader("PLACE SEARCH")
 
         st.code(
             response.text
         )
 
         data = response.json()
-
-
-
-        st.session_state.debug_logs.append( 
-            json.dumps( 
-                data, 
-                indent=2, 
-                ensure_ascii=False 
-                ) 
-            )
 
         places = data.get(
             "places",
@@ -99,31 +79,34 @@ def get_google_place_id(query):
 
         if not places:
 
-            st.write(
-                "NO PLACES"
+            st.error(
+                "NO PLACES FOUND"
             )
 
             return None
+
+        # =========================
+        # Places API New
+        # =========================
 
         place_id = places[0].get(
             "id"
         )
 
-        st.write(
-            "PLACE_ID:",
-            place_id
+        st.success(
+            f"PLACE_ID: {place_id}"
         )
 
         return place_id
 
     except Exception as e:
 
-        st.write(
-            "PLACE ERROR:",
-            str(e)
+        st.error(
+            f"PLACE ERROR: {str(e)}"
         )
 
         return None
+
 
 # =========================
 # Routes API
@@ -176,7 +159,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # TRANSIT 옵션
+    # TRANSIT
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -198,13 +181,11 @@ def compute_route_duration(
 
     try:
 
-        st.write(
-            "REQUEST MODE:",
-            travel_mode
+        st.subheader(
+            f"ROUTE REQUEST ({travel_mode})"
         )
 
-        st.write(
-            "REQUEST BODY:",
+        st.code(
             json.dumps(
                 body,
                 indent=2,
@@ -223,20 +204,15 @@ def compute_route_duration(
             timeout=20
         )
 
-        st.write(
-            "ROUTE STATUS:",
-            response.status_code
+        st.subheader(
+            f"ROUTE RESPONSE ({travel_mode})"
+        )
+
+        st.code(
+            response.text
         )
 
         data = response.json()
-
-        st.write(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
 
         routes = data.get(
             "routes",
@@ -245,8 +221,8 @@ def compute_route_duration(
 
         if not routes:
 
-            st.write(
-                "NO ROUTES"
+            st.error(
+                "NO ROUTES FOUND"
             )
 
             return None
@@ -257,7 +233,7 @@ def compute_route_duration(
 
         if not duration_str:
 
-            st.write(
+            st.error(
                 "NO DURATION"
             )
 
@@ -279,18 +255,16 @@ def compute_route_duration(
 
             minutes = 1
 
-        st.write(
-            "MINUTES:",
-            minutes
+        st.success(
+            f"{travel_mode} TIME: {minutes}분"
         )
 
         return minutes
 
     except Exception as e:
 
-        st.write(
-            "ROUTE ERROR:",
-            str(e)
+        st.error(
+            f"ROUTE ERROR: {str(e)}"
         )
 
         return None
@@ -319,10 +293,8 @@ def get_car_travel_time(
         )
     )
 
-    st.write(
-        "CAR PLACE IDS:",
-        origin_place_id,
-        destination_place_id
+    st.code(
+        f"CAR PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
     )
 
     if not origin_place_id:
@@ -366,10 +338,8 @@ def get_walk_travel_time(
         )
     )
 
-    st.write(
-        "WALK PLACE IDS:",
-        origin_place_id,
-        destination_place_id
+    st.code(
+        f"WALK PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
     )
 
     if not origin_place_id:
@@ -413,10 +383,8 @@ def get_transit_travel_time(
         )
     )
 
-    st.write(
-        "TRANSIT PLACE IDS:",
-        origin_place_id,
-        destination_place_id
+    st.code(
+        f"TRANSIT PLACE IDS:\n{origin_place_id}\n{destination_place_id}"
     )
 
     if not origin_place_id:
@@ -434,5 +402,4 @@ def get_transit_travel_time(
         destination_place_id,
 
         "TRANSIT"
-
     )
