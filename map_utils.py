@@ -16,9 +16,6 @@ def render_map(
     users,
 
     recommendations,
-
-    middle_lat,
-    middle_lng
 ):
 
     # =========================
@@ -40,8 +37,8 @@ def render_map(
     m = folium.Map(
 
         location=[
-            middle_lat,
-            middle_lng
+            recommendations[0]["lat"], 
+            recommendations[0]["lng"]
         ],
 
         zoom_start=12,

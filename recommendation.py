@@ -1,3 +1,4 @@
+```python
 from route_api import (
 
     get_car_travel_time,
@@ -11,20 +12,106 @@ from place_api import (
     search_places
 )
 
-import streamlit as st
+
+# =========================
+# 이동시간 계산
+# =========================
+
+def get_travel_time(
+
+    user,
+
+    lat,
+    lng
+):
+
+    transport = str(
+
+        user.get(
+            "transport",
+            "자동차"
+        )
+
+    ).strip().lower()
+
+    # 자동차
+
+    if transport in [
+
+        "자동차",
+        "car",
+        "drive"
+    ]:
+
+        return get_car_travel_time(
+
+            user["lat"],
+            user["lng"],
+
+            lat,
+            lng
+        )
+
+    # 도보
+
+    elif transport in [
+
+        "도보",
+        "walk",
+        "walking"
+    ]:
+
+        return get_walk_travel_time(
+
+            user["lat"],
+            user["lng"],
+
+            lat,
+            lng
+        )
+
+    # 대중교통
+
+    elif transport in [
+
+        "대중교통",
+        "transit",
+        "bus",
+        "subway"
+    ]:
+
+        return get_transit_travel_time(
+
+            user["lat"],
+            user["lng"],
+
+            lat,
+            lng
+        )
+
+    # 기본값
+
+    return get_car_travel_time(
+
+        user["lat"],
+        user["lng"],
+
+        lat,
+        lng
+    )
 
 
 # =========================
-# 평균 좌표 계산
+# 시간 균형 좌표 찾기
 # =========================
 
-def get_middle_point(users):
+def find_best_point(users):
 
-    if len(users) == 0:
+    # =========================
+    # 중심 좌표 계산
+    # =========================
 
-        return None, None
-
-    avg_lat = sum(
+    center_lat = sum(
 
         user["lat"]
 
@@ -32,7 +119,7 @@ def get_middle_point(users):
 
     ) / len(users)
 
-    avg_lng = sum(
+    center_lng = sum(
 
         user["lng"]
 
@@ -40,7 +127,95 @@ def get_middle_point(users):
 
     ) / len(users)
 
-    return avg_lat, avg_lng
+    # =========================
+    # 후보 좌표 생성
+    # =========================
+
+    candidate_points = []
+
+    step = 0.02
+
+    for lat_offset in range(-5, 6):
+
+        for lng_offset in range(-5, 6):
+
+            candidate_points.append(
+
+                (
+                    center_lat
+                    + lat_offset * step,
+
+                    center_lng
+                    + lng_offset * step
+                )
+            )
+
+    # =========================
+    # 최적 score 탐색
+    # =========================
+
+    best_score = float("inf")
+
+    best_point = None
+
+    for lat, lng in candidate_points:
+
+        times = []
+
+        valid = True
+
+        for user in users:
+
+            travel_time = get_travel_time(
+
+                user,
+
+                lat,
+                lng
+            )
+
+            if travel_time is None:
+
+                valid = False
+
+                break
+
+            times.append(
+                travel_time
+            )
+
+        if not valid:
+
+            continue
+
+        # =========================
+        # 시간 균형 score
+        # =========================
+
+        score = (
+
+            max(times)
+            - min(times)
+        )
+
+        # 평균도 조금 반영
+
+        score += (
+            sum(times)
+            / len(times)
+        ) * 0.3
+
+        if score < best_score:
+
+            best_score = score
+
+            best_point = (
+
+                lat,
+                lng
+            )
+
+    return best_point
 
 
 # =========================
@@ -56,13 +231,27 @@ def recommend_places(
 ):
 
     # =========================
-    # 중간지점 근처 장소 검색
+    # 시간 균형 좌표 찾기
+    # =========================
+
+    best_point = find_best_point(
+        users
+    )
+
+    if not best_point:
+
+        return []
+
+    best_lat, best_lng = best_point
+
+    # =========================
+    # 최적 지점 근처 장소 검색
     # =========================
 
     places = search_places(
 
-        middle_lat,
-        middle_lng,
+        best_lat,
+        best_lng,
 
         "카페"
     )
@@ -82,153 +271,23 @@ def recommend_places(
 
         user_times = []
 
-        # =========================
-        # 사용자별 이동시간 계산
-        # =========================
+        valid = True
 
         for user in users:
 
-            raw_transport = user.get(
-                "transport"
+            travel_time = get_travel_time(
+
+                user,
+
+                lat,
+                lng
             )
-
-            transport = str(
-
-                raw_transport
-
-            ).strip().lower()
-
-            st.error(
-                f"RAW = {raw_transport}"
-            )
-
-            st.error(
-                f"NORMALIZED = {transport}"
-            )
-
-            # =========================
-            # 자동차
-            # =========================
-
-            if transport in [
-
-                "자동차",
-                "car",
-                "drive"
-            ]:
-
-                st.error(
-                    "CAR CALLED"
-                )
-
-                travel_time = (
-
-                    get_car_travel_time(
-
-                        user["lat"],
-                        user["lng"],
-
-                        lat,
-                        lng
-                    )
-                )
-
-            # =========================
-            # 도보
-            # =========================
-
-            elif transport in [
-
-                "도보",
-                "walk",
-                "walking"
-            ]:
-
-                st.error(
-                    "WALK CALLED"
-                )
-
-                travel_time = (
-
-                    get_walk_travel_time(
-
-                        user["lat"],
-                        user["lng"],
-
-                        lat,
-                        lng
-                    )
-                )
-
-            # =========================
-            # 대중교통
-            # =========================
-
-            elif transport in [
-
-                "대중교통",
-                "transit",
-                "bus",
-                "subway"
-            ]:
-
-                st.error(
-                    "TRANSIT CALLED"
-                )
-
-                travel_time = (
-
-                    get_transit_travel_time(
-
-                        user["lat"],
-                        user["lng"],
-
-                        lat,
-                        lng
-                    )
-                )
-
-            # =========================
-            # 기본값
-            # =========================
-
-            else:
-
-                st.error(
-                    "DEFAULT CAR CALLED"
-                )
-
-                travel_time = (
-
-                    get_car_travel_time(
-
-                        user["lat"],
-                        user["lng"],
-
-                        lat,
-                        lng
-                    )
-                )
-
-            st.error(
-                f"travel_time = {travel_time}"
-            )
-
-            # =========================
-            # 계산 실패
-            # =========================
 
             if travel_time is None:
 
-                st.error(
-                    "travel_time is None"
-                )
+                valid = False
 
-                continue
-
-            # =========================
-            # 이동시간 저장
-            # =========================
+                break
 
             times.append(
                 travel_time
@@ -243,42 +302,26 @@ def recommend_places(
                 travel_time
             })
 
-        # =========================
-        # 계산 실패
-        # =========================
-
-        if len(times) == 0:
-
-            st.error(
-                "times 비어있음"
-            )
+        if not valid:
 
             continue
 
         # =========================
-        # 평균/최대 시간 계산
-        # =========================
-
-        avg_time = int(
-
-            sum(times)
-            / len(times)
-        )
-
-        max_time = max(times)
-
-        # =========================
-        # 추천 점수
+        # 시간 균형 중심 score
         # =========================
 
         score = (
-            avg_time
-            + max_time
+
+            max(times)
+            - min(times)
         )
 
-        # =========================
-        # 추천 장소 저장
-        # =========================
+        # 평균시간도 조금 반영
+
+        score += (
+            sum(times)
+            / len(times)
+        ) * 0.3
 
         recommendations.append({
 
@@ -295,10 +338,14 @@ def recommend_places(
             place["address"],
 
             "avg_time":
-            avg_time,
+            int(
+
+                sum(times)
+                / len(times)
+            ),
 
             "max_time":
-            max_time,
+            max(times),
 
             "score":
             score,
@@ -317,8 +364,5 @@ def recommend_places(
         x["score"]
     )
 
-    # =========================
-    # 상위 3개 반환
-    # =========================
-
     return recommendations[:3]
+```

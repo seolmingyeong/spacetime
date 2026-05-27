@@ -18,7 +18,6 @@ from ui import *
 from theme import apply_theme
 from geo import geocode_location
 
-
 # =========================
 # 페이지 설정
 # =========================
@@ -146,6 +145,10 @@ if not st.session_state.current_room:
             key="create_room"
         ):
 
+            # =========================
+            # 중복 없는 방 코드 생성
+            # =========================
+
             while True:
 
                 room_id = "".join(
@@ -158,6 +161,10 @@ if not st.session_state.current_room:
                         k=6
                     )
                 )
+
+                # =========================
+                # 중복 방지
+                # =========================
 
                 if not room_exists(room_id):
 
@@ -203,17 +210,29 @@ if not st.session_state.current_room:
 
             join_room = join_room.strip()
 
+            # =========================
+            # 입력 없음
+            # =========================
+
             if not join_room:
 
                 st.error(
                     "방 코드를 입력하세요."
                 )
 
+            # =========================
+            # 존재하지 않는 방
+            # =========================
+
             elif not room_exists(join_room):
 
                 st.error(
                     "존재하지 않는 방입니다."
                 )
+
+            # =========================
+            # 정상 입장
+            # =========================
 
             else:
 
@@ -433,11 +452,19 @@ border-radius:12px;
 
         else:
 
+            # =========================
+            # 장소 검색
+            # =========================
+
             place_name, lat, lng = (
                 geocode_location(
                     location_name.strip()
                 )
             )
+
+            # =========================
+            # 검색 실패
+            # =========================
 
             if lat is None:
 
@@ -496,20 +523,20 @@ border-radius:12px;
     )
 
     # =========================
-    # 참가자 출력
+    # 참가자 존재 시만 출력
     # =========================
 
     if len(users_data) > 0:
 
         st.markdown(
             """
-<h2 style="
-margin-top:40px;
-margin-bottom:20px;
-">
-참가자
-</h2>
-""",
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    참가자
+    </h2>
+    """,
             unsafe_allow_html=True
         )
 
@@ -517,42 +544,41 @@ margin-bottom:20px;
 
             st.markdown(
                 f"""
-<div class="card">
+    <div class="card">
 
-<div style="
-font-size:22px;
-font-weight:700;
-color:#8b5cf6;
-margin-bottom:10px;
-">
-{user[2]}
-</div>
+    <div style="
+    font-size:22px;
+    font-weight:700;
+    color:#8b5cf6;
+    margin-bottom:10px;
+    ">
+    {user[2]}
+    </div>
 
-<div style="
-margin-bottom:6px;
-opacity:0.85;
-">
-{user[4]}
-</div>
+    <div style="
+    margin-bottom:6px;
+    opacity:0.85;
+    ">
+    {user[4]}
+    </div>
 
-<div style="
-margin-bottom:6px;
-opacity:0.85;
-">
-{user[7]}
-</div>
+    <div style="
+    margin-bottom:6px;
+    opacity:0.85;
+    ">
+    {user[7]}
+    </div>
 
-<div style="
-opacity:0.85;
-">
-{user[3]}
-</div>
+    <div style="
+    opacity:0.85;
+    ">
+    {user[3]}
+    </div>
 
-</div>
-""",
+    </div>
+    """,
                 unsafe_allow_html=True
             )
-
     # =========================
     # 추천 장소 버튼
     # =========================
@@ -567,6 +593,10 @@ opacity:0.85;
             with st.spinner(
                 "추천 장소를 찾는 중..."
             ):
+
+                # =========================
+                # 지도용 사용자 데이터
+                # =========================
 
                 users = []
 
@@ -585,59 +615,26 @@ opacity:0.85;
                         "transport": user[7]
                     })
 
-                # DEBUG
-                st.session_state.debug_users = (
-                    users
-                )
-
-                middle_lat, middle_lng = (
-                    get_middle_point(users)
-                )
+                # =========================
+                # 추천 장소 계산
+                # =========================
 
                 recommendations = (
                     recommend_places(
-
-                        users,
-
-                        middle_lat,
-
-                        middle_lng
+                        users
                     )
                 )
+
+
+                # =========================
+                # session 저장
+                # =========================
 
                 st.session_state.recommendations = (
                     recommendations
                 )
 
-                st.session_state.middle_lat = (
-                    middle_lat
-                )
-
-                st.session_state.middle_lng = (
-                    middle_lng
-                )
-
-    # =========================
-    # DEBUG 출력
-    # =========================
-
-    if "debug_users" in st.session_state:
-
-        st.markdown(
-            """
-<h2 style="
-margin-top:40px;
-color:red;
-">
-DEBUG USERS
-</h2>
-""",
-            unsafe_allow_html=True
-        )
-
-        st.write(
-            st.session_state.debug_users
-        )
+            st.rerun()
 
     # =========================
     # 추천 결과
@@ -651,15 +648,19 @@ DEBUG USERS
 
         st.markdown(
             """
-<h2 style="
-margin-top:40px;
-margin-bottom:20px;
-">
-추천 장소
-</h2>
-""",
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    추천 장소
+    </h2>
+    """,
             unsafe_allow_html=True
         )
+
+        # =========================
+        # 추천 장소 여러 개 출력
+        # =========================
 
         for idx, place in enumerate(
             recommendations
@@ -667,20 +668,25 @@ margin-bottom:20px;
 
             st.markdown(
                 f"""
-<h3 style="
-margin-top:25px;
-margin-bottom:10px;
-color:#8b5cf6;
-">
-#{idx + 1} 추천
-</h3>
-""",
+    <h3 style="
+    margin-top:25px;
+    margin-bottom:10px;
+    color:#8b5cf6;
+    ">
+    #{idx + 1} 추천
+    </h3>
+    """,
                 unsafe_allow_html=True
             )
 
             render_place_card(
                 place
             )
+            
+    
+        # =========================
+        # 지도용 사용자 데이터
+        # =========================
 
         users = []
 
@@ -699,25 +705,30 @@ color:#8b5cf6;
                 "transport": user[7]
             })
 
+        # =========================
+        # 지도 제목
+        # =========================
+
         st.markdown(
             """
-<h2 style="
-margin-top:40px;
-margin-bottom:20px;
-">
-지도
-</h2>
-""",
+    <h2 style="
+    margin-top:40px;
+    margin-bottom:20px;
+    ">
+    지도
+    </h2>
+    """,
             unsafe_allow_html=True
         )
+
+        # =========================
+        # 지도 출력
+        # =========================
 
         render_map(
 
             users,
 
-            recommendations,
-
-            st.session_state.middle_lat,
-
-            st.session_state.middle_lng
+            recommendations
         )
+
