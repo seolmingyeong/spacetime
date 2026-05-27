@@ -16,6 +16,10 @@ GOOGLE_API_KEY = st.secrets.get(
     "GOOGLE_API_KEY"
 )
 
+st.code(
+    f"API KEY: {GOOGLE_API_KEY}"
+)
+
 
 # =========================
 # Google Place ID 검색
