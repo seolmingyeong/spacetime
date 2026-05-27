@@ -18,9 +18,8 @@ GOOGLE_API_KEY = (
     .strip()
 )
 
-
 st.code(
-    f"API KEY: {GOOGLE_API_KEY}"
+    f"KEY LENGTH: {len(GOOGLE_API_KEY)}"
 )
 
 
@@ -33,20 +32,20 @@ def get_google_place_id(query):
     query = query + " 서울"
 
     url = (
+
         "https://places.googleapis.com/v1/places:searchText"
+
         f"?key={GOOGLE_API_KEY}"
     )
 
     headers = {
 
-    "Content-Type":
-    "application/json",
+        "Content-Type":
+        "application/json",
 
-    "X-Goog-FieldMask":
-    "places.id,places.displayName"
+        "X-Goog-FieldMask":
+        "places.id,places.displayName"
     }
-
-
 
     body = {
 
@@ -70,7 +69,9 @@ def get_google_place_id(query):
             timeout=10
         )
 
-        st.error("PLACE SEARCH RESPONSE")
+        st.subheader(
+            "PLACE SEARCH RESPONSE"
+        )
 
         st.code(
             response.text
@@ -92,11 +93,11 @@ def get_google_place_id(query):
             return None
 
         # =========================
-        # Places API New
+        # PLACE ID
         # =========================
 
-        place_id = places[0].get(
-            "id"
+        place_id = (
+            places[0].get("id")
         )
 
         st.success(
@@ -147,14 +148,16 @@ def compute_route_duration(
 
         "origin": {
 
+            # 중요
             "placeId":
-            origin_place_id
+            "places/" + origin_place_id
         },
 
         "destination": {
 
+            # 중요
             "placeId":
-            destination_place_id
+            "places/" + destination_place_id
         },
 
         "travelMode":
@@ -210,15 +213,19 @@ def compute_route_duration(
             timeout=20
         )
 
+        data = response.json()
+
         st.subheader(
             f"ROUTE RESPONSE ({travel_mode})"
         )
 
         st.code(
-            response.text
+            json.dumps(
+                data,
+                indent=2,
+                ensure_ascii=False
+            )
         )
-
-        data = response.json()
 
         routes = data.get(
             "routes",
@@ -228,7 +235,7 @@ def compute_route_duration(
         if not routes:
 
             st.error(
-                "NO ROUTES FOUND"
+                f"{travel_mode} NO ROUTES"
             )
 
             return None
