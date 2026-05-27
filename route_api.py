@@ -3,17 +3,12 @@ import streamlit as st
 
 
 # =========================
-# Kakao API Key
+# API KEY
 # =========================
 
 KAKAO_REST_API_KEY = st.secrets.get(
     "KAKAO_REST_API_KEY"
 )
-
-
-# =========================
-# Google API Key
-# =========================
 
 GOOGLE_MAPS_API_KEY = st.secrets.get(
     "GOOGLE_MAPS_API_KEY"
@@ -21,7 +16,7 @@ GOOGLE_MAPS_API_KEY = st.secrets.get(
 
 
 # =========================
-# 자동차 이동시간 계산
+# 자동차 이동시간
 # =========================
 
 def get_car_travel_time(
@@ -32,14 +27,6 @@ def get_car_travel_time(
     end_lat,
     end_lng
 ):
-
-    if not KAKAO_REST_API_KEY:
-
-        st.error(
-            "KAKAO_REST_API_KEY 없음"
-        )
-
-        return None
 
     url = (
         "https://apis-navi.kakaomobility.com/v1/directions"
@@ -83,31 +70,16 @@ def get_car_travel_time(
 
             return None
 
-        summary = routes[0].get(
+        duration = routes[0][
             "summary"
-        )
-
-        if not summary:
-
-            return None
-
-        duration = summary.get(
+        ][
             "duration"
+        ]
+
+        return max(
+            1,
+            int(duration / 60)
         )
-
-        if duration is None:
-
-            return None
-
-        minutes = int(
-            duration / 60
-        )
-
-        if minutes <= 0:
-
-            minutes = 1
-
-        return minutes
 
     except Exception as e:
 
@@ -117,7 +89,7 @@ def get_car_travel_time(
 
 
 # =========================
-# Google 이동시간 계산
+# Google 이동시간
 # =========================
 
 def get_google_travel_time(
@@ -128,16 +100,8 @@ def get_google_travel_time(
     end_lat,
     end_lng,
 
-    mode="walking"
+    mode
 ):
-
-    if not GOOGLE_MAPS_API_KEY:
-
-        st.error(
-            "GOOGLE_MAPS_API_KEY 없음"
-        )
-
-        return None
 
     url = (
         "https://maps.googleapis.com/maps/api/distancematrix/json"
@@ -157,6 +121,9 @@ def get_google_travel_time(
         "language":
         "ko",
 
+        "region":
+        "kr",
+
         "key":
         GOOGLE_MAPS_API_KEY
     }
@@ -173,6 +140,10 @@ def get_google_travel_time(
         )
 
         data = response.json()
+
+        # =========================
+        # DEBUG
+        # =========================
 
         st.error(data)
 
@@ -196,11 +167,9 @@ def get_google_travel_time(
 
         element = elements[0]
 
-        if element.get("status") != "OK":
+        st.error(element)
 
-            st.error(
-                f"ELEMENT STATUS = {element.get('status')}"
-            )
+        if element.get("status") != "OK":
 
             return None
 
@@ -220,15 +189,10 @@ def get_google_travel_time(
 
             return None
 
-        minutes = int(
-            seconds / 60
+        return max(
+            1,
+            int(seconds / 60)
         )
-
-        if minutes <= 0:
-
-            minutes = 1
-
-        return minutes
 
     except Exception as e:
 
@@ -238,7 +202,7 @@ def get_google_travel_time(
 
 
 # =========================
-# 도보 이동시간
+# 도보
 # =========================
 
 def get_walk_travel_time(
@@ -258,12 +222,12 @@ def get_walk_travel_time(
         end_lat,
         end_lng,
 
-        mode="walking"
+        "walking"
     )
 
 
 # =========================
-# 대중교통 이동시간
+# 대중교통
 # =========================
 
 def get_transit_travel_time(
@@ -283,5 +247,5 @@ def get_transit_travel_time(
         end_lat,
         end_lng,
 
-        mode="transit"
+        "transit"
     )
