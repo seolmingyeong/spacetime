@@ -4,13 +4,23 @@ import sqlite3
 DB_NAME = "spacetime.db"
 
 
+# =========================
+# DB 연결
+# =========================
+
 def get_connection():
 
     return sqlite3.connect(
+
         DB_NAME,
+
         check_same_thread=False
     )
 
+
+# =========================
+# DB 초기화
+# =========================
 
 def init_db():
 
@@ -49,18 +59,25 @@ def init_db():
 
 
 # =========================
-# database.py 수정
-# save_user 함수 교체
+# 사용자 저장
 # =========================
 
 def save_user(
+
     room_id,
+
     nickname,
+
     dates,
+
     location_name,
+
     lat,
+
     lng,
+
     place_id,
+
     transport
 ):
 
@@ -68,7 +85,9 @@ def save_user(
 
     cursor = conn.cursor()
 
+    # =========================
     # 기존 사용자 삭제
+    # =========================
 
     cursor.execute(
         """
@@ -82,30 +101,47 @@ def save_user(
         )
     )
 
-    # 새로 저장
+    # =========================
+    # 새 사용자 저장
+    # =========================
 
     cursor.execute(
         """
         INSERT INTO users (
+
             room_id,
+
             nickname,
+
             dates,
+
             location_name,
+
             lat,
+
             lng,
+
             place_id,
+
             transport
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             room_id,
+
             nickname,
+
             dates,
+
             location_name,
+
             lat,
+
             lng,
+
             place_id,
+
             transport
         )
     )
@@ -113,6 +149,12 @@ def save_user(
     conn.commit()
 
     conn.close()
+
+
+# =========================
+# 방 참가자 조회
+# =========================
+
 def get_room_users(room_id):
 
     conn = get_connection()
@@ -134,8 +176,9 @@ def get_room_users(room_id):
 
     return users
 
+
 # =========================
-# 방 존재 여부 확인
+# 방 존재 여부
 # =========================
 
 def room_exists(room_id):
