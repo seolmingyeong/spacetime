@@ -69,7 +69,7 @@ def get_google_place_id(query):
             "RAW TEXT:"
         )
 
-        st.write(
+        st.code(
             response.text
         )
 
@@ -77,7 +77,7 @@ def get_google_place_id(query):
 
 
 
-        st.write(
+        st.code(
             json.dumps(
                 data,
                 indent=2,
