@@ -293,7 +293,7 @@ def compute_route_duration(
         GOOGLE_API_KEY,
 
         "X-Goog-FieldMask":
-        "routes.duration"
+        "routes.duration,routes.legs.duration"
     }
 
     # =========================
@@ -455,9 +455,34 @@ def compute_route_duration(
 
             return None
 
+        st.code(
+            routes[0]
+        )
+
+        # =========================
+        # duration
+        # =========================
+
         duration = routes[0].get(
             "duration"
         )
+
+        # =========================
+        # legs fallback
+        # =========================
+
+        if not duration:
+
+            legs = routes[0].get(
+                "legs",
+                []
+            )
+
+            if legs:
+
+                duration = legs[0].get(
+                    "duration"
+                )
 
         if not duration:
 
