@@ -1,5 +1,6 @@
 import requests
 import streamlit as st
+from datetime import datetime
 
 
 # =========================
@@ -38,9 +39,9 @@ def compute_route_duration(
         "X-Goog-Api-Key":
         GOOGLE_API_KEY,
 
-        # duration만 받기
+        # 필요한 정보만 요청
         "X-Goog-FieldMask":
-        "routes.duration"
+        "routes.duration,routes.distanceMeters"
     }
 
     body = {
@@ -76,18 +77,33 @@ def compute_route_duration(
         },
 
         "travelMode":
-        travel_mode
+        travel_mode,
+
+        "computeAlternativeRoutes":
+        False
     }
 
     # =========================
-    # 대중교통 옵션
+    # TRANSIT 설정
     # =========================
 
     if travel_mode == "TRANSIT":
 
-        body["computeAlternativeRoutes"] = False
+        body["departureTime"] = (
+
+            datetime.utcnow()
+
+            .isoformat()
+            
+            + "Z"
+        )
 
     try:
+
+        print(
+            "REQUEST:",
+            travel_mode
+        )
 
         response = requests.post(
 
@@ -97,10 +113,15 @@ def compute_route_duration(
 
             json=body,
 
-            timeout=5
+            timeout=10
         )
 
         data = response.json()
+
+        print(
+            "RESPONSE:",
+            data
+        )
 
         routes = data.get(
             "routes",
@@ -108,6 +129,10 @@ def compute_route_duration(
         )
 
         if not routes:
+
+            print(
+                "NO ROUTES"
+            )
 
             return None
 
@@ -117,10 +142,16 @@ def compute_route_duration(
 
         if not duration_str:
 
+            print(
+                "NO DURATION"
+            )
+
             return None
 
         # 예: "1234s"
+
         seconds = int(
+
             duration_str.replace(
                 "s",
                 ""
@@ -135,9 +166,19 @@ def compute_route_duration(
 
             minutes = 1
 
+        print(
+            "MINUTES:",
+            minutes
+        )
+
         return minutes
 
-    except Exception:
+    except Exception as e:
+
+        print(
+            "ROUTE ERROR:",
+            str(e)
+        )
 
         return None
 

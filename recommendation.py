@@ -235,12 +235,29 @@ def recommend_places(users):
         for user in users:
 
             try:
+                st.write(
+
+                    "이동시간 계산 시작:",
+
+                    user["nickname"],
+
+                    user["transport"]
+                )
 
                 travel_time = get_real_travel_time(
 
                     user,
 
                     place
+                )
+
+                st.write(
+
+                    "이동시간 계산 완료:",
+
+                    user["nickname"],
+
+                    travel_time
                 )
 
             except Exception as e:
