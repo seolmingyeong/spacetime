@@ -36,10 +36,15 @@ def get_real_travel_time(
 
     origin_query = (
         user["location_name"]
+    
+    + "서울"
     )
 
     destination_query = (
         place["name"]
+
+        + " "
+        + place["address"]
     )
 
     # =========================
