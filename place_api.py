@@ -3,16 +3,16 @@ import streamlit as st
 
 
 # =========================
-# Kakao API Key
+# API KEY
 # =========================
 
-KAKAO_REST_API_KEY = st.secrets.get(
-    "KAKAO_REST_API_KEY"
+GOOGLE_API_KEY = st.secrets.get(
+    "GOOGLE_API_KEY"
 )
 
 
 # =========================
-# 장소 검색
+# Google Nearby Search
 # =========================
 
 def search_places(
@@ -20,41 +20,29 @@ def search_places(
     lat,
     lng,
 
-    category="카페"
+    keyword="cafe"
 ):
 
     url = (
-        "https://dapi.kakao.com/v2/local/search/keyword.json"
+        "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     )
-
-    headers = {
-
-        "Authorization":
-        f"KakaoAK {KAKAO_REST_API_KEY}"
-    }
 
     params = {
 
-        "query":
-        category,
+        "location":
+        f"{lat},{lng}",
 
-        "x":
-        lng,
-
-        "y":
-        lat,
-
-        # 검색 반경 확대
         "radius":
         4000,
 
-        # 후보 더 많이 확보
-        "size":
-        7,
+        "keyword":
+        keyword,
 
-        # 거리순 정렬
-        "sort":
-        "distance"
+        "language":
+        "ko",
+
+        "key":
+        GOOGLE_API_KEY
     }
 
     try:
@@ -63,49 +51,65 @@ def search_places(
 
             url,
 
-            headers=headers,
-
             params=params,
 
-            timeout=5
+            timeout=10
         )
 
         data = response.json()
 
-        documents = data.get(
-            "documents",
+        print(
+            "PLACE SEARCH:",
+            data
+        )
+
+        results = data.get(
+            "results",
             []
         )
 
         places = []
 
-        for place in documents:
+        for place in results:
+
+            geometry = place.get(
+                "geometry",
+                {}
+            )
+
+            location = geometry.get(
+                "location",
+                {}
+            )
 
             places.append({
 
                 "name":
-                place.get(
-                    "place_name"
-                ),
+                place.get("name"),
 
                 "address":
                 place.get(
-                    "road_address_name"
+                    "vicinity",
+                    ""
                 ),
 
                 "lat":
-                float(
-                    place.get("y")
-                ),
+                location.get("lat"),
 
                 "lng":
-                float(
-                    place.get("x")
-                )
+                location.get("lng"),
+
+                "place_id":
+                place.get("place_id")
             })
 
         return places
 
-    except Exception:
+    except Exception as e:
+
+        print(
+            "PLACE ERROR:",
+            str(e)
+        )
 
         return []

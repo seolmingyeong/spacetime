@@ -36,6 +36,8 @@ def init_db():
 
             lng REAL,
 
+            place_id TEXT,
+
             transport TEXT
         )
         """
@@ -58,6 +60,7 @@ def save_user(
     location_name,
     lat,
     lng,
+    place_id,
     transport
 ):
 
@@ -90,9 +93,10 @@ def save_user(
             location_name,
             lat,
             lng,
+            place_id,
             transport
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             room_id,
@@ -101,6 +105,7 @@ def save_user(
             location_name,
             lat,
             lng,
+            place_id,
             transport
         )
     )

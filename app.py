@@ -17,6 +17,8 @@ from ui import *
 
 from theme import apply_theme
 from geo import geocode_location
+from route_api import ( get_google_place_id )
+from place_api import ( search_places )
 
 # =========================
 # 페이지 설정
@@ -463,6 +465,17 @@ border-radius:12px;
             )
 
             # =========================
+            # Google Place ID
+            # =========================
+
+            place_id = (
+                get_google_place_id(
+                    location_name.strip()
+                )
+            )
+
+
+            # =========================
             # 검색 실패
             # =========================
 
@@ -480,22 +493,25 @@ border-radius:12px;
 
                 save_user(
 
-                    st.session_state.current_room,
+                st.session_state.current_room,
 
-                    nickname,
+                nickname,
 
-                    ",".join(
-                        st.session_state.selected_dates
-                    ),
+                ",".join(
+                    st.session_state.selected_dates
+                ),
 
-                    place_name,
+                place_name,
 
-                    lat,
+                lat,
 
-                    lng,
+                lng,
 
-                    transport
-                )
+                place_id,
+
+                transport
+            )
+
 
                 st.session_state.save_success = True
 
@@ -614,19 +630,22 @@ border-radius:12px;
 
                         "lng": user[6],
 
-                        "transport": user[7]
+                        "place_id": user[7],
+
+                        "transport": user[8]
                     })
 
                 # =========================
                 # 추천 장소 계산
                 # =========================
 
+                st.write("recommend 시작")
                 recommendations = (
                     recommend_places(
                         users
                     )
                 )
-
+                st.write("recommend 끝")  
 
                 # =========================
                 # session 저장
@@ -704,7 +723,9 @@ border-radius:12px;
 
                 "lng": user[6],
 
-                "transport": user[7]
+                "place_id": user[7],
+
+                "transport": user[8]
             })
 
         # =========================
