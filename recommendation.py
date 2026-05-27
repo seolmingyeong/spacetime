@@ -107,17 +107,84 @@ def get_travel_time(
 def recommend_places(users):
 
     # =========================
-    # 모든 사용자 주변 장소 수집
+    # 후보 장소 수집
     # =========================
 
     all_places = []
 
+    # =========================
+    # 사용자 위치 수집
+    # =========================
+
+    points = []
+
     for user in users:
+
+        points.append(
+
+            (
+                user["lat"],
+                user["lng"]
+            )
+        )
+
+    # =========================
+    # 사용자 사이 중간 지점들 생성
+    # =========================
+
+    for i in range(len(users)):
+
+        for j in range(i + 1, len(users)):
+
+            lat1 = users[i]["lat"]
+            lng1 = users[i]["lng"]
+
+            lat2 = users[j]["lat"]
+            lng2 = users[j]["lng"]
+
+            # =========================
+            # 경로 위 여러 지점 생성
+            # =========================
+
+            for ratio in [
+
+                0.25,
+                0.5,
+                0.75
+            ]:
+
+                mid_lat = (
+
+                    lat1
+                    + (lat2 - lat1)
+                    * ratio
+                )
+
+                mid_lng = (
+
+                    lng1
+                    + (lng2 - lng1)
+                    * ratio
+                )
+
+                points.append(
+
+                    (
+                        mid_lat,
+                        mid_lng
+                    )
+                )
+
+    # =========================
+    # 각 포인트 주변 장소 검색
+    # =========================
+
+    for lat, lng in points:
 
         places = search_places(
 
-            user["lat"],
-            user["lng"],
+            lat,
+            lng,
 
             "카페"
         )
