@@ -16,6 +16,13 @@ GOOGLE_API_KEY = (
 
 
 # =========================
+# ROUTE CACHE
+# =========================
+
+route_cache = {}
+
+
+# =========================
 # 장소 검색
 # =========================
 
@@ -56,18 +63,6 @@ def get_google_place_id(query):
 
         data = response.json()
 
-        st.subheader(
-            "PLACE SEARCH RESPONSE"
-        )
-
-        st.code(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
-
         candidates = data.get(
             "candidates",
             []
@@ -75,27 +70,13 @@ def get_google_place_id(query):
 
         if not candidates:
 
-            st.error(
-                "NO CANDIDATES"
-            )
-
             return None
 
-        place_id = candidates[0].get(
+        return candidates[0].get(
             "place_id"
         )
 
-        st.success(
-            f"PLACE_ID: {place_id}"
-        )
-
-        return place_id
-
-    except Exception as e:
-
-        st.error(
-            f"PLACE ERROR: {str(e)}"
-        )
+    except:
 
         return None
 
@@ -138,66 +119,24 @@ def get_place_location(place_id):
 
         data = response.json()
 
-        st.subheader(
-            "PLACE DETAILS RESPONSE"
-        )
-
-        st.code(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
-
         result = data.get(
             "result"
         )
 
         if not result:
 
-            st.error(
-                "NO PLACE DETAILS"
-            )
-
             return None
 
-        geometry = result.get(
-            "geometry",
-            {}
+        location = (
+            result["geometry"]["location"]
         )
-
-        location = geometry.get(
-            "location",
-            {}
-        )
-
-        lat = location.get(
-            "lat"
-        )
-
-        lng = location.get(
-            "lng"
-        )
-
-        if lat is None or lng is None:
-
-            st.error(
-                "NO LAT LNG"
-            )
-
-            return None
 
         return (
-            lat,
-            lng
+            location["lat"],
+            location["lng"]
         )
 
-    except Exception as e:
-
-        st.error(
-            f"DETAIL ERROR: {str(e)}"
-        )
+    except:
 
         return None
 
@@ -240,9 +179,24 @@ def compute_route_duration(
         travel_mode
     )
 
-    st.code(
-        f"TRAVEL MODE: {travel_mode}"
+    # =========================
+    # CACHE
+    # =========================
+
+    cache_key = (
+
+        origin_place_id,
+
+        destination_place_id,
+
+        travel_mode
     )
+
+    if cache_key in route_cache:
+
+        return route_cache[
+            cache_key
+        ]
 
     origin_location = (
         get_place_location(
@@ -258,17 +212,17 @@ def compute_route_duration(
 
     if not origin_location:
 
-        st.error(
-            "ORIGIN LOCATION FAIL"
-        )
+        route_cache[
+            cache_key
+        ] = None
 
         return None
 
     if not destination_location:
 
-        st.error(
-            "DESTINATION LOCATION FAIL"
-        )
+        route_cache[
+            cache_key
+        ] = None
 
         return None
 
@@ -290,120 +244,63 @@ def compute_route_duration(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_API_KEY,
+        GOOGLE_API_KEY
+    }
 
-        "X-Goog-FieldMask":
-        "routes.duration,routes.legs.duration"
+    body = {
+
+        "origin": {
+
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    origin_lat,
+
+                    "longitude":
+                    origin_lng
+                }
+            }
+        },
+
+        "destination": {
+
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    dest_lat,
+
+                    "longitude":
+                    dest_lng
+                }
+            }
+        },
+
+        "travelMode":
+        travel_mode
     }
 
     # =========================
-    # TRANSIT
+    # TRANSIT 전용
     # =========================
 
     if travel_mode == "TRANSIT":
 
-        body = {
+        body["departureTime"] = (
 
-            "origin": {
+            datetime.utcnow()
 
-                "location": {
+            .replace(microsecond=0)
 
-                    "latLng": {
+            .isoformat()
 
-                        "latitude":
-                        origin_lat,
-
-                        "longitude":
-                        origin_lng
-                    }
-                }
-            },
-
-            "destination": {
-
-                "location": {
-
-                    "latLng": {
-
-                        "latitude":
-                        dest_lat,
-
-                        "longitude":
-                        dest_lng
-                    }
-                }
-            },
-
-            "travelMode":
-            "TRANSIT",
-
-            "departureTime": (
-
-                datetime.utcnow()
-
-                .replace(microsecond=0)
-
-                .isoformat()
-
-                + "Z"
-            )
-        }
-
-    # =========================
-    # WALK / DRIVE
-    # =========================
-
-    else:
-
-        body = {
-
-            "origin": {
-
-                "location": {
-
-                    "latLng": {
-
-                        "latitude":
-                        origin_lat,
-
-                        "longitude":
-                        origin_lng
-                    }
-                }
-            },
-
-            "destination": {
-
-                "location": {
-
-                    "latLng": {
-
-                        "latitude":
-                        dest_lat,
-
-                        "longitude":
-                        dest_lng
-                    }
-                }
-            },
-
-            "travelMode":
-            travel_mode
-        }
+            + "Z"
+        )
 
     try:
-
-        st.subheader(
-            f"ROUTE REQUEST ({travel_mode})"
-        )
-
-        st.code(
-            json.dumps(
-                body,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
 
         response = requests.post(
 
@@ -416,27 +313,11 @@ def compute_route_duration(
             timeout=20
         )
 
-        st.subheader(
-            f"ROUTE STATUS ({travel_mode})"
-        )
-
-        st.code(
-            response.status_code
-        )
-
-        st.subheader(
-            f"ROUTE RESPONSE ({travel_mode})"
-        )
-
-        st.code(
-            response.text
-        )
-
         if response.status_code != 200:
 
-            st.error(
-                "ROUTES API FAILED"
-            )
+            route_cache[
+                cache_key
+            ] = None
 
             return None
 
@@ -449,31 +330,25 @@ def compute_route_duration(
 
         if not routes:
 
-            st.error(
-                "NO ROUTES"
-            )
+            route_cache[
+                cache_key
+            ] = None
 
             return None
 
-        st.code(
-            routes[0]
-        )
+        route = routes[0]
 
-        # =========================
-        # duration
-        # =========================
-
-        duration = routes[0].get(
+        duration = route.get(
             "duration"
         )
 
         # =========================
-        # legs fallback
+        # WALK fallback
         # =========================
 
         if not duration:
 
-            legs = routes[0].get(
+            legs = route.get(
                 "legs",
                 []
             )
@@ -486,9 +361,9 @@ def compute_route_duration(
 
         if not duration:
 
-            st.error(
-                "NO DURATION"
-            )
+            route_cache[
+                cache_key
+            ] = None
 
             return None
 
@@ -504,17 +379,17 @@ def compute_route_duration(
             seconds // 60
         )
 
-        st.success(
-            f"{travel_mode}: {minutes}분"
-        )
+        route_cache[
+            cache_key
+        ] = minutes
 
         return minutes
 
-    except Exception as e:
+    except:
 
-        st.error(
-            f"ROUTE ERROR: {str(e)}"
-        )
+        route_cache[
+            cache_key
+        ] = None
 
         return None
 
@@ -525,30 +400,10 @@ def compute_route_duration(
 
 def get_car_travel_time(
 
-    origin_query,
+    origin_place_id,
 
-    destination_query
+    destination_place_id
 ):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
-        )
-    )
-
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
-    )
-
-    if not origin_place_id:
-
-        return None
-
-    if not destination_place_id:
-
-        return None
 
     return compute_route_duration(
 
@@ -566,30 +421,10 @@ def get_car_travel_time(
 
 def get_walk_travel_time(
 
-    origin_query,
+    origin_place_id,
 
-    destination_query
+    destination_place_id
 ):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
-        )
-    )
-
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
-    )
-
-    if not origin_place_id:
-
-        return None
-
-    if not destination_place_id:
-
-        return None
 
     return compute_route_duration(
 
@@ -607,30 +442,10 @@ def get_walk_travel_time(
 
 def get_transit_travel_time(
 
-    origin_query,
+    origin_place_id,
 
-    destination_query
+    destination_place_id
 ):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
-        )
-    )
-
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
-    )
-
-    if not origin_place_id:
-
-        return None
-
-    if not destination_place_id:
-
-        return None
 
     return compute_route_duration(
 
