@@ -20,38 +20,42 @@ GOOGLE_API_KEY = st.secrets.get(
 
 def get_google_place_id(query):
 
-    # =========================
-    # 서울 자동 보정
-    # =========================
-
     query = query + " 서울"
 
     url = (
-        "https://maps.googleapis.com/maps/api/place/textsearch/json"
+        "https://places.googleapis.com/v1/places:searchText"
     )
 
-    params = {
+    headers = {
 
-        "query":
+        "Content-Type":
+        "application/json",
+
+        "X-Goog-Api-Key":
+        GOOGLE_API_KEY,
+
+        "X-Goog-FieldMask":
+        "places.id,places.displayName"
+    }
+
+    body = {
+
+        "textQuery":
         query,
 
-        "language":
-        "ko",
-
-        "region":
-        "kr",
-
-        "key":
-        GOOGLE_API_KEY
+        "languageCode":
+        "ko"
     }
 
     try:
 
-        response = requests.get(
+        response = requests.post(
 
             url,
 
-            params=params,
+            headers=headers,
+
+            json=body,
 
             timeout=10
         )
@@ -71,26 +75,21 @@ def get_google_place_id(query):
             )
         )
 
-        results = data.get(
-            "results",
+        places = data.get(
+            "places",
             []
         )
 
-        print(
-            "RESULTS:",
-            results
-        )
-
-        if not results:
+        if not places:
 
             print(
-                "PLACE_ID NOT FOUND"
+                "NO PLACES"
             )
 
             return None
 
-        place_id = results[0].get(
-            "place_id"
+        place_id = places[0].get(
+            "id"
         )
 
         print(
@@ -108,7 +107,6 @@ def get_google_place_id(query):
         )
 
         return None
-
 
 # =========================
 # Routes API
