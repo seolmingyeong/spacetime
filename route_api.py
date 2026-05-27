@@ -2,6 +2,7 @@ import requests
 import streamlit as st
 
 from datetime import datetime
+import json
 
 
 # =========================
@@ -18,6 +19,12 @@ GOOGLE_API_KEY = st.secrets.get(
 # =========================
 
 def get_google_place_id(query):
+
+    # =========================
+    # 서울 자동 보정
+    # =========================
+
+    query = query + " 서울"
 
     url = (
         "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -57,8 +64,11 @@ def get_google_place_id(query):
         data = response.json()
 
         print(
-            "PLACE DATA:",
-            data
+            json.dumps(
+                data,
+                indent=2,
+                ensure_ascii=False
+            )
         )
 
         results = data.get(
@@ -66,13 +76,29 @@ def get_google_place_id(query):
             []
         )
 
+        print(
+            "RESULTS:",
+            results
+        )
+
         if not results:
+
+            print(
+                "PLACE_ID NOT FOUND"
+            )
 
             return None
 
-        return results[0].get(
+        place_id = results[0].get(
             "place_id"
         )
+
+        print(
+            "PLACE_ID:",
+            place_id
+        )
+
+        return place_id
 
     except Exception as e:
 
@@ -82,7 +108,6 @@ def get_google_place_id(query):
         )
 
         return None
-
 
 
 # =========================
@@ -159,8 +184,17 @@ def compute_route_duration(
     try:
 
         print(
-            "REQUEST:",
+            "REQUEST MODE:",
             travel_mode
+        )
+
+        print(
+            "REQUEST BODY:",
+            json.dumps(
+                body,
+                indent=2,
+                ensure_ascii=False
+            )
         )
 
         response = requests.post(
@@ -175,15 +209,18 @@ def compute_route_duration(
         )
 
         print(
-            "STATUS:",
+            "ROUTE STATUS:",
             response.status_code
         )
 
         data = response.json()
 
         print(
-            "RESPONSE:",
-            data
+            json.dumps(
+                data,
+                indent=2,
+                ensure_ascii=False
+            )
         )
 
         routes = data.get(
@@ -193,6 +230,10 @@ def compute_route_duration(
 
         if not routes:
 
+            print(
+                "NO ROUTES"
+            )
+
             return None
 
         duration_str = routes[0].get(
@@ -200,6 +241,10 @@ def compute_route_duration(
         )
 
         if not duration_str:
+
+            print(
+                "NO DURATION"
+            )
 
             return None
 
@@ -218,6 +263,11 @@ def compute_route_duration(
         if minutes <= 0:
 
             minutes = 1
+
+        print(
+            "MINUTES:",
+            minutes
+        )
 
         return minutes
 
@@ -252,6 +302,12 @@ def get_car_travel_time(
         get_google_place_id(
             destination_query
         )
+    )
+
+    print(
+        "CAR PLACE IDS:",
+        origin_place_id,
+        destination_place_id
     )
 
     if not origin_place_id:
@@ -295,6 +351,12 @@ def get_walk_travel_time(
         )
     )
 
+    print(
+        "WALK PLACE IDS:",
+        origin_place_id,
+        destination_place_id
+    )
+
     if not origin_place_id:
 
         return None
@@ -334,6 +396,12 @@ def get_transit_travel_time(
         get_google_place_id(
             destination_query
         )
+    )
+
+    print(
+        "TRANSIT PLACE IDS:",
+        origin_place_id,
+        destination_place_id
     )
 
     if not origin_place_id:
