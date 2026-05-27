@@ -58,7 +58,7 @@ def search_places(
 
         data = response.json()
 
-        print(
+        st.write(
             "PLACE SEARCH:",
             data
         )
@@ -107,7 +107,7 @@ def search_places(
 
     except Exception as e:
 
-        print(
+        st.write(
             "PLACE ERROR:",
             str(e)
         )
