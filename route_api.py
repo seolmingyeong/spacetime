@@ -65,7 +65,17 @@ def get_google_place_id(query):
             response.status_code
         )
 
+        print(
+    "RAW TEXT:"
+        )
+
+        print(
+            response.text
+        )
+
         data = response.json()
+
+
 
         print(
             json.dumps(
