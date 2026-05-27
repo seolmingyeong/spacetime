@@ -2,25 +2,17 @@ import requests
 import streamlit as st
 
 
-# =========================
-# API KEY
-# =========================
-
-GOOGLE_API_KEY = st.secrets.get(
-    "GOOGLE_API_KEY"
+GOOGLE_API_KEY = (
+    st.secrets["GOOGLE_API_KEY"]
+    .strip()
 )
 
-
-# =========================
-# Google Nearby Search
-# =========================
 
 def search_places(
 
     lat,
     lng,
-
-    keyword="cafe"
+    keyword
 ):
 
     url = (
@@ -33,7 +25,7 @@ def search_places(
         f"{lat},{lng}",
 
         "radius":
-        4000,
+        2000,
 
         "keyword":
         keyword,
@@ -45,71 +37,69 @@ def search_places(
         GOOGLE_API_KEY
     }
 
-    try:
+    response = requests.get(
 
-        response = requests.get(
+        url,
 
-            url,
+        params=params,
 
-            params=params,
+        timeout=10
+    )
 
-            timeout=10
+    data = response.json()
+
+    st.subheader(
+        "PLACE SEARCH"
+    )
+
+    st.code(data)
+
+    results = data.get(
+        "results",
+        []
+    )
+
+    places = []
+
+    for place in results[:10]:
+
+        geometry = place.get(
+            "geometry",
+            {}
         )
 
-        data = response.json()
-
-        st.write(
-            "PLACE SEARCH:",
-            data
+        location = geometry.get(
+            "location",
+            {}
         )
 
-        results = data.get(
-            "results",
-            []
-        )
+        places.append({
 
-        places = []
+            "name":
+            place.get(
+                "name"
+            ),
 
-        for place in results:
+            "lat":
+            location.get(
+                "lat"
+            ),
 
-            geometry = place.get(
-                "geometry",
-                {}
+            "lng":
+            location.get(
+                "lng"
+            ),
+
+            "address":
+            place.get(
+                "vicinity",
+                ""
+            ),
+
+            "place_id":
+            place.get(
+                "place_id"
             )
+        })
 
-            location = geometry.get(
-                "location",
-                {}
-            )
-
-            places.append({
-
-                "name":
-                place.get("name"),
-
-                "address":
-                place.get(
-                    "vicinity",
-                    ""
-                ),
-
-                "lat":
-                location.get("lat"),
-
-                "lng":
-                location.get("lng"),
-
-                "place_id":
-                place.get("place_id")
-            })
-
-        return places
-
-    except Exception as e:
-
-        st.write(
-            "PLACE ERROR:",
-            str(e)
-        )
-
-        return []
+    return places
