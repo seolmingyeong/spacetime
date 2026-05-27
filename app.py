@@ -1,4 +1,3 @@
-```python
 # =========================
 # app.py
 # =========================
@@ -722,4 +721,3 @@ margin-bottom:20px;
 
             st.session_state.middle_lng
         )
-```
