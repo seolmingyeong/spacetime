@@ -10,11 +10,7 @@ import json
 # =========================
 
 GOOGLE_API_KEY = (
-
-    st.secrets[
-        "GOOGLE_API_KEY"
-    ]
-
+    st.secrets["GOOGLE_API_KEY"]
     .strip()
 )
 
@@ -24,10 +20,10 @@ st.code(
 
 
 # =========================
-# 정확한 장소 검색
+# 장소 검색
 # =========================
 
-def get_station_place_id(query):
+def get_google_place_id(query):
 
     url = (
         "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
@@ -65,7 +61,7 @@ def get_station_place_id(query):
         data = response.json()
 
         st.subheader(
-            "STATION SEARCH RESPONSE"
+            "PLACE SEARCH RESPONSE"
         )
 
         st.code(
@@ -109,6 +105,112 @@ def get_station_place_id(query):
 
 
 # =========================
+# place_id -> lat/lng
+# =========================
+
+def get_place_location(place_id):
+
+    url = (
+        "https://maps.googleapis.com/maps/api/place/details/json"
+    )
+
+    params = {
+
+        "place_id":
+        place_id,
+
+        "fields":
+        "geometry",
+
+        "language":
+        "ko",
+
+        "key":
+        GOOGLE_API_KEY
+    }
+
+    try:
+
+        response = requests.get(
+
+            url,
+
+            params=params,
+
+            timeout=10
+        )
+
+        data = response.json()
+
+        st.subheader(
+            "PLACE DETAILS RESPONSE"
+        )
+
+        st.code(
+            json.dumps(
+                data,
+                indent=2,
+                ensure_ascii=False
+            )
+        )
+
+        result = data.get(
+            "result"
+        )
+
+        if not result:
+
+            st.error(
+                "NO PLACE DETAILS"
+            )
+
+            return None
+
+        geometry = result.get(
+            "geometry",
+            {}
+        )
+
+        location = geometry.get(
+            "location",
+            {}
+        )
+
+        lat = location.get(
+            "lat"
+        )
+
+        lng = location.get(
+            "lng"
+        )
+
+        if lat is None or lng is None:
+
+            st.error(
+                "NO LAT LNG"
+            )
+
+            return None
+
+        st.success(
+            f"LAT/LNG: {lat}, {lng}"
+        )
+
+        return (
+            lat,
+            lng
+        )
+
+    except Exception as e:
+
+        st.error(
+            f"DETAIL ERROR: {str(e)}"
+        )
+
+        return None
+
+
+# =========================
 # Routes API
 # =========================
 
@@ -120,6 +222,34 @@ def compute_route_duration(
 
     travel_mode
 ):
+
+    origin_location = (
+        get_place_location(
+            origin_place_id
+        )
+    )
+
+    destination_location = (
+        get_place_location(
+            destination_place_id
+        )
+    )
+
+    if not origin_location:
+
+        return None
+
+    if not destination_location:
+
+        return None
+
+    origin_lat, origin_lng = (
+        origin_location
+    )
+
+    dest_lat, dest_lng = (
+        destination_location
+    )
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -137,22 +267,36 @@ def compute_route_duration(
         "routes.duration"
     }
 
-    # =========================
-    # 공식 Routes API 형식
-    # =========================
-
     body = {
 
         "origin": {
 
-            "placeId":
-            origin_place_id
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    origin_lat,
+
+                    "longitude":
+                    origin_lng
+                }
+            }
         },
 
         "destination": {
 
-            "placeId":
-            destination_place_id
+            "location": {
+
+                "latLng": {
+
+                    "latitude":
+                    dest_lat,
+
+                    "longitude":
+                    dest_lng
+                }
+            }
         },
 
         "travelMode":
@@ -163,7 +307,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # 대중교통
+    # TRANSIT
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -213,7 +357,7 @@ def compute_route_duration(
         )
 
         st.subheader(
-            f"ROUTE RAW RESPONSE ({travel_mode})"
+            f"ROUTE RESPONSE ({travel_mode})"
         )
 
         st.code(
@@ -247,7 +391,6 @@ def compute_route_duration(
 
             return None
 
-        # "1234s"
         seconds = int(
             duration.replace(
                 "s",
@@ -287,13 +430,13 @@ def get_car_travel_time(
 ):
 
     origin_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             destination_query
         )
     )
@@ -332,13 +475,13 @@ def get_walk_travel_time(
 ):
 
     origin_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             destination_query
         )
     )
@@ -377,13 +520,13 @@ def get_transit_travel_time(
 ):
 
     origin_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             origin_query
         )
     )
 
     destination_place_id = (
-        get_station_place_id(
+        get_google_place_id(
             destination_query
         )
     )
