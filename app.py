@@ -474,6 +474,11 @@ border-radius:12px;
                 )
             )
 
+            st.write(
+                "PLACE ID:",
+                place_id
+            )
+
 
             # =========================
             # 검색 실패
