@@ -20,19 +20,19 @@ GOOGLE_API_KEY = st.secrets.get(
 def get_google_place_id(query):
 
     url = (
-        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+        "https://maps.googleapis.com/maps/api/place/textsearch/json"
     )
 
     params = {
 
-        "input":
+        "query":
         query,
 
-        "inputtype":
-        "textquery",
+        "language":
+        "ko",
 
-        "fields":
-        "place_id",
+        "region":
+        "kr",
 
         "key":
         GOOGLE_API_KEY
@@ -46,37 +46,43 @@ def get_google_place_id(query):
 
             params=params,
 
-            timeout=5
+            timeout=10
+        )
+
+        print(
+            "PLACE STATUS:",
+            response.status_code
         )
 
         data = response.json()
 
-        candidates = data.get(
-            "candidates",
-            []
-        )
-
-        if not candidates:
-
-            return None
-        
         print(
-            "PLACE QUERY:",
-            query
-        )
-
-        print(
-            "PLACE RESPONSE:",
+            "PLACE DATA:",
             data
         )
 
-        return candidates[0].get(
+        results = data.get(
+            "results",
+            []
+        )
+
+        if not results:
+
+            return None
+
+        return results[0].get(
             "place_id"
         )
 
-    except Exception:
+    except Exception as e:
+
+        print(
+            "PLACE ERROR:",
+            str(e)
+        )
 
         return None
+
 
 
 # =========================
