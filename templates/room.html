@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPACETIME — Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<style>
+:root{
+  --bg:#050810;--surface:#0d1117;--surface2:#141b26;--surface3:#1a2332;
+  --accent:#00e5ff;--accent2:#7c3aed;--accent3:#ff6b35;--ok:#22c55e;
+  --text:#e8eaf6;--muted:#546e8a;--border:rgba(0,229,255,0.15);
+  --glow:0 0 30px rgba(0,229,255,0.3);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) ease-in-out infinite;opacity:0;}
+@keyframes twinkle{0%,100%{opacity:0}50%{opacity:var(--o,.5)}}
+.grid-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(0,229,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.02) 1px,transparent 1px);
+  background-size:60px 60px;}
+
+/* NAV */
+nav{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:16px 36px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px;}
+.logo{font-family:'Space Mono',monospace;font-size:17px;font-weight:700;letter-spacing:4px;color:var(--accent);text-shadow:var(--glow);text-decoration:none;}
+.logo span{color:var(--accent2);}
+.nav-right{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.phase-indicator{font-family:'Space Mono',monospace;font-size:10px;color:var(--accent);letter-spacing:2px;}
+.room-code{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;letter-spacing:6px;color:#fff;background:var(--surface2);border:1px solid var(--border);padding:7px 18px;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+.room-code:hover{border-color:var(--accent);box-shadow:var(--glow);}
+.room-name-nav{font-size:13px;color:var(--muted);}
+
+/* LAYOUT */
+.layout{position:relative;z-index:5;display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 68px);}
+
+/* SIDEBAR */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 16px;position:sticky;top:0;height:calc(100vh - 68px);overflow-y:auto;}
+.sidebar h3{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--muted);margin-bottom:14px;}
+.participant{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;margin-bottom:5px;background:var(--surface2);}
+.participant-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+.participant-dot.done{background:var(--ok);}
+.participant-name{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.me-badge{font-size:9px;color:var(--accent);background:rgba(0,229,255,0.1);padding:2px 5px;border-radius:4px;margin-left:2px;}
+.sidebar-divider{margin:20px 0;border:none;border-top:1px solid var(--border);}
+.sidebar-phase{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:10px;}
+.phase-step{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;font-size:12px;color:var(--muted);margin-bottom:3px;}
+.phase-step.active{color:var(--accent);background:rgba(0,229,255,0.06);}
+.phase-step.done{color:var(--ok);}
+.phase-step-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+/* MAIN */
+.main{padding:36px 40px;overflow-y:auto;}
+.phase-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:4px;color:var(--accent);margin-bottom:8px;}
+.section-title{font-size:24px;font-weight:700;margin-bottom:6px;}
+.section-desc{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:28px;}
+
+/* BACK BTN */
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;margin-bottom:20px;transition:all 0.2s;font-family:'Space Mono',monospace;letter-spacing:1px;}
+.back-btn:hover{color:var(--text);border-color:var(--accent);}
+
+/* PROGRESS BAR */
+.progress-row{display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.12);border-radius:10px;margin-bottom:20px;}
+.progress-row p{font-size:13px;color:var(--muted);flex:1;}
+.progress-bar{height:4px;background:var(--surface3);border-radius:2px;width:100px;overflow:hidden;flex-shrink:0;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.4s;}
+
+/* ADVANCE BAR */
+.advance-bar{display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:10px;margin-bottom:20px;}
+.advance-bar p{font-size:13px;flex:1;}
+
+/* CALENDAR */
+.tz-row{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.tz-row label{font-size:11px;color:var(--muted);letter-spacing:2px;white-space:nowrap;}
+.tz-row select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;outline:none;font-family:'Noto Sans KR',sans-serif;}
+.tz-row select:focus{border-color:var(--accent);}
+
+.calendar-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:16px;margin-bottom:24px;}
+.calendar{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--surface2);}
+.cal-header h4{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:2px;}
+.cal-nav{background:none;border:none;color:var(--accent);cursor:pointer;font-size:18px;padding:2px 8px;border-radius:4px;}
+.cal-nav:hover{background:var(--surface3);}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);}
+.cal-day-label{padding:9px 0;text-align:center;font-size:10px;color:var(--muted);letter-spacing:1px;font-family:'Space Mono',monospace;}
+.cal-day{padding:7px 4px;text-align:center;cursor:pointer;border-radius:6px;font-size:12px;transition:all 0.12s;margin:2px;}
+.cal-day:hover:not(.empty):not(.past){background:var(--surface3);}
+.cal-day.empty{cursor:default;}
+.cal-day.past{color:var(--muted);cursor:not-allowed;opacity:0.35;}
+.cal-day.selected{background:var(--accent2);color:#fff;font-weight:700;}
+.cal-day.today{border:1px solid var(--accent);}
+.cal-day.today.selected{border-color:transparent;}
+.cal-day.has-times{position:relative;}
+.cal-day.has-times::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--ok);}
+
+/* TIME SLOTS */
+.time-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:20px;}
+.time-panel h4{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--accent);margin-bottom:14px;}
+.time-slots{display:flex;flex-wrap:wrap;gap:8px;}
+.time-slot{padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;transition:all 0.15s;font-family:'Space Mono',monospace;}
+.time-slot:hover{border-color:var(--accent2);}
+.time-slot.active{background:rgba(124,58,237,0.2);border-color:var(--accent2);color:var(--accent2);}
+.time-note{font-size:11px;color:var(--muted);margin-top:10px;}
+.no-date-selected{font-size:13px;color:var(--muted);padding:16px 0;}
+
+/* SELECTED DATES */
+.selected-dates{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;}
+.date-tag{background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--accent2);display:flex;align-items:center;gap:6px;}
+.date-tag.has-times{background:rgba(34,197,94,0.1);border-color:rgba(34,197,94,0.3);color:var(--ok);}
+.date-tag button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px;padding:0;line-height:1;}
+
+/* BUTTONS */
+.btn{padding:13px 26px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Space Mono',monospace;letter-spacing:2px;transition:all 0.2s;}
+.btn-primary{background:var(--accent);color:var(--bg);box-shadow:0 0 20px rgba(0,229,255,0.25);}
+.btn-primary:hover{box-shadow:0 0 40px rgba(0,229,255,0.5);transform:translateY(-1px);}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.btn-secondary{background:var(--accent2);color:#fff;}
+.btn-secondary:hover{box-shadow:0 0 30px rgba(124,58,237,0.5);transform:translateY(-1px);}
+.btn-ok{background:var(--ok);color:var(--bg);}
+.btn-ok:hover{box-shadow:0 0 20px rgba(34,197,94,0.4);transform:translateY(-1px);}
+
+/* DONE STATE */
+.done-box{padding:28px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.2);border-radius:14px;text-align:center;margin-bottom:20px;}
+.done-box .icon{font-size:28px;margin-bottom:8px;}
+.done-box h3{font-size:16px;margin-bottom:4px;}
+.done-box p{color:var(--muted);font-size:12px;}
+
+/* SCHEDULE RESULT */
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px;}
+.result-card h3{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--accent);margin-bottom:16px;}
+.date-list{display:flex;flex-direction:column;gap:8px;}
+.date-item{padding:14px 16px;background:var(--surface2);border-radius:10px;border-left:3px solid var(--border);}
+.date-item.best{border-left-color:var(--ok);}
+.date-item.partial{border-left-color:var(--accent3);}
+.date-item-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.date-item-date{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;}
+.date-item-count{font-size:11px;background:var(--surface3);padding:3px 10px;border-radius:20px;font-family:'Space Mono',monospace;}
+.date-item-names{font-size:11px;color:var(--muted);}
+.time-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.time-chip{font-size:10px;padding:3px 8px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:5px;color:var(--accent);font-family:'Space Mono',monospace;}
+
+/* TRANSPORT FORM */
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:11px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;}
+.field select,.field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;color:var(--text);font-size:13px;font-family:'Noto Sans KR',sans-serif;outline:none;transition:border-color 0.2s;}
+.field select:focus,.field input:focus{border-color:var(--accent);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:4px;}
+.transport-options{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+.transport-opt{padding:10px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all 0.15s;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.transport-opt:hover{border-color:var(--accent2);}
+.transport-opt.active{background:rgba(124,58,237,0.15);border-color:var(--accent2);color:var(--accent2);}
+.transport-opt .icon{font-size:22px;}
+.category-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:6px;}
+.cat-opt{padding:12px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;text-align:center;cursor:pointer;transition:all 0.15s;}
+.cat-opt:hover{border-color:var(--accent3);}
+.cat-opt.active{background:rgba(255,107,53,0.12);border-color:var(--accent3);color:var(--accent3);}
+.cat-opt .icon{font-size:24px;display:block;margin-bottom:4px;}
+.cat-opt span{font-size:11px;}
+
+/* PLACE RESULTS */
+.place-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;transition:border-color 0.2s;}
+.place-card:hover{border-color:rgba(0,229,255,0.25);}
+.place-rank{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:14px;flex-shrink:0;}
+.rank-1{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;}
+.rank-2{background:linear-gradient(135deg,#c0c0c0,#888);color:#000;}
+.rank-3{background:linear-gradient(135deg,#cd7f32,#8b4513);color:#fff;}
+.rank-other{background:var(--surface3);color:var(--muted);}
+.place-header{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;}
+.place-name{font-size:17px;font-weight:700;}
+.place-cats{display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;}
+.cat-badge{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(255,107,53,0.1);color:var(--accent3);border:1px solid rgba(255,107,53,0.2);}
+.place-avg{margin-left:auto;text-align:right;flex-shrink:0;}
+.place-avg .time{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--accent);}
+.place-avg .label{font-size:10px;color:var(--muted);}
+.place-details{display:none;padding:16px 20px;border-top:1px solid var(--border);}
+.place-details.open{display:block;}
+.person-times{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.person-time{background:var(--surface2);border-radius:10px;padding:12px 14px;}
+.person-time .pname{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.person-time .ptime{font-family:'Space Mono',monospace;font-size:16px;color:var(--text);}
+.person-time .pfare{font-size:11px;color:var(--accent3);margin-top:3px;font-family:'Space Mono',monospace;}
+.transport-badge{font-size:10px;color:var(--muted);margin-top:2px;}
+.map-link{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);text-decoration:none;font-size:12px;transition:all 0.2s;}
+.map-link:hover{border-color:var(--accent);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;z-index:200;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 18px;font-size:13px;opacity:0;transition:opacity 0.3s;pointer-events:none;max-width:280px;}
+.toast.show{opacity:1;}
+
+@media(max-width:768px){
+  .layout{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .main{padding:20px 16px;}
+  .form-grid{grid-template-columns:1fr;}
+  .category-grid{grid-template-columns:repeat(3,1fr);}
+  nav{padding:14px 16px;}
+}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div class="grid-overlay"></div>
+
+<nav>
+  <a href="/" class="logo">SPACE<span>TIME</span></a>
+  <div class="nav-right">
+    <div>
+      <div class="phase-indicator" id="phase-indicator">PHASE 01</div>
+      <div class="room-name-nav" id="room-name-nav"></div>
+    </div>
+    <div>
+      <div class="room-code" onclick="copyCode()" title="클릭해서 복사">{{ room_code }}</div>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <h3>PARTICIPANTS</h3>
+    <div id="participant-list"></div>
+    <hr class="sidebar-divider">
+    <div class="sidebar-phase">PHASES</div>
+    <div class="phase-step" id="ps-collect"><div class="phase-step-dot"></div>01 시간 수집</div>
+    <div class="phase-step" id="ps-schedule"><div class="phase-step-dot"></div>02 일정 확인</div>
+    <div class="phase-step" id="ps-place"><div class="phase-step-dot"></div>03 장소 선택</div>
+    <div class="phase-step" id="ps-result"><div class="phase-step-dot"></div>04 결과</div>
+  </aside>
+  <main class="main" id="main-content">
+    <div style="padding:60px;text-align:center;color:var(--muted)">연결 중...</div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ROOM_CODE='{{ room_code }}';
+let myName=sessionStorage.getItem('myName')||'';
+let roomData=null;
+let selectedDates=new Set();
+let dateTimesMap={};   // {date: Set of hours}
+let activeDateForTime=null;
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+let selectedTransport='';
+let selectedCategories=new Set();
+let openPlaceIdx=null;
+
+// ── SOCKET ──
+const socket=io();
+socket.on('connect',()=>socket.emit('join',{code:ROOM_CODE}));
+socket.on('room_update',data=>{ roomData=data; render(); });
+
+async function init(){
+  if(!myName){
+    myName=prompt('이름을 입력하세요')||'Guest';
+    sessionStorage.setItem('myName',myName);
+  }
+  const res=await fetch(`/api/room/${ROOM_CODE}`);
+  if(!res.ok){ document.getElementById('main-content').innerHTML='<div style="padding:60px;text-align:center"><h2>방을 찾을 수 없습니다</h2></div>'; return; }
+  roomData=await res.json();
+  await fetch(`/api/room/${ROOM_CODE}/join`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:myName})});
+  // Restore my data
+  const me=roomData.participants[myName];
+  if(me){
+    if(me.available_dates) me.available_dates.forEach(d=>selectedDates.add(d));
+    if(me.available_times) Object.entries(me.available_times).forEach(([d,hrs])=>{ dateTimesMap[d]=new Set(hrs); });
+    if(me.transport) selectedTransport=me.transport;
+    if(me.categories) me.categories.forEach(c=>selectedCategories.add(c));
+  }
+  render();
+}
+init();
+
+function render(){
+  if(!roomData) return;
+  renderSidebar();
+  renderPhaseSteps();
+  document.getElementById('room-name-nav').textContent=roomData.name;
+  const p=roomData.phase;
+  const phases={collect:'PHASE 01 // 시간 수집',schedule:'PHASE 02 // 일정 확인',place:'PHASE 03 // 장소 선택',result:'PHASE 04 // 결과'};
+  document.getElementById('phase-indicator').textContent=phases[p]||'';
+  if(p==='collect') renderCollect();
+  else if(p==='schedule') renderSchedule();
+  else if(p==='place') renderPlace();
+  else if(p==='result') renderResult();
+}
+
+function renderSidebar(){
+  const list=document.getElementById('participant-list');
+  list.innerHTML=Object.values(roomData.participants).map(p=>{
+    const isMe=p.name===myName;
+    const done=roomData.phase==='collect'?p.availability_submitted:p.transport_submitted;
+    return `<div class="participant">
+      <div class="participant-dot ${done?'done':''}"></div>
+      <div class="participant-name">${p.name}${isMe?'<span class="me-badge">ME</span>':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPhaseSteps(){
+  const order=['collect','schedule','place','result'];
+  const cur=order.indexOf(roomData.phase);
+  order.forEach((ph,i)=>{
+    const el=document.getElementById('ps-'+ph);
+    if(!el) return;
+    el.className='phase-step'+(i===cur?' active':i<cur?' done':'');
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// PHASE 1: COLLECT
+// ════════════════════════════════════════════════════════
+function renderCollect(){
+  const me=roomData.participants[myName];
+  const allDone=Object.values(roomData.participants).every(p=>p.availability_submitted);
+  const myDone=me?.availability_submitted;
+  const doneCount=Object.values(roomData.participants).filter(p=>p.availability_submitted).length;
+  const total=Object.keys(roomData.participants).length;
+
+  let html=`<div class="phase-label">// PHASE 01</div>
+    <h2 class="section-title">가능한 날짜와 시간을 선택해주세요</h2>
+    <p class="section-desc">날짜를 선택한 뒤, 그 날 가능한 시간대를 클릭하세요.<br>모든 참여자가 완료하면 자동으로 교집합을 계산합니다.</p>`;
+
+  if(allDone){
+    html+=`<div class="advance-bar"><p>✅ 모든 참여자 입력 완료! 결과를 확인하세요.</p>
+      <button class="btn btn-ok" onclick="advancePhase('schedule')">결과 보기 →</button></div>`;
+  } else {
+    html+=`<div class="progress-row"><p>입력 완료: ${doneCount} / ${total} 명</p>
+      <div class="progress-bar"><div class="progress-fill" style="width:${total?doneCount/total*100:0}%"></div></div></div>`;
+  }
+
+  if(myDone){
+    html+=`<div class="done-box"><div class="icon">✅</div><h3>입력 완료!</h3><p>다른 참여자를 기다리는 중...</p></div>
+      <button class="back-btn" onclick="resetAvailability()">← 수정하기</button>`;
+  } else {
+    html+=`<div class="tz-row">
+      <label>시간대</label>
+      <select id="tz-select">
+        <option value="Asia/Seoul">🇰🇷 Seoul (UTC+9)</option>
+        <option value="America/New_York">🇺🇸 New York (UTC-5)</option>
+        <option value="America/Los_Angeles">🇺🇸 Los Angeles (UTC-8)</option>
+        <option value="Europe/London">🇬🇧 London (UTC+0)</option>
+        <option value="Europe/Paris">🇫🇷 Paris (UTC+1)</option>
+        <option value="Asia/Tokyo">🇯🇵 Tokyo (UTC+9)</option>
+        <option value="Asia/Shanghai">🇨🇳 Shanghai (UTC+8)</option>
+        <option value="Australia/Sydney">🇦🇺 Sydney (UTC+11)</option>
+      </select>
+    </div>
+    <div class="calendar-wrap" id="cal-wrap"></div>
+    <div id="selected-dates-display"></div>
+    <div id="time-panel-wrap"></div>
+    <div style="margin-top:16px">
+      <button class="btn btn-primary" onclick="submitAvailability()">선택 완료 →</button>
+    </div>`;
+  }
+  document.getElementById('main-content').innerHTML=html;
+  if(!myDone){
+    renderCalendars();
+    renderTimePanelForDate(activeDateForTime);
+  }
+}
+
+function renderCalendars(){
+  const wrap=document.getElementById('cal-wrap');
+  if(!wrap) return;
+  wrap.innerHTML=[0,1].map(offset=>buildCalendar(calYear,calMonth+offset)).join('');
+  renderSelectedDatesChips();
+}
+
+function buildCalendar(y,m){
+  if(m>11){y++;m-=12;}
+  if(m<0){y--;m+=11;}
+  const monthNames=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const dl=['일','월','화','수','목','금','토'];
+  const firstDay=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const today=new Date(); today.setHours(0,0,0,0);
+  let cells='';
+  for(let i=0;i<firstDay;i++) cells+='<div class="cal-day empty"></div>';
+  for(let d=1;d<=dim;d++){
+    const date=new Date(y,m,d);
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isPast=date<today;
+    const isToday=date.getTime()===today.getTime();
+    const isSel=selectedDates.has(ds);
+    const hasTimes=dateTimesMap[ds]&&dateTimesMap[ds].size>0;
+    const isActive=activeDateForTime===ds;
+    cells+=`<div class="cal-day ${isPast?'past':''} ${isToday?'today':''} ${isSel?'selected':''} ${hasTimes?'has-times':''}"
+      style="${isActive&&isSel?'outline:2px solid var(--accent);outline-offset:1px':''}"
+      onclick="toggleDate('${ds}',${isPast})">${d}</div>`;
+  }
+  return `<div class="calendar">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="navCal(-1)">‹</button>
+      <h4>${y}년 ${monthNames[m]}</h4>
+      <button class="cal-nav" onclick="navCal(1)">›</button>
+    </div>
+    <div class="cal-days">
+      ${dl.map(d=>`<div class="cal-day-label">${d}</div>`).join('')}
+      ${cells}
+    </div>
+  </div>`;
+}
+
+function navCal(dir){ calMonth+=dir; renderCalendars(); renderTimePanelForDate(activeDateForTime); }
+
+function toggleDate(ds,isPast){
+  if(isPast) return;
+  if(selectedDates.has(ds)){
+    selectedDates.delete(ds);
+    delete dateTimesMap[ds];
+    if(activeDateForTime===ds) activeDateForTime=null;
+  } else {
+    selectedDates.add(ds);
+    if(!dateTimesMap[ds]) dateTimesMap[ds]=new Set();
+    activeDateForTime=ds;
+  }
+  renderCalendars();
+  renderTimePanelForDate(activeDateForTime);
+}
+
+function renderSelectedDatesChips(){
+  const el=document.getElementById('selected-dates-display');
+  if(!el) return;
+  const sorted=[...selectedDates].sort();
+  if(!sorted.length){ el.innerHTML='<p style="color:var(--muted);font-size:12px;margin-bottom:12px">선택된 날짜 없음</p>'; return; }
+  el.innerHTML=`<div class="selected-dates">${sorted.map(d=>{
+    const hasTimes=dateTimesMap[d]&&dateTimesMap[d].size>0;
+    const isActive=activeDateForTime===d;
+    return `<div class="date-tag ${hasTimes?'has-times':''}" style="${isActive?'outline:1px solid var(--accent)':''}" onclick="selectDateForTime('${d}')" title="클릭해서 시간 설정">
+      ${formatDate(d)}${hasTimes?` <span style="font-size:10px">(${dateTimesMap[d].size}시간)</span>`:''}
+      <button onclick="event.stopPropagation();removeDate('${d}')">×</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function selectDateForTime(ds){
+  activeDateForTime=ds;
+  renderCalendars();
+  renderTimePanelForDate(ds);
+}
+
+function removeDate(ds){
+  selectedDates.delete(ds);
+  delete dateTimesMap[ds];
+  if(activeDateForTime===ds) activeDateForTime=null;
+  renderCalendars();
+  renderTimePanelForDate(activeDateForTime);
+}
+
+function renderTimePanelForDate(ds){
+  const wrap=document.getElementById('time-panel-wrap');
+  if(!wrap) return;
+  if(!ds||!selectedDates.has(ds)){
+    wrap.innerHTML=selectedDates.size>0
+      ?'<div class="time-panel"><h4>⏰ 시간 선택</h4><p class="no-date-selected">날짜 태그를 클릭해서 시간을 설정하세요</p></div>'
+      :'';
+    return;
+  }
+  const times=dateTimesMap[ds]||new Set();
+  const hours=[];
+  for(let h=0;h<24;h++) hours.push(h);
+  wrap.innerHTML=`<div class="time-panel">
+    <h4>⏰ ${formatDate(ds)} — 가능한 시간</h4>
+    <div class="time-slots">
+      ${hours.map(h=>{
+        const label=`${String(h).padStart(2,'0')}:00`;
+        return `<div class="time-slot ${times.has(h)?'active':''}" onclick="toggleHour('${ds}',${h})">${label}</div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <button onclick="selectHourRange('${ds}',0,12)" style="padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer">오전 전체</button>
+      <button onclick="selectHourRange('${ds}',12,24)" style="padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer">오후 전체</button>
+      <button onclick="selectHourRange('${ds}',0,24)" style="padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer">하루 전체</button>
+      <button onclick="clearHours('${ds}')" style="padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;cursor:pointer">초기화</button>
+    </div>
+    <p class="time-note">예: "8시부터 15시까지 가능" → 08:00~14:00 선택</p>
+  </div>`;
+}
+
+function toggleHour(ds,h){
+  if(!dateTimesMap[ds]) dateTimesMap[ds]=new Set();
+  if(dateTimesMap[ds].has(h)) dateTimesMap[ds].delete(h);
+  else dateTimesMap[ds].add(h);
+  renderTimePanelForDate(ds);
+  renderSelectedDatesChips();
+}
+function selectHourRange(ds,from,to){
+  if(!dateTimesMap[ds]) dateTimesMap[ds]=new Set();
+  for(let h=from;h<to;h++) dateTimesMap[ds].add(h);
+  renderTimePanelForDate(ds);
+  renderSelectedDatesChips();
+}
+function clearHours(ds){
+  dateTimesMap[ds]=new Set();
+  renderTimePanelForDate(ds);
+  renderSelectedDatesChips();
+}
+
+async function submitAvailability(){
+  const tz=document.getElementById('tz-select')?.value||'Asia/Seoul';
+  const dates=[...selectedDates];
+  const times={};
+  Object.entries(dateTimesMap).forEach(([d,s])=>{ times[d]=[...s]; });
+  await fetch(`/api/room/${ROOM_CODE}/submit-availability`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:myName,dates,times,timezone:tz})
+  });
+  showToast('날짜 입력 완료!');
+}
+
+async function resetAvailability(){
+  await fetch(`/api/room/${ROOM_CODE}/reset-availability`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:myName})});
+}
+
+// ════════════════════════════════════════════════════════
+// PHASE 2: SCHEDULE
+// ════════════════════════════════════════════════════════
+function renderSchedule(){
+  const sr=roomData.schedule_result;
+  const total=roomData.participant_count;
+  let html=`<button class="back-btn" onclick="advancePhase('collect')">← 날짜 수정</button>
+    <div class="phase-label">// PHASE 02</div>
+    <h2 class="section-title">가능한 날짜 결과</h2>
+    <p class="section-desc">모든 참여자의 날짜·시간 교집합입니다.</p>`;
+
+  if(sr?.common_dates?.length){
+    html+=`<div class="result-card">
+      <h3>✅ 전원 가능한 날짜 (${sr.common_dates.length}개)</h3>
+      <div class="date-list">${sr.common_dates.map(d=>{
+        const hours=sr.common_dates_times?.[d]||[];
+        const timeStr=hours.length?hours.map(h=>`${String(h).padStart(2,'0')}:00`).join(', '):'시간 미지정';
+        return `<div class="date-item best">
+          <div class="date-item-row">
+            <div class="date-item-date">${formatDate(d)}</div>
+            <div class="date-item-count">${total}/${total}명</div>
+          </div>
+          <div class="date-item-names">전원 가능</div>
+          ${hours.length?`<div class="time-chips">${hours.map(h=>`<span class="time-chip">${String(h).padStart(2,'0')}:00</span>`).join('')}</div>`:''}
+        </div>`;
+      }).join('')}</div></div>`;
+  } else {
+    html+=`<div class="result-card" style="text-align:center;padding:32px;color:var(--muted)">⚠️ 전원이 가능한 날짜가 없습니다</div>`;
+  }
+
+  if(sr?.best_dates?.length){
+    html+=`<div class="result-card">
+      <h3>📊 최다 가능 날짜</h3>
+      <div class="date-list">${sr.best_dates.map(item=>`<div class="date-item ${item.count===total?'best':'partial'}">
+        <div class="date-item-row">
+          <div class="date-item-date">${formatDate(item.date)}</div>
+          <div class="date-item-count">${item.count}/${total}명</div>
+        </div>
+        <div class="date-item-names">${item.participants.join(', ')}</div>
+      </div>`).join('')}</div></div>`;
+  }
+
+  html+=`<div style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap">
+    <button class="btn btn-secondary" onclick="advancePhase('place')">장소 선택으로 이동 →</button>
+  </div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+// ════════════════════════════════════════════════════════
+// PHASE 3: PLACE
+// ════════════════════════════════════════════════════════
+function renderPlace(){
+  const me=roomData.participants[myName];
+  const myDone=me?.transport_submitted;
+  const doneCount=Object.values(roomData.participants).filter(p=>p.transport_submitted).length;
+  const total=Object.keys(roomData.participants).length;
+  const TRANSPORTS=[
+    {id:'도보',icon:'🚶',label:'도보'},{id:'자전거',icon:'🚲',label:'자전거'},
+    {id:'대중교통',icon:'🚇',label:'대중교통'},{id:'자동차',icon:'🚗',label:'자동차'},{id:'택시',icon:'🚕',label:'택시'},
+  ];
+  const CATS=[
+    {id:'맛집',icon:'🍜',label:'맛집'},{id:'카페',icon:'☕',label:'카페'},
+    {id:'관광',icon:'🏛️',label:'관광'},{id:'쇼핑',icon:'🛍️',label:'쇼핑'},
+    {id:'자연',icon:'🌿',label:'자연'},{id:'문화',icon:'🎭',label:'문화'},
+    {id:'액티비티',icon:'⚡',label:'액티비티'},{id:'술집',icon:'🍺',label:'술집'},
+  ];
+  const DEPS=['강남','홍대','강북','신촌','종로','이태원','잠실','수원','인천','분당','일산','기타'];
+
+  let html=`<button class="back-btn" onclick="advancePhase('schedule')">← 일정 확인으로</button>
+    <div class="phase-label">// PHASE 03</div>
+    <h2 class="section-title">출발지 & 카테고리 선택</h2>
+    <p class="section-desc">출발지와 이동수단, 원하는 카테고리를 선택하세요.</p>
+    <div class="progress-row"><p>입력 완료: ${doneCount} / ${total} 명</p>
+      <div class="progress-bar"><div class="progress-fill" style="width:${total?doneCount/total*100:0}%"></div></div></div>`;
+
+  if(myDone){
+    html+=`<div class="done-box"><div class="icon">✅</div><h3>입력 완료!</h3><p>다른 참여자를 기다리는 중...</p></div>
+      <button class="back-btn" onclick="resetTransport()">← 수정하기</button>`;
+  } else {
+    const savedDep=roomData.participants[myName]?.departure||'';
+    html+=`<div class="form-grid">
+      <div class="field">
+        <label>출발지</label>
+        <select id="dep-select">
+          <option value="">-- 선택 --</option>
+          ${DEPS.map(d=>`<option value="${d}" ${savedDep===d?'selected':''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>이동 수단</label>
+        <div class="transport-options">
+          ${TRANSPORTS.map(t=>`<div class="transport-opt ${selectedTransport===t.id?'active':''}" data-id="${t.id}" onclick="selTransport('${t.id}')">
+            <span class="icon">${t.icon}</span>${t.label}
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>카테고리 (복수 선택)</label>
+      <div class="category-grid">
+        ${CATS.map(c=>`<div class="cat-opt ${selectedCategories.has(c.id)?'active':''}" data-id="${c.id}" onclick="toggleCat('${c.id}')">
+          <span class="icon">${c.icon}</span><span>${c.label}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitTransport()">선택 완료 →</button>`;
+  }
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function selTransport(id){ selectedTransport=id; renderPlace(); }
+function toggleCat(id){ if(selectedCategories.has(id)) selectedCategories.delete(id); else selectedCategories.add(id); renderPlace(); }
+
+async function submitTransport(){
+  const dep=document.getElementById('dep-select')?.value;
+  if(!dep){ showToast('출발지를 선택해주세요'); return; }
+  if(!selectedTransport){ showToast('이동수단을 선택해주세요'); return; }
+  if(!selectedCategories.size){ showToast('카테고리를 하나 이상 선택해주세요'); return; }
+  await fetch(`/api/room/${ROOM_CODE}/submit-transport`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:myName,departure:dep,transport:selectedTransport,categories:[...selectedCategories]})
+  });
+  showToast('선택 완료!');
+}
+
+async function resetTransport(){
+  await fetch(`/api/room/${ROOM_CODE}/reset-transport`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:myName})});
+}
+
+// ════════════════════════════════════════════════════════
+// PHASE 4: RESULT
+// ════════════════════════════════════════════════════════
+function renderResult(){
+  const pr=roomData.place_result;
+  if(!pr){ document.getElementById('main-content').innerHTML='<div style="padding:60px;text-align:center;color:var(--muted)">결과 계산 중...</div>'; return; }
+  const TICONS={도보:'🚶',자전거:'🚲',대중교통:'🚇',자동차:'🚗',택시:'🚕'};
+  const RC=['rank-1','rank-2','rank-3'];
+
+  let html=`<button class="back-btn" onclick="advancePhase('place')">← 장소 선택으로</button>
+    <div class="phase-label">// PHASE 04</div>
+    <h2 class="section-title">🏆 추천 장소</h2>
+    <p class="section-desc">카테고리 투표 + 최소 이동시간 기준으로 정렬했습니다.</p>
+    <div class="result-card" style="margin-bottom:20px">
+      <h3>📊 카테고리 집계</h3>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${Object.entries(pr.category_votes||{}).sort((a,b)=>b[1]-a[1]).map(([cat,v])=>`
+          <div style="padding:6px 14px;background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.2);border-radius:20px;font-size:12px">
+            ${cat} <b style="color:var(--accent3);margin-left:4px">${v}표</b>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  pr.recommendations.forEach((place,i)=>{
+    const rc=i<3?RC[i]:'rank-other';
+    html+=`<div class="place-card">
+      <div class="place-header" onclick="togglePlace(${i})">
+        <div class="place-rank ${rc}">${i+1}</div>
+        <div style="flex:1;min-width:0">
+          <div class="place-name">${place.place}</div>
+          <div class="place-cats">${place.categories.map(c=>`<span class="cat-badge">${c}</span>`).join('')}</div>
+        </div>
+        <div class="place-avg">
+          <div class="time">${place.avg_time}분</div>
+          <div class="label">평균 이동시간</div>
+        </div>
+        <div style="color:var(--muted);margin-left:10px">${openPlaceIdx===i?'▲':'▼'}</div>
+      </div>
+      <div class="place-details ${openPlaceIdx===i?'open':''}">
+        <div class="person-times">
+          ${Object.entries(place.per_person).map(([name,info])=>{
+            const p=roomData.participants[name];
+            const ticon=TICONS[p?.transport]||'🚗';
+            let fareHtml='';
+            if(info.taxi_fare!=null){
+              fareHtml=`<div class="pfare">💰 약 ${info.taxi_fare.toLocaleString()}원</div>`;
+            }
+            return `<div class="person-time">
+              <div class="pname">${name}</div>
+              <div class="ptime">${ticon} ${info.time}분</div>
+              ${fareHtml}
+              <div class="transport-badge">${p?.departure||''} · ${info.dist}km</div>
+            </div>`;
+          }).join('')}
+        </div>
+        <a class="map-link" href="https://map.kakao.com/link/search/${encodeURIComponent(place.place)}" target="_blank">🗺️ 카카오맵에서 보기</a>
+      </div>
+    </div>`;
+  });
+
+  html+=`<div style="margin-top:28px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:14px;text-align:center">
+    <p style="color:var(--muted);font-size:13px;margin-bottom:14px">새 약속을 잡으시겠어요?</p>
+    <button class="btn btn-primary" onclick="window.location.href='/'">새 SPACETIME 시작 →</button>
+  </div>`;
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function togglePlace(i){ openPlaceIdx=openPlaceIdx===i?null:i; renderResult(); }
+
+// ── UTILS ──
+async function advancePhase(phase){
+  await fetch(`/api/room/${ROOM_CODE}/advance-phase`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phase})});
+}
+function copyCode(){
+  navigator.clipboard.writeText(ROOM_CODE).then(()=>showToast('코드 복사됨!'));
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+function formatDate(str){
+  const [y,m,d]=str.split('-');
+  const days=['일','월','화','수','목','금','토'];
+  const day=new Date(str).getDay();
+  return `${parseInt(m)}월 ${parseInt(d)}일 (${days[day]})`;
+}
+
+// Stars
+const se=document.getElementById('stars');
+for(let i=0;i<80;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2+0.5;
+  s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${Math.random()*4+2}s;--o:${Math.random()*0.6+0.2};animation-delay:${Math.random()*5}s`;
+  se.appendChild(s);
+}
+</script>
+</body>
+</html>
