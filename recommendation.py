@@ -20,8 +20,7 @@ def get_real_travel_time(
 
     user,
 
-    lat,
-    lng
+    place
 ):
 
     transport = str(
@@ -47,8 +46,8 @@ def get_real_travel_time(
             user["lat"],
             user["lng"],
 
-            lat,
-            lng
+            place["lat"],
+            place["lng"]
         )
 
     # 도보
@@ -62,11 +61,9 @@ def get_real_travel_time(
 
         return get_walk_travel_time(
 
-            user["lat"],
-            user["lng"],
+            user["address"],
 
-            lat,
-            lng
+            place["address"]
         )
 
     # 대중교통
@@ -81,11 +78,9 @@ def get_real_travel_time(
 
         return get_transit_travel_time(
 
-            user["lat"],
-            user["lng"],
+            user["address"],
 
-            lat,
-            lng
+            place["address"]
         )
 
     return None
@@ -99,11 +94,9 @@ def collect_candidate_places(users):
 
     candidate_places = []
 
-    # =========================
-    # 사용자 위치
-    # =========================
-
     search_points = []
+
+    # 사용자 위치
 
     for user in users:
 
@@ -115,9 +108,7 @@ def collect_candidate_places(users):
             )
         )
 
-    # =========================
-    # 사용자 사이 corridor 생성
-    # =========================
+    # corridor 생성
 
     for i in range(len(users)):
 
@@ -129,11 +120,8 @@ def collect_candidate_places(users):
             lat2 = users[j]["lat"]
             lng2 = users[j]["lng"]
 
-            # =========================
-            # 중간 경로 포인트
-            # =========================
-
             for ratio in [
+
                 0.1,
                 0.2,
                 0.3,
@@ -163,9 +151,7 @@ def collect_candidate_places(users):
                     (lat, lng)
                 )
 
-    # =========================
-    # 각 포인트 주변 실제 장소 검색
-    # =========================
+    # 실제 장소 검색
 
     for lat, lng in search_points:
 
@@ -181,9 +167,7 @@ def collect_candidate_places(users):
             places
         )
 
-    # =========================
     # 중복 제거
-    # =========================
 
     unique_places = []
 
@@ -210,24 +194,13 @@ def collect_candidate_places(users):
 
 def recommend_places(users):
 
-    # =========================
-    # 후보 장소 수집
-    # =========================
-
     places = collect_candidate_places(
         users
     )
 
     recommendations = []
 
-    # =========================
-    # 장소별 실제 이동시간 평가
-    # =========================
-
     for place in places:
-
-        lat = place["lat"]
-        lng = place["lng"]
 
         times = []
 
@@ -241,22 +214,15 @@ def recommend_places(users):
 
                 user,
 
-                lat,
-                lng
+                place
             )
-
-            # =========================
-            # transit/walking 실패
-            # =========================
 
             if travel_time is None:
 
                 valid = False
                 break
 
-            # =========================
-            # 현실적 최대 이동시간 제한
-            # =========================
+            # 현실적 제한
 
             transport = user.get(
                 "transport",
@@ -277,10 +243,6 @@ def recommend_places(users):
 
                 limit = 100
 
-            # =========================
-            # 너무 먼 경우 제외
-            # =========================
-
             if travel_time > limit:
 
                 valid = False
@@ -299,17 +261,11 @@ def recommend_places(users):
                 travel_time
             })
 
-        # =========================
-        # 한 명이라도 실패 시 제외
-        # =========================
-
         if not valid:
 
             continue
 
-        # =========================
         # 시간 균형 score
-        # =========================
 
         balance_score = (
 
@@ -322,10 +278,6 @@ def recommend_places(users):
             / len(times)
         )
 
-        # =========================
-        # 최종 점수
-        # =========================
-
         score = (
             balance_score
             + avg_score * 0.3
@@ -337,10 +289,10 @@ def recommend_places(users):
             place["name"],
 
             "lat":
-            lat,
+            place["lat"],
 
             "lng":
-            lng,
+            place["lng"],
 
             "address":
             place["address"],
@@ -357,10 +309,6 @@ def recommend_places(users):
             "user_times":
             user_times
         })
-
-    # =========================
-    # 점수 기준 정렬
-    # =========================
 
     recommendations.sort(
 

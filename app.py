@@ -606,6 +606,8 @@ border-radius:12px;
 
                         "nickname": user[2],
 
+                        "address": user[4],
+
                         "location_name": user[4],
 
                         "lat": user[5],
@@ -695,6 +697,8 @@ border-radius:12px;
             users.append({
 
                 "nickname": user[2],
+
+                "address": user[4],
 
                 "location_name": user[4],
 

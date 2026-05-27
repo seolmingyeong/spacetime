@@ -3,15 +3,15 @@ import streamlit as st
 
 
 # =========================
-# API KEY
+# API Keys
 # =========================
 
 KAKAO_REST_API_KEY = st.secrets.get(
     "KAKAO_REST_API_KEY"
 )
 
-GOOGLE_MAPS_API_KEY = st.secrets.get(
-    "GOOGLE_MAPS_API_KEY"
+GOOGLE_API_KEY = st.secrets.get(
+    "GOOGLE_API_KEY"
 )
 
 
@@ -76,29 +76,24 @@ def get_car_travel_time(
             "duration"
         ]
 
-        return max(
-            1,
-            int(duration / 60)
+        return int(
+            duration / 60
         )
 
-    except Exception as e:
-
-        st.error(e)
+    except Exception:
 
         return None
 
 
 # =========================
-# Google 이동시간
+# Google Distance Matrix
 # =========================
 
 def get_google_travel_time(
 
-    start_lat,
-    start_lng,
+    origin,
 
-    end_lat,
-    end_lng,
+    destination,
 
     mode
 ):
@@ -110,10 +105,10 @@ def get_google_travel_time(
     params = {
 
         "origins":
-        f"{start_lat},{start_lng}",
+        origin,
 
         "destinations":
-        f"{end_lat},{end_lng}",
+        destination,
 
         "mode":
         mode,
@@ -125,8 +120,18 @@ def get_google_travel_time(
         "kr",
 
         "key":
-        GOOGLE_MAPS_API_KEY
+        GOOGLE_API_KEY
     }
+
+    # =========================
+    # transit 추가 설정
+    # =========================
+
+    if mode == "transit":
+
+        params["transit_mode"] = (
+            "bus|subway"
+        )
 
     try:
 
@@ -136,16 +141,10 @@ def get_google_travel_time(
 
             params=params,
 
-            timeout=5
+            timeout=10
         )
 
         data = response.json()
-
-        # =========================
-        # DEBUG
-        # =========================
-
-        st.error(data)
 
         rows = data.get(
             "rows",
@@ -165,87 +164,66 @@ def get_google_travel_time(
 
             return None
 
-        element = elements[0]
+        result = elements[0]
 
-        st.error(element)
-
-        if element.get("status") != "OK":
+        if result.get(
+            "status"
+        ) != "OK":
 
             return None
 
-        duration = element.get(
+        duration = result[
             "duration"
-        )
-
-        if not duration:
-
-            return None
-
-        seconds = duration.get(
+        ][
             "value"
+        ]
+
+        return int(
+            duration / 60
         )
 
-        if seconds is None:
-
-            return None
-
-        return max(
-            1,
-            int(seconds / 60)
-        )
-
-    except Exception as e:
-
-        st.error(e)
+    except Exception:
 
         return None
 
 
 # =========================
-# 도보
+# 도보 이동시간
 # =========================
 
 def get_walk_travel_time(
 
-    start_lat,
-    start_lng,
+    origin_address,
 
-    end_lat,
-    end_lng
+    destination_address
 ):
 
     return get_google_travel_time(
 
-        start_lat,
-        start_lng,
+        origin_address,
 
-        end_lat,
-        end_lng,
+        destination_address,
 
         "walking"
     )
 
 
 # =========================
-# 대중교통
+# 대중교통 이동시간
 # =========================
 
 def get_transit_travel_time(
 
-    start_lat,
-    start_lng,
+    origin_address,
 
-    end_lat,
-    end_lng
+    destination_address
 ):
 
     return get_google_travel_time(
 
-        start_lat,
-        start_lng,
+        origin_address,
 
-        end_lat,
-        end_lng,
+        destination_address,
 
         "transit"
     )
