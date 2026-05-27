@@ -9,9 +9,15 @@ import json
 # API KEY
 # =========================
 
-GOOGLE_API_KEY = st.secrets.get(
-    "GOOGLE_MAP_API_KEY"
+GOOGLE_API_KEY = (
+
+    st.secrets[
+        "GOOGLE_API_KEY"
+    ]
+
+    .strip()
 )
+
 
 st.code(
     f"API KEY: {GOOGLE_API_KEY}"
@@ -69,7 +75,7 @@ def get_google_place_id(query):
         st.code(
             response.text
         )
-        
+
         data = response.json()
 
         places = data.get(
