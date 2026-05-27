@@ -12,6 +12,15 @@ KAKAO_REST_API_KEY = st.secrets.get(
 
 
 # =========================
+# Google API Key
+# =========================
+
+GOOGLE_MAPS_API_KEY = st.secrets.get(
+    "GOOGLE_MAPS_API_KEY"
+)
+
+
+# =========================
 # 자동차 이동시간 계산
 # =========================
 
@@ -44,7 +53,6 @@ def get_car_travel_time(
 
     params = {
 
-        # 카카오는 lng,lat 순서
         "origin":
         f"{start_lng},{start_lat}",
 
@@ -91,36 +99,25 @@ def get_car_travel_time(
 
             return None
 
-        # =========================
-        # 카카오는 초(second) 단위
-        # =========================
-
         minutes = int(
             duration / 60
         )
 
-        # 최소 1분 처리
         if minutes <= 0:
 
             minutes = 1
 
         return minutes
 
-    except Exception:
+    except Exception as e:
+
+        st.error(e)
 
         return None
-    
-    # =========================
-# Google API Key
-# =========================
-
-GOOGLE_MAPS_API_KEY = st.secrets.get(
-    "GOOGLE_MAPS_API_KEY"
-)
 
 
 # =========================
-# Google Distance Matrix
+# Google 이동시간 계산
 # =========================
 
 def get_google_travel_time(
@@ -177,6 +174,8 @@ def get_google_travel_time(
 
         data = response.json()
 
+        st.error(data)
+
         rows = data.get(
             "rows",
             []
@@ -197,11 +196,11 @@ def get_google_travel_time(
 
         element = elements[0]
 
-        # =========================
-        # 길찾기 실패
-        # =========================
-
         if element.get("status") != "OK":
+
+            st.error(
+                f"ELEMENT STATUS = {element.get('status')}"
+            )
 
             return None
 
@@ -231,7 +230,9 @@ def get_google_travel_time(
 
         return minutes
 
-    except Exception:
+    except Exception as e:
+
+        st.error(e)
 
         return None
 
