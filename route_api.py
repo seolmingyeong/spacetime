@@ -237,9 +237,17 @@ def compute_route_duration(
 
     if not origin_location:
 
+        st.error(
+            "ORIGIN LOCATION FAIL"
+        )
+
         return None
 
     if not destination_location:
+
+        st.error(
+            "DESTINATION LOCATION FAIL"
+        )
 
         return None
 
@@ -307,7 +315,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # TRANSIT
+    # 대중교통
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -364,6 +372,14 @@ def compute_route_duration(
             response.text
         )
 
+        if response.status_code != 200:
+
+            st.error(
+                "ROUTES API FAILED"
+            )
+
+            return None
+
         data = response.json()
 
         routes = data.get(
@@ -374,7 +390,7 @@ def compute_route_duration(
         if not routes:
 
             st.error(
-                f"{travel_mode} NO ROUTES"
+                "NO ROUTES"
             )
 
             return None
