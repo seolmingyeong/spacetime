@@ -212,6 +212,10 @@ def get_travel_time(
         "routes.duration"
     }
 
+    # =========================
+    # 요청 body
+    # =========================
+
     body = {
 
         "origin": {
@@ -231,6 +235,7 @@ def get_travel_time(
 
         "computeAlternativeRoutes":
         False
+    }
 
     # =========================
     # DRIVE 옵션
