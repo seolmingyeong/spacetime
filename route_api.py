@@ -40,29 +40,73 @@ def get_google_place_id(
         GOOGLE_API_KEY
     }
 
-    response = requests.get(
+    try:
 
-        url,
+        response = requests.get(
 
-        params=params,
+            url,
 
-        timeout=10
-    )
+            params=params,
 
-    data = response.json()
+            timeout=10
+        )
 
-    candidates = data.get(
-        "candidates",
-        []
-    )
+        print()
+        print("PLACE SEARCH STATUS")
 
-    if not candidates:
+        print(response.status_code)
+
+        data = response.json()
+
+        print()
+        print("PLACE SEARCH RESPONSE")
+
+        print(data)
+
+        candidates = data.get(
+            "candidates",
+            []
+        )
+
+        if not candidates:
+
+            print("PLACE SEARCH EMPTY")
+
+            return None
+
+        place_id = candidates[0].get(
+            "place_id"
+        )
+
+        # =========================
+        # place_id 검증
+        # =========================
+
+        if not place_id:
+
+            print("PLACE_ID NONE")
+
+            return None
+
+        if not str(place_id).startswith(
+            "ChIJ"
+        ):
+
+            print("INVALID PLACE_ID")
+
+            print(place_id)
+
+            return None
+
+        return place_id
+
+    except Exception as e:
+
+        print("PLACE SEARCH ERROR")
+
+        print(str(e))
 
         return None
-
-    return candidates[0].get(
-        "place_id"
-    )
 
 
 # =========================
@@ -79,16 +123,38 @@ def get_travel_time(
 ):
 
     # =========================
-    # place_id 없는 경우
+    # place_id 검증
     # =========================
 
-    if (
-        not origin_place_id
-        or
-        not destination_place_id
+    if not origin_place_id:
+
+        print("ORIGIN PLACE_ID NONE")
+
+        return None
+
+    if not destination_place_id:
+
+        print("DESTINATION PLACE_ID NONE")
+
+        return None
+
+    if not str(origin_place_id).startswith(
+        "ChIJ"
     ):
 
-        print("PLACE_ID NONE")
+        print("INVALID ORIGIN PLACE_ID")
+
+        print(origin_place_id)
+
+        return None
+
+    if not str(destination_place_id).startswith(
+        "ChIJ"
+    ):
+
+        print("INVALID DESTINATION PLACE_ID")
+
+        print(destination_place_id)
 
         return None
 
@@ -105,12 +171,26 @@ def get_travel_time(
         "대중교통": "TRANSIT"
     }
 
-    travel_mode = (
-        TRANSPORT_MAP.get(
-            transport,
-            "WALK"
-        )
+    transport = str(
+        transport
+    ).strip()
+
+    travel_mode = TRANSPORT_MAP.get(
+        transport
     )
+
+    # =========================
+    # 이동수단 오류
+    # =========================
+
+    if not travel_mode:
+
+        print()
+        print("INVALID TRANSPORT")
+
+        print(repr(transport))
+
+        return None
 
     # =========================
     # Routes API
@@ -131,10 +211,6 @@ def get_travel_time(
         "X-Goog-FieldMask":
         "routes.duration"
     }
-
-    # =========================
-    # 핵심 수정 부분
-    # =========================
 
     body = {
 
@@ -158,7 +234,7 @@ def get_travel_time(
     }
 
     # =========================
-    # TRANSIT 추가 옵션
+    # TRANSIT 옵션
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -166,7 +242,12 @@ def get_travel_time(
         body["departureTime"] = (
 
             datetime.utcnow()
-            .isoformat("T")
+
+            .replace(
+                microsecond=0
+            )
+
+            .isoformat()
 
             + "Z"
         )
@@ -176,37 +257,75 @@ def get_travel_time(
     # =========================
 
     print()
-    print("출발지:", origin_place_id)
-    print("목적지:", destination_place_id)
-    print("이동수단:", transport)
+    print("===== ROUTE DEBUG =====")
 
     print()
-    print(f"ROUTE REQUEST ({travel_mode})")
+
+    print("ORIGIN PLACE_ID")
+
+    print(origin_place_id)
+
+    print()
+
+    print("DESTINATION PLACE_ID")
+
+    print(destination_place_id)
+
+    print()
+
+    print("TRANSPORT")
+
+    print(repr(transport))
+
+    print()
+
+    print("TRAVEL MODE")
+
+    print(travel_mode)
+
+    print()
+
+    print("REQUEST BODY")
 
     print(body)
 
     # =========================
-    # 요청
+    # API 요청
     # =========================
 
-    response = requests.post(
+    try:
 
-        url,
+        response = requests.post(
 
-        headers=headers,
+            url,
 
-        json=body,
+            headers=headers,
 
-        timeout=15
-    )
+            json=body,
+
+            timeout=15
+        )
+
+    except Exception as e:
+
+        print()
+        print("REQUEST ERROR")
+
+        print(str(e))
+
+        return None
+
+    # =========================
+    # RESPONSE DEBUG
+    # =========================
 
     print()
-    print(f"ROUTE STATUS ({travel_mode})")
+    print("RESPONSE STATUS")
 
     print(response.status_code)
 
     print()
-    print(f"ROUTE RESPONSE ({travel_mode})")
+    print("RESPONSE TEXT")
 
     try:
 
@@ -221,16 +340,32 @@ def get_travel_time(
         )
 
     # =========================
-    # 실패
+    # 실패 처리
     # =========================
 
     if response.status_code != 200:
 
-        print(f"{travel_mode} API FAILED")
+        print()
+        print("ROUTES API FAILED")
 
         return None
 
-    data = response.json()
+    # =========================
+    # 응답 파싱
+    # =========================
+
+    try:
+
+        data = response.json()
+
+    except Exception as e:
+
+        print()
+        print("JSON PARSE ERROR")
+
+        print(str(e))
+
+        return None
 
     routes = data.get(
         "routes",
@@ -239,6 +374,7 @@ def get_travel_time(
 
     if not routes:
 
+        print()
         print("ROUTES EMPTY")
 
         return None
@@ -249,27 +385,42 @@ def get_travel_time(
 
     if not duration:
 
+        print()
         print("DURATION EMPTY")
 
         return None
 
     # =========================
-    # "1234s" -> 분 변환
+    # duration -> minutes
     # =========================
 
-    seconds = int(
-        duration.replace(
-            "s",
-            ""
+    try:
+
+        seconds = float(
+
+            duration.replace(
+                "s",
+                ""
+            )
         )
-    )
+
+    except Exception as e:
+
+        print()
+        print("DURATION PARSE ERROR")
+
+        print(duration)
+
+        print(str(e))
+
+        return None
 
     minutes = round(
         seconds / 60
     )
 
     print()
-    print(f"{travel_mode} 이동시간:")
+    print("FINAL TRAVEL TIME")
 
     print(f"{minutes}분")
 

@@ -88,11 +88,13 @@ def get_real_travel_time(
 
             return None
 
-        destination_place_id = (
-            search_place_id(
-                destination_name
+        if not destination_place_id:
+
+            st.error(
+                f"{place['name']} place_id 없음"
             )
-        )
+
+            return None
 
     # =========================
     # place_id 실패
