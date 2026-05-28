@@ -1,422 +1,381 @@
-import requests
-import streamlit as st
+from route_api import (
 
-from datetime import datetime
-import json
+    get_car_travel_time,
 
+    get_walk_travel_time,
 
-# =========================
-# API KEY
-# =========================
-
-GOOGLE_API_KEY = (
-    st.secrets["GOOGLE_API_KEY"]
-    .strip()
+    get_transit_travel_time
 )
 
+from place_api import (
+    search_places
+)
+
+import streamlit as st
+
 
 # =========================
-# 장소 검색
+# 실제 이동시간 계산
 # =========================
 
-def get_google_place_id(query):
+def get_real_travel_time(
 
-    url = (
-        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    user,
+
+    place
+):
+
+    transport = str(
+
+        user.get(
+            "transport",
+            ""
+        )
+
+    ).strip()
+
+    st.warning(
+        f"TRANSPORT = [{transport}]"
     )
 
-    params = {
-
-        "input":
-        query,
-
-        "inputtype":
-        "textquery",
-
-        "fields":
-        "place_id,name",
-
-        "language":
-        "ko",
-
-        "key":
-        GOOGLE_API_KEY
-    }
-
-    try:
-
-        response = requests.get(
-
-            url,
-
-            params=params,
-
-            timeout=10
+    origin_query = (
+        user.get(
+            "location_name"
         )
+    )
 
-        data = response.json()
-
-        candidates = data.get(
-            "candidates",
-            []
+    destination_query = (
+        place.get(
+            "name"
         )
+    )
 
-        if not candidates:
+    st.code(
+        f"{origin_query} → {destination_query}"
+    )
 
-            st.error(
-                f"NO PLACE: {query}"
-            )
-
-            return None
-
-        place_id = candidates[0].get(
-            "place_id"
-        )
-
-        st.success(
-            f"{query} → {place_id}"
-        )
-
-        return place_id
-
-    except Exception as e:
+    if not origin_query:
 
         st.error(
-            f"PLACE ERROR: {str(e)}"
+            "NO ORIGIN"
         )
 
         return None
 
-
-# =========================
-# Routes API
-# =========================
-
-def compute_route_duration(
-
-    origin_place_id,
-
-    destination_place_id,
-
-    travel_mode
-):
-
-    url = (
-        "https://routes.googleapis.com/directions/v2:computeRoutes"
-    )
-
-    headers = {
-
-        "Content-Type":
-        "application/json",
-
-        "X-Goog-Api-Key":
-        GOOGLE_API_KEY
-    }
-
-    body = {
-
-        "origin": {
-
-            "placeId":
-            origin_place_id
-        },
-
-        "destination": {
-
-            "placeId":
-            destination_place_id
-        },
-
-        "travelMode":
-        travel_mode,
-
-        "computeAlternativeRoutes":
-        False
-    }
-
-    # =========================
-    # TRANSIT
-    # =========================
-
-    if travel_mode == "TRANSIT":
-
-        body["departureTime"] = (
-
-            datetime.utcnow()
-
-            .replace(microsecond=0)
-
-            .isoformat()
-
-            + "Z"
-        )
-
-    try:
-
-        st.subheader(
-            f"ROUTE REQUEST ({travel_mode})"
-        )
-
-        st.code(
-            json.dumps(
-                body,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
-
-        response = requests.post(
-
-            url,
-
-            headers=headers,
-
-            json=body,
-
-            timeout=20
-        )
-
-        st.subheader(
-            f"ROUTE STATUS ({travel_mode})"
-        )
-
-        st.code(
-            response.status_code
-        )
-
-        st.subheader(
-            f"ROUTE RESPONSE ({travel_mode})"
-        )
-
-        st.code(
-            response.text
-        )
-
-        if response.status_code != 200:
-
-            st.error(
-                f"{travel_mode} API FAILED"
-            )
-
-            return None
-
-        data = response.json()
-
-        routes = data.get(
-            "routes",
-            []
-        )
-
-        if not routes:
-
-            st.error(
-                f"{travel_mode} NO ROUTES"
-            )
-
-            return None
-
-        route = routes[0]
-
-        # =========================
-        # duration 추출
-        # =========================
-
-        duration = route.get(
-            "duration"
-        )
-
-        # =========================
-        # legs fallback
-        # =========================
-
-        if not duration:
-
-            legs = route.get(
-                "legs",
-                []
-            )
-
-            if legs:
-
-                duration = legs[0].get(
-                    "duration"
-                )
-
-        # =========================
-        # duration 최종 실패
-        # =========================
-
-        if not duration:
-
-            st.error(
-                f"{travel_mode} NO DURATION"
-            )
-
-            st.code(route)
-
-            return None
-
-        # =========================
-        # 문자열 변환
-        # =========================
-
-        # 예: "1234s"
-        if isinstance(duration, str):
-
-            seconds = int(
-
-                duration.replace(
-                    "s",
-                    ""
-                )
-            )
-
-        # 숫자형 fallback
-        else:
-
-            seconds = int(
-                duration
-            )
-
-        minutes = max(
-            1,
-            seconds // 60
-        )
-
-        st.success(
-            f"{travel_mode}: {minutes}분"
-        )
-
-        return minutes
-
-    except Exception as e:
+    if not destination_query:
 
         st.error(
-            f"ROUTE ERROR: {str(e)}"
+            "NO DESTINATION"
         )
 
         return None
 
+    # =========================
+    # 자동차
+    # =========================
 
-# =========================
-# 자동차
-# =========================
+    if "자동차" in transport:
 
-def get_car_travel_time(
-
-    origin_query,
-
-    destination_query
-):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
+        st.success(
+            "CAR MODE"
         )
-    )
 
-    destination_place_id = (
-        get_google_place_id(
+        return get_car_travel_time(
+
+            origin_query,
+
             destination_query
         )
-    )
 
-    if not origin_place_id:
+    # =========================
+    # 도보
+    # =========================
 
-        return None
+    elif "도보" in transport:
 
-    if not destination_place_id:
-
-        return None
-
-    return compute_route_duration(
-
-        origin_place_id,
-
-        destination_place_id,
-
-        "DRIVE"
-    )
-
-
-# =========================
-# 도보
-# =========================
-
-def get_walk_travel_time(
-
-    origin_query,
-
-    destination_query
-):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
+        st.success(
+            "WALK MODE"
         )
-    )
 
-    destination_place_id = (
-        get_google_place_id(
+        return get_walk_travel_time(
+
+            origin_query,
+
             destination_query
         )
-    )
 
-    if not origin_place_id:
+    # =========================
+    # 대중교통
+    # =========================
 
-        return None
+    elif "대중교통" in transport:
 
-    if not destination_place_id:
-
-        return None
-
-    return compute_route_duration(
-
-        origin_place_id,
-
-        destination_place_id,
-
-        "WALK"
-    )
-
-
-# =========================
-# 대중교통
-# =========================
-
-def get_transit_travel_time(
-
-    origin_query,
-
-    destination_query
-):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
+        st.success(
+            "TRANSIT MODE"
         )
-    )
 
-    destination_place_id = (
-        get_google_place_id(
+        return get_transit_travel_time(
+
+            origin_query,
+
             destination_query
         )
+
+    # =========================
+    # 알 수 없는 이동수단
+    # =========================
+
+    st.error(
+        f"UNKNOWN TRANSPORT: [{transport}]"
     )
 
-    if not origin_place_id:
+    return None
 
-        return None
 
-    if not destination_place_id:
+# =========================
+# 후보 장소 수집
+# =========================
 
-        return None
+def collect_candidate_places(users):
 
-    return compute_route_duration(
+    candidate_places = []
 
-        origin_place_id,
+    search_points = []
 
-        destination_place_id,
+    for user in users:
 
-        "TRANSIT"
+        search_points.append(
+
+            (
+                user["lat"],
+                user["lng"]
+            )
+        )
+
+    # =========================
+    # 중간 지점 생성
+    # =========================
+
+    for i in range(len(users)):
+
+        for j in range(i + 1, len(users)):
+
+            lat1 = users[i]["lat"]
+            lng1 = users[i]["lng"]
+
+            lat2 = users[j]["lat"]
+            lng2 = users[j]["lng"]
+
+            for ratio in [
+
+                0.25,
+                0.5,
+                0.75
+            ]:
+
+                lat = (
+
+                    lat1
+                    + (lat2 - lat1)
+                    * ratio
+                )
+
+                lng = (
+
+                    lng1
+                    + (lng2 - lng1)
+                    * ratio
+                )
+
+                search_points.append(
+                    (lat, lng)
+                )
+
+    # =========================
+    # 장소 검색
+    # =========================
+
+    for lat, lng in search_points:
+
+        st.write(
+            f"PLACE SEARCH: {lat}, {lng}"
+        )
+
+        places = search_places(
+
+            lat,
+            lng,
+
+            "카페"
+        )
+
+        candidate_places.extend(
+            places
+        )
+
+    # =========================
+    # 중복 제거
+    # =========================
+
+    unique_places = []
+
+    used_names = set()
+
+    for place in candidate_places:
+
+        name = place["name"]
+
+        if name in used_names:
+
+            continue
+
+        used_names.add(name)
+
+        unique_places.append(place)
+
+    st.success(
+        f"PLACE COUNT: {len(unique_places)}"
     )
+
+    # =========================
+    # API 폭발 방지
+    # =========================
+
+    return unique_places[:5]
+
+
+# =========================
+# 추천 장소 생성
+# =========================
+
+def recommend_places(users):
+
+    st.header(
+        "recommend 시작"
+    )
+
+    places = collect_candidate_places(
+        users
+    )
+
+    recommendations = []
+
+    for place in places:
+
+        st.subheader(
+            f"평가 중: {place['name']}"
+        )
+
+        times = []
+
+        user_times = []
+
+        failed = False
+
+        for user in users:
+
+            st.write(
+                f"{user['nickname']} 계산 시작"
+            )
+
+            travel_time = get_real_travel_time(
+
+                user,
+
+                place
+            )
+
+            st.write(
+
+                "RESULT:",
+
+                user["nickname"],
+
+                travel_time
+            )
+
+            if travel_time is None:
+
+                st.error(
+                    "ROUTE FAILED"
+                )
+
+                failed = True
+
+                break
+
+            times.append(
+                travel_time
+            )
+
+            user_times.append({
+
+                "nickname":
+                user["nickname"],
+
+                "travel_time":
+                travel_time
+            })
+
+        if failed:
+
+            continue
+
+        if not times:
+
+            continue
+
+        balance_score = (
+
+            max(times)
+            - min(times)
+        )
+
+        avg_score = (
+            sum(times)
+            / len(times)
+        )
+
+        score = (
+            balance_score
+            + avg_score * 0.3
+        )
+
+        recommendations.append({
+
+            "name":
+            place["name"],
+
+            "lat":
+            place["lat"],
+
+            "lng":
+            place["lng"],
+
+            "address":
+            place["address"],
+
+            "avg_time":
+            int(avg_score),
+
+            "max_time":
+            max(times),
+
+            "score":
+            score,
+
+            "user_times":
+            user_times
+        })
+
+    recommendations.sort(
+
+        key=lambda x:
+        x["score"]
+    )
+
+    st.header(
+        "recommend 끝"
+    )
+
+    return recommendations[:3]
