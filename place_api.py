@@ -48,12 +48,6 @@ def search_places(
 
     data = response.json()
 
-    st.subheader(
-        "PLACE SEARCH"
-    )
-
-    st.code(data)
-
     results = data.get(
         "results",
         []

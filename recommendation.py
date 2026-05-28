@@ -266,7 +266,7 @@ def find_best_meeting_points(
         x["score"]
     )
 
-    return best_points[:10]
+    return best_points[:5]
 
 
 # =========================

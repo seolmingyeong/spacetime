@@ -86,39 +86,6 @@ def save_user(
     cursor = conn.cursor()
 
     # =========================
-    # DEBUG
-    # =========================
-
-    print("SAVE USER")
-
-    print({
-
-        "room_id":
-        room_id,
-
-        "nickname":
-        nickname,
-
-        "dates":
-        dates,
-
-        "location_name":
-        location_name,
-
-        "lat":
-        lat,
-
-        "lng":
-        lng,
-
-        "place_id":
-        place_id,
-
-        "transport":
-        transport
-    })
-
-    # =========================
     # 값 검증
     # =========================
 
@@ -199,10 +166,6 @@ def save_user(
 
     conn.close()
 
-    print(
-        "SAVE SUCCESS"
-    )
-
 
 # =========================
 # 방 참가자 조회
@@ -226,16 +189,6 @@ def get_room_users(room_id):
     users = cursor.fetchall()
 
     conn.close()
-
-    # =========================
-    # DEBUG
-    # =========================
-
-    print("ROOM USERS")
-
-    for user in users:
-
-        print(user)
 
     return users
 
@@ -285,7 +238,3 @@ def clear_all_users():
     conn.commit()
 
     conn.close()
-
-    print(
-        "ALL USERS DELETED"
-    )
