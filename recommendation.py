@@ -3,8 +3,7 @@ from route_api import (
 )
 
 from place_api import (
-    search_places,
-    search_place_id
+    search_places
 )
 
 import streamlit as st
@@ -31,87 +30,61 @@ def get_real_travel_time(
     ).strip()
 
     # =========================
-    # 사용자 출발지 place_id
+    # 사용자 좌표
     # =========================
 
-    origin_place_id = user.get(
-        "place_id"
+    origin_lat = user.get(
+        "lat"
+    )
+
+    origin_lng = user.get(
+        "lng"
     )
 
     # =========================
-    # 목적지 place_id
+    # 목적지 좌표
     # =========================
 
-    destination_place_id = place.get(
-        "place_id"
+    destination_lat = place.get(
+        "lat"
+    )
+
+    destination_lng = place.get(
+        "lng"
     )
 
     # =========================
-    # 사용자 place_id 없으면 검색
+    # 좌표 검증
     # =========================
 
-    if not origin_place_id:
-
-        location_name = user.get(
-            "location_name"
-        )
-
-        if not location_name:
-
-            st.error(
-                f"{user['nickname']} location_name 없음"
-            )
-
-            return None
-
-        origin_place_id = (
-            search_place_id(
-                location_name
-            )
-        )
-
-    # =========================
-    # 장소 place_id 없으면 검색
-    # =========================
-
-    if not destination_place_id:
-
-        destination_name = place.get(
-            "name"
-        )
-
-        if not destination_name:
-
-            st.error(
-                "destination_name 없음"
-            )
-
-            return None
-
-        if not destination_place_id:
-
-            st.error(
-                f"{place['name']} place_id 없음"
-            )
-
-            return None
-
-    # =========================
-    # place_id 실패
-    # =========================
-
-    if not origin_place_id:
+    if origin_lat is None:
 
         st.error(
-            f"{user['nickname']} 출발지 place_id 실패"
+            f"{user['nickname']} origin_lat 없음"
         )
 
         return None
 
-    if not destination_place_id:
+    if origin_lng is None:
 
         st.error(
-            f"{place['name']} 목적지 place_id 실패"
+            f"{user['nickname']} origin_lng 없음"
+        )
+
+        return None
+
+    if destination_lat is None:
+
+        st.error(
+            f"{place['name']} destination_lat 없음"
+        )
+
+        return None
+
+    if destination_lng is None:
+
+        st.error(
+            f"{place['name']} destination_lng 없음"
         )
 
         return None
@@ -121,13 +94,15 @@ def get_real_travel_time(
     # =========================
 
     st.write(
-        "출발지:",
-        origin_place_id
+        "출발지 좌표:",
+        origin_lat,
+        origin_lng
     )
 
     st.write(
-        "목적지:",
-        destination_place_id
+        "목적지 좌표:",
+        destination_lat,
+        destination_lng
     )
 
     st.write(
@@ -141,9 +116,11 @@ def get_real_travel_time(
 
     return get_travel_time(
 
-        origin_place_id,
+        origin_lat,
+        origin_lng,
 
-        destination_place_id,
+        destination_lat,
+        destination_lng,
 
         transport
     )
