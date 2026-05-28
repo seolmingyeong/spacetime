@@ -234,6 +234,26 @@ def get_travel_time(
     }
 
     # =========================
+    # WALKING 옵션
+    # =========================
+
+    if travel_mode == "WALKING":
+
+        body["routingPreference"] = (
+            "TRAFFIC_UNAWARE"
+        )
+
+    # =========================
+    # DRIVE 옵션
+    # =========================
+
+    if travel_mode == "DRIVE":
+
+        body["routingPreference"] = (
+            "TRAFFIC_AWARE"
+        )
+
+    # =========================
     # TRANSIT 옵션
     # =========================
 
@@ -327,17 +347,7 @@ def get_travel_time(
     print()
     print("RESPONSE TEXT")
 
-    try:
-
-        print(
-            response.json()
-        )
-
-    except:
-
-        print(
-            response.text
-        )
+    print(response.text)
 
     # =========================
     # 실패 처리
