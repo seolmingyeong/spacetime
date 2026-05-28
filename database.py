@@ -134,12 +134,6 @@ def save_user(
             "lng is None"
         )
 
-    if not place_id:
-
-        raise ValueError(
-            "place_id is None"
-        )
-
     # =========================
     # 기존 사용자 삭제
     # =========================
@@ -273,7 +267,7 @@ def room_exists(room_id):
 
 
 # =========================
-# 전체 사용자 삭제 (디버그용)
+# 전체 사용자 삭제
 # =========================
 
 def clear_all_users():

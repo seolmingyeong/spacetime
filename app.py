@@ -18,10 +18,6 @@ from ui import *
 from theme import apply_theme
 from geo import geocode_location
 
-from route_api import (
-    get_google_place_id
-)
-
 from place_api import (
     search_places
 )
@@ -487,39 +483,6 @@ border-radius:12px;
             st.stop()
 
         # =========================
-        # Place ID 생성
-        # =========================
-
-        try:
-
-            place_id = (
-
-                get_google_place_id(
-                    location_name.strip()
-                )
-            )
-
-        except Exception as e:
-
-            st.error(
-                f"PLACE_ID 생성 실패: {str(e)}"
-            )
-
-            place_id = None
-
-        # =========================
-        # place_id 실패
-        # =========================
-
-        if not place_id:
-
-            st.error(
-                "Google Place ID 생성 실패"
-            )
-
-            st.stop()
-
-        # =========================
         # DEBUG
         # =========================
 
@@ -540,9 +503,6 @@ border-radius:12px;
 
             "lng":
             lng,
-
-            "place_id":
-            place_id,
 
             "transport":
             transport
@@ -568,7 +528,7 @@ border-radius:12px;
 
             lng,
 
-            place_id,
+            None,
 
             transport
         )
