@@ -332,7 +332,7 @@ def collect_candidate_places(
         unique_places.append(
             place
         )
-    return unique_places[:30]
+    return unique_places[:15]
 
 # =========================
 # 최종 추천

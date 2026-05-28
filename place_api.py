@@ -25,7 +25,7 @@ def search_places(
         f"{lat},{lng}",
 
         "radius":
-        2000,
+        1500,
 
         "keyword":
         keyword,
