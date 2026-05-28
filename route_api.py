@@ -98,7 +98,7 @@ def get_travel_time(
 
     TRANSPORT_MAP = {
 
-        "도보": "WALK",
+        "도보": "WALKING",
 
         "자동차": "DRIVE",
 
