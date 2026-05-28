@@ -16,13 +16,6 @@ GOOGLE_API_KEY = (
 
 
 # =========================
-# ROUTE CACHE
-# =========================
-
-route_cache = {}
-
-
-# =========================
 # 장소 검색
 # =========================
 
@@ -70,96 +63,29 @@ def get_google_place_id(query):
 
         if not candidates:
 
+            st.error(
+                f"NO PLACE: {query}"
+            )
+
             return None
 
-        return candidates[0].get(
+        place_id = candidates[0].get(
             "place_id"
         )
 
-    except:
+        st.success(
+            f"{query} → {place_id}"
+        )
+
+        return place_id
+
+    except Exception as e:
+
+        st.error(
+            f"PLACE ERROR: {str(e)}"
+        )
 
         return None
-
-
-# =========================
-# place_id -> lat/lng
-# =========================
-
-def get_place_location(place_id):
-
-    url = (
-        "https://maps.googleapis.com/maps/api/place/details/json"
-    )
-
-    params = {
-
-        "place_id":
-        place_id,
-
-        "fields":
-        "geometry",
-
-        "language":
-        "ko",
-
-        "key":
-        GOOGLE_API_KEY
-    }
-
-    try:
-
-        response = requests.get(
-
-            url,
-
-            params=params,
-
-            timeout=10
-        )
-
-        data = response.json()
-
-        result = data.get(
-            "result"
-        )
-
-        if not result:
-
-            return None
-
-        location = (
-            result["geometry"]["location"]
-        )
-
-        return (
-            location["lat"],
-            location["lng"]
-        )
-
-    except:
-
-        return None
-
-
-# =========================
-# 이동수단 변환
-# =========================
-
-def convert_travel_mode(mode):
-
-    if mode == "도보":
-
-        return "WALK"
-
-    elif mode == "자동차":
-
-        return "DRIVE"
-
-    elif mode == "대중교통":
-
-        return "TRANSIT"
-
-    return mode
 
 
 # =========================
@@ -175,65 +101,6 @@ def compute_route_duration(
     travel_mode
 ):
 
-    travel_mode = convert_travel_mode(
-        travel_mode
-    )
-
-    # =========================
-    # CACHE
-    # =========================
-
-    cache_key = (
-
-        origin_place_id,
-
-        destination_place_id,
-
-        travel_mode
-    )
-
-    if cache_key in route_cache:
-
-        return route_cache[
-            cache_key
-        ]
-
-    origin_location = (
-        get_place_location(
-            origin_place_id
-        )
-    )
-
-    destination_location = (
-        get_place_location(
-            destination_place_id
-        )
-    )
-
-    if not origin_location:
-
-        route_cache[
-            cache_key
-        ] = None
-
-        return None
-
-    if not destination_location:
-
-        route_cache[
-            cache_key
-        ] = None
-
-        return None
-
-    origin_lat, origin_lng = (
-        origin_location
-    )
-
-    dest_lat, dest_lng = (
-        destination_location
-    )
-
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
     )
@@ -244,47 +111,35 @@ def compute_route_duration(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_API_KEY
+        GOOGLE_API_KEY,
+
+        "X-Goog-FieldMask":
+        "routes.duration"
     }
 
     body = {
 
         "origin": {
 
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    origin_lat,
-
-                    "longitude":
-                    origin_lng
-                }
-            }
+            "placeId":
+            origin_place_id
         },
 
         "destination": {
 
-            "location": {
-
-                "latLng": {
-
-                    "latitude":
-                    dest_lat,
-
-                    "longitude":
-                    dest_lng
-                }
-            }
+            "placeId":
+            destination_place_id
         },
 
         "travelMode":
-        travel_mode
+        travel_mode,
+
+        "computeAlternativeRoutes":
+        False
     }
 
     # =========================
-    # TRANSIT 전용
+    # TRANSIT
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -302,6 +157,18 @@ def compute_route_duration(
 
     try:
 
+        st.subheader(
+            f"ROUTE REQUEST ({travel_mode})"
+        )
+
+        st.code(
+            json.dumps(
+                body,
+                indent=2,
+                ensure_ascii=False
+            )
+        )
+
         response = requests.post(
 
             url,
@@ -313,13 +180,21 @@ def compute_route_duration(
             timeout=20
         )
 
-        if response.status_code != 200:
+        st.subheader(
+            f"ROUTE STATUS ({travel_mode})"
+        )
 
-            route_cache[
-                cache_key
-            ] = None
+        st.code(
+            response.status_code
+        )
 
-            return None
+        st.subheader(
+            f"ROUTE RESPONSE ({travel_mode})"
+        )
+
+        st.code(
+            response.text
+        )
 
         data = response.json()
 
@@ -330,25 +205,23 @@ def compute_route_duration(
 
         if not routes:
 
-            route_cache[
-                cache_key
-            ] = None
+            st.error(
+                f"{travel_mode} NO ROUTES"
+            )
 
             return None
 
-        route = routes[0]
-
-        duration = route.get(
+        duration = routes[0].get(
             "duration"
         )
 
         # =========================
-        # WALK fallback
+        # legs fallback
         # =========================
 
         if not duration:
 
-            legs = route.get(
+            legs = routes[0].get(
                 "legs",
                 []
             )
@@ -361,9 +234,9 @@ def compute_route_duration(
 
         if not duration:
 
-            route_cache[
-                cache_key
-            ] = None
+            st.error(
+                "NO DURATION"
+            )
 
             return None
 
@@ -379,17 +252,17 @@ def compute_route_duration(
             seconds // 60
         )
 
-        route_cache[
-            cache_key
-        ] = minutes
+        st.success(
+            f"{travel_mode}: {minutes}분"
+        )
 
         return minutes
 
-    except:
+    except Exception as e:
 
-        route_cache[
-            cache_key
-        ] = None
+        st.error(
+            f"ROUTE ERROR: {str(e)}"
+        )
 
         return None
 
@@ -400,10 +273,30 @@ def compute_route_duration(
 
 def get_car_travel_time(
 
-    origin_place_id,
+    origin_query,
 
-    destination_place_id
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     return compute_route_duration(
 
@@ -439,9 +332,11 @@ def get_walk_travel_time(
     )
 
     if not origin_place_id:
+
         return None
 
     if not destination_place_id:
+
         return None
 
     return compute_route_duration(
@@ -460,16 +355,36 @@ def get_walk_travel_time(
 
 def get_transit_travel_time(
 
-    user_place_id,
+    origin_query,
 
-    candidate_place_id
+    destination_query
 ):
+
+    origin_place_id = (
+        get_google_place_id(
+            origin_query
+        )
+    )
+
+    destination_place_id = (
+        get_google_place_id(
+            destination_query
+        )
+    )
+
+    if not origin_place_id:
+
+        return None
+
+    if not destination_place_id:
+
+        return None
 
     return compute_route_duration(
 
-        user_place_id,
+        origin_place_id,
 
-        candidate_place_id,
+        destination_place_id,
 
         "TRANSIT"
     )
