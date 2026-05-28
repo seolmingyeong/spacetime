@@ -231,17 +231,6 @@ def get_travel_time(
 
         "computeAlternativeRoutes":
         False
-    }
-
-    # =========================
-    # WALKING 옵션
-    # =========================
-
-    if travel_mode == "WALKING":
-
-        body["routingPreference"] = (
-            "TRAFFIC_UNAWARE"
-        )
 
     # =========================
     # DRIVE 옵션
