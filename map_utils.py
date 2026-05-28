@@ -6,6 +6,8 @@ from streamlit_folium import (
     st_folium
 )
 
+import folium
+
 
 # =========================
 # 지도 출력
@@ -47,6 +49,24 @@ def render_map(
 
         control_scale=True
     )
+
+    # =========================
+    # 경로 표시
+    # =========================
+
+    if route_polyline:
+
+        folium.PolyLine(
+
+            route_polyline,
+
+            weight=5,
+
+            color="blue",
+
+            opacity=0.7
+
+        ).add_to(m)
 
     # =========================
     # 사용자 위치 마커

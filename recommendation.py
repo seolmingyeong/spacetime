@@ -315,7 +315,7 @@ def recommend_places(users):
 
         for user in users:
 
-            travel_time = (
+            travel_info = (
 
                 get_real_travel_time(
 
@@ -324,6 +324,21 @@ def recommend_places(users):
                     place
                 )
             )
+
+            if travel_info is None:
+
+                failed = True
+
+                break
+
+            travel_time = (
+                travel_info["minutes"]
+            )
+
+            route_polyline = (
+                travel_info["polyline"]
+            )
+
 
             st.write(
 

@@ -14,6 +14,7 @@ KAKAO_REST_API_KEY = (
     .strip()
 )
 
+import polyline
 
 # =========================
 # 카카오 자동차 이동시간
@@ -145,9 +146,8 @@ def get_kakao_drive_time(
 
     return minutes
 
-
 # =========================
-# 구글 이동시간
+# 구글 이동시간 + 경로
 # =========================
 
 def get_google_travel_time(
@@ -174,8 +174,6 @@ def get_google_travel_time(
 
     if not travel_mode:
 
-        print("INVALID GOOGLE MODE")
-
         return None
 
     url = (
@@ -191,7 +189,7 @@ def get_google_travel_time(
         GOOGLE_API_KEY,
 
         "X-Goog-FieldMask":
-        "routes.duration"
+        "routes.duration,routes.polyline.encodedPolyline"
     }
 
     body = {
@@ -230,10 +228,6 @@ def get_google_travel_time(
         travel_mode
     }
 
-    # =========================
-    # TRANSIT 옵션
-    # =========================
-
     if travel_mode == "TRANSIT":
 
         body["departureTime"] = (
@@ -249,57 +243,24 @@ def get_google_travel_time(
             + "Z"
         )
 
-    print()
-    print("===== GOOGLE ROUTE DEBUG =====")
+    response = requests.post(
 
-    print(body)
+        url,
 
-    try:
+        headers=headers,
 
-        response = requests.post(
+        json=body,
 
-            url,
-
-            headers=headers,
-
-            json=body,
-
-            timeout=15
-        )
-
-    except Exception as e:
-
-        print("GOOGLE REQUEST ERROR")
-
-        print(str(e))
-
-        return None
-
-    print()
-    print("GOOGLE STATUS")
-
-    print(response.status_code)
-
-    print()
-    print("GOOGLE RESPONSE")
-
-    print(response.text)
+        timeout=15
+    )
 
     if response.status_code != 200:
 
-        return None
-
-    try:
-
-        data = response.json()
-
-    except Exception as e:
-
-        print("GOOGLE JSON ERROR")
-
-        print(str(e))
+        print(response.text)
 
         return None
+
+    data = response.json()
 
     routes = data.get(
         "routes",
@@ -308,49 +269,57 @@ def get_google_travel_time(
 
     if not routes:
 
-        print("GOOGLE ROUTES EMPTY")
-
         return None
 
-    duration = routes[0].get(
+    route = routes[0]
+
+    duration = route.get(
         "duration"
+    )
+
+    encoded_polyline = (
+
+        route
+
+        .get("polyline", {})
+
+        .get("encodedPolyline")
     )
 
     if not duration:
 
-        print("GOOGLE DURATION EMPTY")
-
         return None
 
-    try:
+    seconds = float(
 
-        seconds = float(
-
-            duration.replace(
-                "s",
-                ""
-            )
+        duration.replace(
+            "s",
+            ""
         )
-
-    except Exception as e:
-
-        print("GOOGLE DURATION PARSE ERROR")
-
-        print(str(e))
-
-        return None
+    )
 
     minutes = round(
         seconds / 60
     )
 
-    print()
-    print("GOOGLE FINAL TIME")
+    decoded_polyline = []
 
-    print(minutes)
+    if encoded_polyline:
 
-    return minutes
+        decoded_polyline = (
+            polyline.decode(
+                encoded_polyline
+            )
+        )
 
+    return {
+
+        "minutes":
+        minutes,
+
+        "polyline":
+        decoded_polyline
+    }
 
 # =========================
 # 통합 이동시간 함수
