@@ -17,7 +17,7 @@ def generate_grid_points(
 
     users,
 
-    grid_size=8
+    grid_size=5
 ):
 
     lats = [
@@ -36,7 +36,9 @@ def generate_grid_points(
     min_lng = min(lngs)
     max_lng = max(lngs)
 
+    # =========================
     # padding
+    # =========================
 
     lat_padding = 0.03
     lng_padding = 0.03
@@ -132,32 +134,17 @@ def evaluate_grid_point(
     max_time = max(times)
 
     # =========================
-    # 불균형 제거
-    # =========================
-
-    if balance > 25:
-
-        return None
-
-    # =========================
-    # 너무 먼 경우 제거
-    # =========================
-
-    if max_time > 70:
-
-        return None
-
-    # =========================
     # 점수 계산
+    # 낮을수록 좋음
     # =========================
 
     score = (
 
-        balance * 3
+        balance * 5
 
-        + avg_time * 0.5
+        + avg_time * 0.8
 
-        + max_time * 0.7
+        + max_time * 1.2
     )
 
     return {
@@ -175,7 +162,13 @@ def evaluate_grid_point(
         times,
 
         "avg_time":
-        avg_time
+        avg_time,
+
+        "balance":
+        balance,
+
+        "max_time":
+        max_time
     }
 
 
@@ -198,10 +191,12 @@ def find_best_meeting_points(
 
     best_points = []
 
+    total = len(grid_points)
+
     for idx, (lat, lng) in enumerate(grid_points):
 
         st.write(
-            f"GRID {idx + 1}/{len(grid_points)}"
+            f"GRID {idx + 1}/{total}"
         )
 
         result = evaluate_grid_point(
@@ -218,6 +213,10 @@ def find_best_meeting_points(
                 result
             )
 
+    # =========================
+    # 점수순 정렬
+    # =========================
+
     best_points.sort(
 
         key=lambda x:
@@ -227,6 +226,8 @@ def find_best_meeting_points(
     st.write(
         f"유효 grid 수: {len(best_points)}"
     )
+
+    st.code(best_points[:10])
 
     return best_points[:10]
 
@@ -248,6 +249,10 @@ def collect_candidate_places(
     )
 
     candidate_places = []
+
+    # =========================
+    # 좋은 grid 근처 장소 검색
+    # =========================
 
     for point in best_points:
 
@@ -315,6 +320,10 @@ def recommend_places(
 
     for place in places:
 
+        st.markdown(
+            f"## 평가 중: {place['name']}"
+        )
+
         times = []
 
         user_times = []
@@ -373,19 +382,17 @@ def recommend_places(
 
         max_time = max(times)
 
-        if balance > 25:
-            continue
-
-        if max_time > 70:
-            continue
+        # =========================
+        # 최종 점수
+        # =========================
 
         score = (
 
-            balance * 3
+            balance * 5
 
-            + avg_time * 0.5
+            + avg_time * 0.8
 
-            + max_time * 0.7
+            + max_time * 1.2
         )
 
         recommendations.append({
@@ -417,6 +424,10 @@ def recommend_places(
             "user_times":
             user_times
         })
+
+    # =========================
+    # 점수순 정렬
+    # =========================
 
     recommendations.sort(
 
