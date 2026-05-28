@@ -8,6 +8,11 @@ from place_api import (
 
 import streamlit as st
 
+# =========================
+# 이동시간 cache
+# =========================
+
+travel_time_cache = {}
 
 # =========================
 # grid 생성
@@ -98,16 +103,39 @@ def evaluate_grid_point(
 
     for user in users:
 
-        result = get_travel_time(
+        cache_key = (
 
-            user["lat"],
-            user["lng"],
+            round(user["lat"], 5),
+            round(user["lng"], 5),
 
-            lat,
-            lng,
+            round(lat, 5),
+            round(lng, 5),
 
             user["transport"]
         )
+
+        if cache_key in travel_time_cache:
+
+            result = travel_time_cache[
+                cache_key
+            ]
+
+        else:
+
+            result = get_travel_time(
+
+                user["lat"],
+                user["lng"],
+
+                lat,
+                lng,
+
+                user["transport"]
+            )
+
+            travel_time_cache[
+                cache_key
+            ] = result
 
         if result is None:
 
@@ -181,10 +209,6 @@ def find_best_meeting_points(
     users
 ):
 
-    st.subheader(
-        "GRID SEARCH"
-    )
-
     grid_points = generate_grid_points(
         users
     )
@@ -193,7 +217,25 @@ def find_best_meeting_points(
 
     total = len(grid_points)
 
+    progress_bar = st.progress(0)
+
+    status_text = st.empty()
+
+
     for idx, (lat, lng) in enumerate(grid_points):
+        progress = (
+            idx + 1
+        ) / total
+
+        progress_bar.progress(
+            progress
+        )
+
+        status_text.text(
+
+            f"추천 지점 분석 중... "
+            f"{idx + 1}/{total}"
+        )
 
         result = evaluate_grid_point(
 
@@ -208,6 +250,11 @@ def find_best_meeting_points(
             best_points.append(
                 result
             )
+
+        progress_bar.empty()
+
+        status_text.empty()
+
 
     # =========================
     # 점수순 정렬
@@ -285,8 +332,7 @@ def collect_candidate_places(
         unique_places.append(
             place
         )
-    return unique_places[:50]
-
+    return unique_places[:30]
 
 # =========================
 # 최종 추천
@@ -303,10 +349,38 @@ def recommend_places(
 
     recommendations = []
 
-    for place in places:
+    # =========================
+    # 진행률 UI
+    # =========================
 
-        st.markdown(
-            f"## 평가 중: {place['name']}"
+    place_progress = st.progress(0)
+
+    place_status = st.empty()
+
+    total_places = len(places)
+
+    # =========================
+    # 장소 평가 loop
+    # =========================
+
+    for idx, place in enumerate(places):
+
+        # =========================
+        # 진행률 업데이트
+        # =========================
+
+        progress = (
+            idx + 1
+        ) / total_places
+
+        place_progress.progress(
+            progress
+        )
+
+        place_status.text(
+
+            f"추천 장소 평가 중... "
+            f"{idx + 1}/{total_places}"
         )
 
         times = []
@@ -314,6 +388,10 @@ def recommend_places(
         user_times = []
 
         failed = False
+
+        # =========================
+        # 사용자별 이동시간 계산
+        # =========================
 
         for user in users:
 
@@ -346,12 +424,22 @@ def recommend_places(
                 user["nickname"],
 
                 "travel_time":
-                minutes
+                minutes,
+
+                "steps":
+                result.get(
+                    "steps",
+                    []
+                )
             })
 
         if failed:
 
             continue
+
+        # =========================
+        # 점수 계산
+        # =========================
 
         balance = (
 
@@ -366,10 +454,6 @@ def recommend_places(
         )
 
         max_time = max(times)
-
-        # =========================
-        # 최종 점수
-        # =========================
 
         score = (
 
@@ -411,6 +495,14 @@ def recommend_places(
         })
 
     # =========================
+    # 진행률 제거
+    # =========================
+
+    place_progress.empty()
+
+    place_status.empty()
+
+    # =========================
     # 점수순 정렬
     # =========================
 
@@ -419,11 +511,5 @@ def recommend_places(
         key=lambda x:
         x["score"]
     )
-
-    st.subheader(
-        "FINAL RECOMMENDATIONS"
-    )
-
-    st.code(recommendations)
 
     return recommendations[:5]
