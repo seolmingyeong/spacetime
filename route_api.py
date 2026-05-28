@@ -111,10 +111,7 @@ def compute_route_duration(
         "application/json",
 
         "X-Goog-Api-Key":
-        GOOGLE_API_KEY,
-
-        "X-Goog-FieldMask":
-        "routes.duration"
+        GOOGLE_API_KEY
     }
 
     body = {
@@ -196,6 +193,14 @@ def compute_route_duration(
             response.text
         )
 
+        if response.status_code != 200:
+
+            st.error(
+                f"{travel_mode} API FAILED"
+            )
+
+            return None
+
         data = response.json()
 
         routes = data.get(
@@ -211,7 +216,13 @@ def compute_route_duration(
 
             return None
 
-        duration = routes[0].get(
+        route = routes[0]
+
+        # =========================
+        # duration 추출
+        # =========================
+
+        duration = route.get(
             "duration"
         )
 
@@ -221,7 +232,7 @@ def compute_route_duration(
 
         if not duration:
 
-            legs = routes[0].get(
+            legs = route.get(
                 "legs",
                 []
             )
@@ -232,20 +243,41 @@ def compute_route_duration(
                     "duration"
                 )
 
+        # =========================
+        # duration 최종 실패
+        # =========================
+
         if not duration:
 
             st.error(
-                "NO DURATION"
+                f"{travel_mode} NO DURATION"
             )
+
+            st.code(route)
 
             return None
 
-        seconds = int(
-            duration.replace(
-                "s",
-                ""
+        # =========================
+        # 문자열 변환
+        # =========================
+
+        # 예: "1234s"
+        if isinstance(duration, str):
+
+            seconds = int(
+
+                duration.replace(
+                    "s",
+                    ""
+                )
             )
-        )
+
+        # 숫자형 fallback
+        else:
+
+            seconds = int(
+                duration
+            )
 
         minutes = max(
             1,
