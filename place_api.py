@@ -103,3 +103,50 @@ def search_places(
         })
 
     return places
+
+def search_place_id(query):
+
+    url = (
+        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    )
+
+    params = {
+
+        "input":
+        query,
+
+        "inputtype":
+        "textquery",
+
+        "fields":
+        "place_id",
+
+        "language":
+        "ko",
+
+        "key":
+        GOOGLE_API_KEY
+    }
+
+    response = requests.get(
+
+        url,
+
+        params=params,
+
+        timeout=10
+    )
+
+    data = response.json()
+
+    candidates = data.get(
+        "candidates",
+        []
+    )
+
+    if not candidates:
+        return None
+
+    return candidates[0].get(
+        "place_id"
+    )
