@@ -1,6 +1,5 @@
 import requests
 import streamlit as st
-import polyline
 
 from datetime import datetime
 
@@ -48,11 +47,6 @@ def get_kakao_drive_time(
         f"{destination_lng},{destination_lat}"
     }
 
-    print()
-    print("===== KAKAO DRIVE DEBUG =====")
-
-    print(params)
-
     try:
 
         response = requests.get(
@@ -66,23 +60,9 @@ def get_kakao_drive_time(
             timeout=15
         )
 
-    except Exception as e:
-
-        print("KAKAO REQUEST ERROR")
-
-        print(str(e))
+    except:
 
         return None
-
-    print()
-    print("KAKAO STATUS")
-
-    print(response.status_code)
-
-    print()
-    print("KAKAO RESPONSE")
-
-    print(response.text)
 
     if response.status_code != 200:
 
@@ -92,11 +72,7 @@ def get_kakao_drive_time(
 
         data = response.json()
 
-    except Exception as e:
-
-        print("KAKAO JSON ERROR")
-
-        print(str(e))
+    except:
 
         return None
 
@@ -106,8 +82,6 @@ def get_kakao_drive_time(
     )
 
     if not routes:
-
-        print("KAKAO ROUTES EMPTY")
 
         return None
 
@@ -122,69 +96,43 @@ def get_kakao_drive_time(
 
     if duration is None:
 
-        print("KAKAO DURATION EMPTY")
-
         return None
-
-    print()
-    print("KAKAO RAW DURATION")
-
-    print(duration)
-
-    # =========================
-    # seconds -> minutes
-    # =========================
 
     minutes = round(
         duration / 60
     )
-
-    print()
-    print("KAKAO FINAL TIME")
-
-    print(minutes)
 
     return {
 
         "minutes":
         minutes,
 
-        "polyline":
-        []
+        "steps": [
+
+            {
+
+                "mode":
+                "DRIVE",
+
+                "minutes":
+                minutes
+            }
+        ]
     }
 
 
 # =========================
-# 구글 이동시간 + 경로
+# 구글 대중교통 이동시간
 # =========================
 
-def get_google_travel_time(
+def get_google_transit_time(
 
     origin_lat,
     origin_lng,
 
     destination_lat,
-    destination_lng,
-
-    transport
+    destination_lng
 ):
-
-    TRANSPORT_MAP = {
-
-        "도보": "WALKING",
-
-        "대중교통": "TRANSIT"
-    }
-
-    travel_mode = TRANSPORT_MAP.get(
-        transport
-    )
-
-    if not travel_mode:
-
-        print("INVALID GOOGLE MODE")
-
-        return None
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -199,7 +147,11 @@ def get_google_travel_time(
         GOOGLE_API_KEY,
 
         "X-Goog-FieldMask":
-        "routes.duration,routes.polyline.encodedPolyline"
+        (
+            "routes.duration,"
+            "routes.legs.steps.travelMode,"
+            "routes.legs.steps.staticDuration"
+        )
     }
 
     body = {
@@ -235,16 +187,9 @@ def get_google_travel_time(
         },
 
         "travelMode":
-        travel_mode
-    }
+        "TRANSIT",
 
-    # =========================
-    # TRANSIT 옵션
-    # =========================
-
-    if travel_mode == "TRANSIT":
-
-        body["departureTime"] = (
+        "departureTime": (
 
             datetime.utcnow()
 
@@ -256,11 +201,7 @@ def get_google_travel_time(
 
             + "Z"
         )
-
-    print()
-    print("===== GOOGLE ROUTE DEBUG =====")
-
-    print(body)
+    }
 
     try:
 
@@ -275,23 +216,9 @@ def get_google_travel_time(
             timeout=15
         )
 
-    except Exception as e:
-
-        print("GOOGLE REQUEST ERROR")
-
-        print(str(e))
+    except:
 
         return None
-
-    print()
-    print("GOOGLE STATUS")
-
-    print(response.status_code)
-
-    print()
-    print("GOOGLE RESPONSE")
-
-    print(response.text)
 
     if response.status_code != 200:
 
@@ -301,11 +228,7 @@ def get_google_travel_time(
 
         data = response.json()
 
-    except Exception as e:
-
-        print("GOOGLE JSON ERROR")
-
-        print(str(e))
+    except:
 
         return None
 
@@ -316,8 +239,6 @@ def get_google_travel_time(
 
     if not routes:
 
-        print("GOOGLE ROUTES EMPTY")
-
         return None
 
     route = routes[0]
@@ -326,18 +247,7 @@ def get_google_travel_time(
         "duration"
     )
 
-    encoded_polyline = (
-
-        route
-
-        .get("polyline", {})
-
-        .get("encodedPolyline")
-    )
-
     if not duration:
-
-        print("GOOGLE DURATION EMPTY")
 
         return None
 
@@ -351,11 +261,7 @@ def get_google_travel_time(
             )
         )
 
-    except Exception as e:
-
-        print("GOOGLE DURATION PARSE ERROR")
-
-        print(str(e))
+    except:
 
         return None
 
@@ -363,36 +269,76 @@ def get_google_travel_time(
         seconds / 60
     )
 
-    decoded_polyline = []
+    # =========================
+    # step 정보 추출
+    # =========================
 
-    if encoded_polyline:
+    step_infos = []
 
-        try:
+    try:
 
-            decoded_polyline = (
-                polyline.decode(
-                    encoded_polyline
-                )
+        legs = route.get(
+            "legs",
+            []
+        )
+
+        if legs:
+
+            steps = legs[0].get(
+                "steps",
+                []
             )
 
-        except Exception as e:
+            for step in steps:
 
-            print("POLYLINE DECODE ERROR")
+                mode = step.get(
+                    "travelMode",
+                    "UNKNOWN"
+                )
 
-            print(str(e))
+                duration = step.get(
+                    "staticDuration",
+                    "0s"
+                )
 
-    print()
-    print("GOOGLE FINAL TIME")
+                try:
 
-    print(minutes)
+                    step_seconds = int(
+
+                        duration.replace(
+                            "s",
+                            ""
+                        )
+                    )
+
+                except:
+
+                    step_seconds = 0
+
+                step_minutes = round(
+                    step_seconds / 60
+                )
+
+                step_infos.append({
+
+                    "mode":
+                    mode,
+
+                    "minutes":
+                    step_minutes
+                })
+
+    except:
+
+        step_infos = []
 
     return {
 
         "minutes":
         minutes,
 
-        "polyline":
-        decoded_polyline
+        "steps":
+        step_infos
     }
 
 
@@ -412,7 +358,7 @@ def get_travel_time(
 ):
 
     # =========================
-    # 자동차 -> 카카오
+    # 자동차
     # =========================
 
     if transport == "자동차":
@@ -427,16 +373,14 @@ def get_travel_time(
         )
 
     # =========================
-    # 도보 / 대중교통 -> 구글
+    # 대중교통
     # =========================
 
-    return get_google_travel_time(
+    return get_google_transit_time(
 
         origin_lat,
         origin_lng,
 
         destination_lat,
-        destination_lng,
-
-        transport
+        destination_lng
     )

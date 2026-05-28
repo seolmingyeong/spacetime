@@ -195,10 +195,6 @@ def find_best_meeting_points(
 
     for idx, (lat, lng) in enumerate(grid_points):
 
-        st.write(
-            f"GRID {idx + 1}/{total}"
-        )
-
         result = evaluate_grid_point(
 
             users,
@@ -222,12 +218,6 @@ def find_best_meeting_points(
         key=lambda x:
         x["score"]
     )
-
-    st.write(
-        f"유효 grid 수: {len(best_points)}"
-    )
-
-    st.code(best_points[:10])
 
     return best_points[:10]
 
@@ -295,11 +285,6 @@ def collect_candidate_places(
         unique_places.append(
             place
         )
-
-    st.write(
-        f"후보 장소 수: {len(unique_places)}"
-    )
-
     return unique_places[:50]
 
 

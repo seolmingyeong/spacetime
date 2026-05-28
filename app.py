@@ -289,7 +289,6 @@ margin-bottom:20px;
             "이동수단",
 
             [
-                "도보",
                 "대중교통",
                 "자동차"
             ]
@@ -483,32 +482,6 @@ border-radius:12px;
             st.stop()
 
         # =========================
-        # DEBUG
-        # =========================
-
-        st.subheader(
-            "SAVE DEBUG"
-        )
-
-        st.code({
-
-            "nickname":
-            nickname,
-
-            "place_name":
-            place_name,
-
-            "lat":
-            lat,
-
-            "lng":
-            lng,
-
-            "transport":
-            transport
-        })
-
-        # =========================
         # 사용자 저장
         # =========================
 
@@ -651,16 +624,6 @@ opacity:0.85;
                     })
 
                 # =========================
-                # DEBUG
-                # =========================
-
-                st.subheader(
-                    "RECOMMEND USERS"
-                )
-
-                st.code(users)
-
-                # =========================
                 # 추천 계산
                 # =========================
 
@@ -773,17 +736,3 @@ margin-bottom:20px;
 
             recommendations
         )
-
-# =========================
-# DEBUG LOGS
-# =========================
-
-if "debug_logs" in st.session_state:
-
-    st.subheader(
-        "DEBUG LOGS"
-    )
-
-    for log in st.session_state.debug_logs:
-
-        st.code(log)
