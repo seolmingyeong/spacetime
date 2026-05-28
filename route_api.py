@@ -1,13 +1,8 @@
 import requests
 import streamlit as st
-import json
 
 from datetime import datetime
 
-
-# =========================
-# API KEY
-# =========================
 
 GOOGLE_API_KEY = (
     st.secrets["GOOGLE_API_KEY"]
@@ -16,10 +11,12 @@ GOOGLE_API_KEY = (
 
 
 # =========================
-# Google Place ID 검색
+# 장소명 -> Place ID
 # =========================
 
-def get_google_place_id(query):
+def get_google_place_id(
+    place_name
+):
 
     url = (
         "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
@@ -28,7 +25,7 @@ def get_google_place_id(query):
     params = {
 
         "input":
-        query,
+        place_name,
 
         "inputtype":
         "textquery",
@@ -43,104 +40,85 @@ def get_google_place_id(query):
         GOOGLE_API_KEY
     }
 
-    try:
+    response = requests.get(
 
-        response = requests.get(
+        url,
 
-            url,
+        params=params,
 
-            params=params,
+        timeout=10
+    )
 
-            timeout=10
-        )
+    data = response.json()
 
-        data = response.json()
+    candidates = data.get(
+        "candidates",
+        []
+    )
 
-        st.subheader(
-            "PLACE SEARCH RESPONSE"
-        )
-
-        st.code(
-            json.dumps(
-                data,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
-
-        candidates = data.get(
-            "candidates",
-            []
-        )
-
-        # 장소 없음
-        if not candidates:
-
-            st.error(
-                f"PLACE NOT FOUND: {query}"
-            )
-
-            return None
-
-        place_id = candidates[0].get(
-            "place_id"
-        )
-
-        st.success(
-            f"{query} → {place_id}"
-        )
-
-        return place_id
-
-    except Exception as e:
-
-        st.error(
-            f"PLACE SEARCH ERROR: {str(e)}"
-        )
+    if not candidates:
 
         return None
 
+    return candidates[0].get(
+        "place_id"
+    )
+
 
 # =========================
-# Routes API 이동시간 계산
+# 이동 시간 계산
 # =========================
 
-def compute_route_duration(
+def get_travel_time(
 
     origin_place_id,
 
     destination_place_id,
 
-    travel_mode
+    transport
 ):
 
     # =========================
-    # place_id 검증
+    # place_id 없는 경우
     # =========================
 
-    if not origin_place_id:
+    if (
+        not origin_place_id
+        or
+        not destination_place_id
+    ):
 
-        st.error(
-            "origin_place_id 없음"
-        )
-
-        return None
-
-    if not destination_place_id:
-
-        st.error(
-            "destination_place_id 없음"
-        )
+        print("PLACE_ID NONE")
 
         return None
+
+    # =========================
+    # 이동수단 변환
+    # =========================
+
+    TRANSPORT_MAP = {
+
+        "도보": "WALK",
+
+        "자동차": "DRIVE",
+
+        "대중교통": "TRANSIT"
+    }
+
+    travel_mode = (
+        TRANSPORT_MAP.get(
+            transport,
+            "WALK"
+        )
+    )
+
+    # =========================
+    # Routes API
+    # =========================
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
     )
-
-    # =========================
-    # 헤더
-    # =========================
 
     headers = {
 
@@ -150,36 +128,26 @@ def compute_route_duration(
         "X-Goog-Api-Key":
         GOOGLE_API_KEY,
 
-        # 매우 중요
         "X-Goog-FieldMask":
-        (
-            "routes.duration,"
-            "routes.legs.duration"
-        )
+        "routes.duration"
     }
 
     # =========================
-    # 요청 body
+    # 핵심 수정 부분
     # =========================
 
     body = {
 
         "origin": {
 
-            "location": {
-
-                "placeId":
-                origin_place_id
-            }
+            "placeId":
+            origin_place_id
         },
 
         "destination": {
 
-            "location": {
-
-                "placeId":
-                destination_place_id
-            }
+            "placeId":
+            destination_place_id
         },
 
         "travelMode":
@@ -190,7 +158,7 @@ def compute_route_duration(
     }
 
     # =========================
-    # 대중교통은 출발시간 필요
+    # TRANSIT 추가 옵션
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -198,281 +166,111 @@ def compute_route_duration(
         body["departureTime"] = (
 
             datetime.utcnow()
-
-            .replace(microsecond=0)
-
-            .isoformat()
+            .isoformat("T")
 
             + "Z"
         )
 
+    # =========================
+    # DEBUG
+    # =========================
+
+    print()
+    print("출발지:", origin_place_id)
+    print("목적지:", destination_place_id)
+    print("이동수단:", transport)
+
+    print()
+    print(f"ROUTE REQUEST ({travel_mode})")
+
+    print(body)
+
+    # =========================
+    # 요청
+    # =========================
+
+    response = requests.post(
+
+        url,
+
+        headers=headers,
+
+        json=body,
+
+        timeout=15
+    )
+
+    print()
+    print(f"ROUTE STATUS ({travel_mode})")
+
+    print(response.status_code)
+
+    print()
+    print(f"ROUTE RESPONSE ({travel_mode})")
+
     try:
 
-        # =========================
-        # DEBUG
-        # =========================
-
-        st.subheader(
-            f"ROUTE REQUEST ({travel_mode})"
+        print(
+            response.json()
         )
 
-        st.code(
-            json.dumps(
-                body,
-                indent=2,
-                ensure_ascii=False
-            )
-        )
+    except:
 
-        # =========================
-        # API 요청
-        # =========================
-
-        response = requests.post(
-
-            url,
-
-            headers=headers,
-
-            json=body,
-
-            timeout=20
-        )
-
-        # =========================
-        # DEBUG
-        # =========================
-
-        st.subheader(
-            f"ROUTE STATUS ({travel_mode})"
-        )
-
-        st.code(
-            response.status_code
-        )
-
-        st.subheader(
-            f"ROUTE RESPONSE ({travel_mode})"
-        )
-
-        st.code(
+        print(
             response.text
         )
 
-        # =========================
-        # 실패
-        # =========================
+    # =========================
+    # 실패
+    # =========================
 
-        if response.status_code != 200:
+    if response.status_code != 200:
 
-            st.error(
-                f"{travel_mode} API FAILED"
-            )
-
-            return None
-
-        data = response.json()
-
-        routes = data.get(
-            "routes",
-            []
-        )
-
-        # 경로 없음
-        if not routes:
-
-            st.error(
-                f"{travel_mode} NO ROUTES"
-            )
-
-            return None
-
-        route = routes[0]
-
-        # =========================
-        # duration 추출
-        # =========================
-
-        duration = route.get(
-            "duration"
-        )
-
-        # fallback
-        if not duration:
-
-            legs = route.get(
-                "legs",
-                []
-            )
-
-            if legs:
-
-                duration = legs[0].get(
-                    "duration"
-                )
-
-        # duration 없음
-        if not duration:
-
-            st.error(
-                f"{travel_mode} NO DURATION"
-            )
-
-            st.code(route)
-
-            return None
-
-        # =========================
-        # "1234s" -> 초
-        # =========================
-
-        if isinstance(duration, str):
-
-            seconds = int(
-
-                duration.replace(
-                    "s",
-                    ""
-                )
-            )
-
-        else:
-
-            seconds = int(duration)
-
-        # 분 변환
-        minutes = max(
-            1,
-            seconds // 60
-        )
-
-        st.success(
-            f"{travel_mode}: {minutes}분"
-        )
-
-        return minutes
-
-    except Exception as e:
-
-        st.error(
-            f"ROUTE ERROR: {str(e)}"
-        )
+        print(f"{travel_mode} API FAILED")
 
         return None
 
+    data = response.json()
 
-# =========================
-# 자동차
-# =========================
+    routes = data.get(
+        "routes",
+        []
+    )
 
-def get_car_travel_time(
+    if not routes:
 
-    origin_query,
+        print("ROUTES EMPTY")
 
-    destination_query
-):
+        return None
 
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
+    duration = routes[0].get(
+        "duration"
+    )
+
+    if not duration:
+
+        print("DURATION EMPTY")
+
+        return None
+
+    # =========================
+    # "1234s" -> 분 변환
+    # =========================
+
+    seconds = int(
+        duration.replace(
+            "s",
+            ""
         )
     )
 
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
+    minutes = round(
+        seconds / 60
     )
 
-    if not origin_place_id:
-        return None
+    print()
+    print(f"{travel_mode} 이동시간:")
 
-    if not destination_place_id:
-        return None
+    print(f"{minutes}분")
 
-    return compute_route_duration(
-
-        origin_place_id,
-
-        destination_place_id,
-
-        "DRIVE"
-    )
-
-
-# =========================
-# 도보
-# =========================
-
-def get_walk_travel_time(
-
-    origin_query,
-
-    destination_query
-):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
-        )
-    )
-
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
-    )
-
-    if not origin_place_id:
-        return None
-
-    if not destination_place_id:
-        return None
-
-    return compute_route_duration(
-
-        origin_place_id,
-
-        destination_place_id,
-
-        "WALK"
-    )
-
-
-# =========================
-# 대중교통
-# =========================
-
-def get_transit_travel_time(
-
-    origin_query,
-
-    destination_query
-):
-
-    origin_place_id = (
-        get_google_place_id(
-            origin_query
-        )
-    )
-
-    destination_place_id = (
-        get_google_place_id(
-            destination_query
-        )
-    )
-
-    if not origin_place_id:
-        return None
-
-    if not destination_place_id:
-        return None
-
-    return compute_route_duration(
-
-        origin_place_id,
-
-        destination_place_id,
-
-        "TRANSIT"
-    )
+    return minutes

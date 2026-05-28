@@ -86,6 +86,61 @@ def save_user(
     cursor = conn.cursor()
 
     # =========================
+    # DEBUG
+    # =========================
+
+    print("SAVE USER")
+
+    print({
+
+        "room_id":
+        room_id,
+
+        "nickname":
+        nickname,
+
+        "dates":
+        dates,
+
+        "location_name":
+        location_name,
+
+        "lat":
+        lat,
+
+        "lng":
+        lng,
+
+        "place_id":
+        place_id,
+
+        "transport":
+        transport
+    })
+
+    # =========================
+    # 값 검증
+    # =========================
+
+    if lat is None:
+
+        raise ValueError(
+            "lat is None"
+        )
+
+    if lng is None:
+
+        raise ValueError(
+            "lng is None"
+        )
+
+    if not place_id:
+
+        raise ValueError(
+            "place_id is None"
+        )
+
+    # =========================
     # 기존 사용자 삭제
     # =========================
 
@@ -136,9 +191,9 @@ def save_user(
 
             location_name,
 
-            lat,
+            float(lat),
 
-            lng,
+            float(lng),
 
             place_id,
 
@@ -149,6 +204,10 @@ def save_user(
     conn.commit()
 
     conn.close()
+
+    print(
+        "SAVE SUCCESS"
+    )
 
 
 # =========================
@@ -173,6 +232,16 @@ def get_room_users(room_id):
     users = cursor.fetchall()
 
     conn.close()
+
+    # =========================
+    # DEBUG
+    # =========================
+
+    print("ROOM USERS")
+
+    for user in users:
+
+        print(user)
 
     return users
 
@@ -201,3 +270,28 @@ def room_exists(room_id):
     conn.close()
 
     return count > 0
+
+
+# =========================
+# 전체 사용자 삭제 (디버그용)
+# =========================
+
+def clear_all_users():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM users
+        """
+    )
+
+    conn.commit()
+
+    conn.close()
+
+    print(
+        "ALL USERS DELETED"
+    )
