@@ -9,12 +9,141 @@ GOOGLE_API_KEY = (
     .strip()
 )
 
+KAKAO_REST_API_KEY = (
+    st.secrets["KAKAO_REST_API_KEY"]
+    .strip()
+)
+
 
 # =========================
-# 이동 시간 계산
+# 카카오 자동차 이동시간
 # =========================
 
-def get_travel_time(
+def get_kakao_drive_time(
+
+    origin_lat,
+    origin_lng,
+
+    destination_lat,
+    destination_lng
+):
+
+    url = (
+        "https://apis-navi.kakaomobility.com/v1/directions"
+    )
+
+    headers = {
+
+        "Authorization":
+        f"KakaoAK {KAKAO_REST_API_KEY}"
+    }
+
+    params = {
+
+        "origin":
+        f"{origin_lng},{origin_lat}",
+
+        "destination":
+        f"{destination_lng},{destination_lat}"
+    }
+
+    print()
+    print("===== KAKAO DRIVE DEBUG =====")
+
+    print(params)
+
+    try:
+
+        response = requests.get(
+
+            url,
+
+            headers=headers,
+
+            params=params,
+
+            timeout=15
+        )
+
+    except Exception as e:
+
+        print("KAKAO REQUEST ERROR")
+
+        print(str(e))
+
+        return None
+
+    print()
+    print("KAKAO STATUS")
+
+    print(response.status_code)
+
+    print()
+    print("KAKAO RESPONSE")
+
+    print(response.text)
+
+    if response.status_code != 200:
+
+        return None
+
+    try:
+
+        data = response.json()
+
+    except Exception as e:
+
+        print("KAKAO JSON ERROR")
+
+        print(str(e))
+
+        return None
+
+    routes = data.get(
+        "routes",
+        []
+    )
+
+    if not routes:
+
+        print("KAKAO ROUTES EMPTY")
+
+        return None
+
+    summary = routes[0].get(
+        "summary",
+        {}
+    )
+
+    duration = summary.get(
+        "duration"
+    )
+
+    if duration is None:
+
+        print("KAKAO DURATION EMPTY")
+
+        return None
+
+    # milliseconds -> minutes
+
+    minutes = round(
+        duration / 1000 / 60
+    )
+
+    print()
+    print("KAKAO FINAL TIME")
+
+    print(minutes)
+
+    return minutes
+
+
+# =========================
+# 구글 이동시간
+# =========================
+
+def get_google_travel_time(
 
     origin_lat,
     origin_lng,
@@ -25,71 +154,22 @@ def get_travel_time(
     transport
 ):
 
-    # =========================
-    # 좌표 검증
-    # =========================
-
-    if origin_lat is None:
-
-        print("ORIGIN LAT NONE")
-
-        return None
-
-    if origin_lng is None:
-
-        print("ORIGIN LNG NONE")
-
-        return None
-
-    if destination_lat is None:
-
-        print("DESTINATION LAT NONE")
-
-        return None
-
-    if destination_lng is None:
-
-        print("DESTINATION LNG NONE")
-
-        return None
-
-    # =========================
-    # 이동수단 변환
-    # =========================
-
     TRANSPORT_MAP = {
 
         "도보": "WALKING",
 
-        "자동차": "DRIVE",
-
         "대중교통": "TRANSIT"
     }
-
-    transport = str(
-        transport
-    ).strip()
 
     travel_mode = TRANSPORT_MAP.get(
         transport
     )
 
-    # =========================
-    # 이동수단 오류
-    # =========================
-
     if not travel_mode:
 
-        print()
-        print("INVALID TRANSPORT")
-
-        print(repr(transport))
+        print("INVALID GOOGLE MODE")
 
         return None
-
-    # =========================
-    # Routes API
-    # =========================
 
     url = (
         "https://routes.googleapis.com/directions/v2:computeRoutes"
@@ -106,10 +186,6 @@ def get_travel_time(
         "X-Goog-FieldMask":
         "routes.duration"
     }
-
-    # =========================
-    # 요청 body
-    # =========================
 
     body = {
 
@@ -148,17 +224,7 @@ def get_travel_time(
     }
 
     # =========================
-    # 자동차 옵션
-    # =========================
-
-    if travel_mode == "DRIVE":
-
-        body["routingPreference"] = (
-            "TRAFFIC_AWARE"
-        )
-
-    # =========================
-    # 대중교통 옵션
+    # TRANSIT 옵션
     # =========================
 
     if travel_mode == "TRANSIT":
@@ -176,46 +242,10 @@ def get_travel_time(
             + "Z"
         )
 
-    # =========================
-    # DEBUG
-    # =========================
-
     print()
-    print("===== ROUTE DEBUG =====")
-
-    print()
-
-    print("ORIGIN")
-
-    print(origin_lat, origin_lng)
-
-    print()
-
-    print("DESTINATION")
-
-    print(destination_lat, destination_lng)
-
-    print()
-
-    print("TRANSPORT")
-
-    print(transport)
-
-    print()
-
-    print("TRAVEL MODE")
-
-    print(travel_mode)
-
-    print()
-
-    print("REQUEST BODY")
+    print("===== GOOGLE ROUTE DEBUG =====")
 
     print(body)
-
-    # =========================
-    # 요청
-    # =========================
 
     try:
 
@@ -232,41 +262,25 @@ def get_travel_time(
 
     except Exception as e:
 
-        print()
-        print("REQUEST ERROR")
+        print("GOOGLE REQUEST ERROR")
 
         print(str(e))
 
         return None
 
-    # =========================
-    # RESPONSE DEBUG
-    # =========================
-
     print()
-    print("RESPONSE STATUS")
+    print("GOOGLE STATUS")
 
     print(response.status_code)
 
     print()
-    print("RESPONSE TEXT")
+    print("GOOGLE RESPONSE")
 
     print(response.text)
 
-    # =========================
-    # 실패 처리
-    # =========================
-
     if response.status_code != 200:
 
-        print()
-        print("ROUTES API FAILED")
-
         return None
-
-    # =========================
-    # 응답 파싱
-    # =========================
 
     try:
 
@@ -274,8 +288,7 @@ def get_travel_time(
 
     except Exception as e:
 
-        print()
-        print("JSON PARSE ERROR")
+        print("GOOGLE JSON ERROR")
 
         print(str(e))
 
@@ -288,8 +301,7 @@ def get_travel_time(
 
     if not routes:
 
-        print()
-        print("ROUTES EMPTY")
+        print("GOOGLE ROUTES EMPTY")
 
         return None
 
@@ -299,14 +311,9 @@ def get_travel_time(
 
     if not duration:
 
-        print()
-        print("DURATION EMPTY")
+        print("GOOGLE DURATION EMPTY")
 
         return None
-
-    # =========================
-    # duration -> minutes
-    # =========================
 
     try:
 
@@ -320,10 +327,7 @@ def get_travel_time(
 
     except Exception as e:
 
-        print()
-        print("DURATION PARSE ERROR")
-
-        print(duration)
+        print("GOOGLE DURATION PARSE ERROR")
 
         print(str(e))
 
@@ -334,8 +338,54 @@ def get_travel_time(
     )
 
     print()
-    print("FINAL TIME")
+    print("GOOGLE FINAL TIME")
 
     print(minutes)
 
     return minutes
+
+
+# =========================
+# 통합 이동시간 함수
+# =========================
+
+def get_travel_time(
+
+    origin_lat,
+    origin_lng,
+
+    destination_lat,
+    destination_lng,
+
+    transport
+):
+
+    # =========================
+    # 자동차 -> 카카오
+    # =========================
+
+    if transport == "자동차":
+
+        return get_kakao_drive_time(
+
+            origin_lat,
+            origin_lng,
+
+            destination_lat,
+            destination_lng
+        )
+
+    # =========================
+    # 도보/대중교통 -> 구글
+    # =========================
+
+    return get_google_travel_time(
+
+        origin_lat,
+        origin_lng,
+
+        destination_lat,
+        destination_lng,
+
+        transport
+    )
