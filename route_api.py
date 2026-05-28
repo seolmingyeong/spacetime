@@ -125,10 +125,17 @@ def get_kakao_drive_time(
 
         return None
 
-    # milliseconds -> minutes
+    print()
+    print("KAKAO RAW DURATION")
+
+    print(duration)
+
+    # =========================
+    # seconds -> minutes
+    # =========================
 
     minutes = round(
-        duration / 1000 / 60
+        duration / 60
     )
 
     print()
