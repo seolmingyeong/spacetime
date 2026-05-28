@@ -277,7 +277,6 @@ def collect_candidate_places(users):
 
     return unique_places[:10]
 
-
 # =========================
 # 추천 장소 생성
 # =========================
@@ -345,6 +344,20 @@ def recommend_places(users):
 
                 break
 
+            # =========================
+            # 너무 긴 이동시간 제거
+            # =========================
+
+            if travel_time > 90:
+
+                failed = True
+
+                st.warning(
+                    f"{place['name']} 이동시간 너무 김"
+                )
+
+                break
+
             times.append(
                 travel_time
             )
@@ -362,6 +375,10 @@ def recommend_places(users):
 
             continue
 
+        # =========================
+        # 점수 계산
+        # =========================
+
         balance_score = (
 
             max(times)
@@ -374,10 +391,20 @@ def recommend_places(users):
             / len(times)
         )
 
+        max_time = max(times)
+
+        # =========================
+        # 최종 점수
+        # 낮을수록 좋음
+        # =========================
+
         score = (
 
-            balance_score
-            + avg_score * 0.3
+            balance_score * 1.5
+
+            + avg_score * 0.5
+
+            + max_time * 0.3
         )
 
         recommendations.append({
@@ -386,7 +413,7 @@ def recommend_places(users):
             place["name"],
 
             "place_id":
-            place["place_id"],
+            place.get("place_id"),
 
             "lat":
             place["lat"],
@@ -401,10 +428,13 @@ def recommend_places(users):
             int(avg_score),
 
             "max_time":
-            max(times),
+            max_time,
+
+            "balance":
+            balance_score,
 
             "score":
-            score,
+            round(score, 2),
 
             "user_times":
             user_times
@@ -413,6 +443,10 @@ def recommend_places(users):
         st.success(
             f"{place['name']} 추가 완료"
         )
+
+    # =========================
+    # 점수순 정렬
+    # =========================
 
     recommendations.sort(
 
@@ -426,4 +460,4 @@ def recommend_places(users):
 
     st.code(recommendations)
 
-    return recommendations[:3]
+    return recommendations[:5]
