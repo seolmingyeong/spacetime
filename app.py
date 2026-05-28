@@ -17,8 +17,15 @@ from ui import *
 
 from theme import apply_theme
 from geo import geocode_location
-from route_api import ( get_google_place_id )
-from place_api import ( search_places )
+
+from route_api import (
+    get_google_place_id
+)
+
+from place_api import (
+    search_places
+)
+
 
 # =========================
 # 페이지 설정
@@ -143,13 +150,11 @@ if not st.session_state.current_room:
         )
 
         if st.button(
+
             "방 만들기",
+
             key="create_room"
         ):
-
-            # =========================
-            # 중복 없는 방 코드 생성
-            # =========================
 
             while True:
 
@@ -163,10 +168,6 @@ if not st.session_state.current_room:
                         k=6
                     )
                 )
-
-                # =========================
-                # 중복 방지
-                # =========================
 
                 if not room_exists(room_id):
 
@@ -206,15 +207,13 @@ if not st.session_state.current_room:
         )
 
         if st.button(
+
             "입장하기",
+
             key="join_room"
         ):
 
             join_room = join_room.strip()
-
-            # =========================
-            # 입력 없음
-            # =========================
 
             if not join_room:
 
@@ -222,19 +221,11 @@ if not st.session_state.current_room:
                     "방 코드를 입력하세요."
                 )
 
-            # =========================
-            # 존재하지 않는 방
-            # =========================
-
             elif not room_exists(join_room):
 
                 st.error(
                     "존재하지 않는 방입니다."
                 )
-
-            # =========================
-            # 정상 입장
-            # =========================
 
             else:
 
@@ -336,11 +327,13 @@ font-weight:700;
     )
 
     # =========================
-    # 날짜 추가 버튼
+    # 날짜 추가
     # =========================
 
     if st.button(
+
         "날짜 추가",
+
         key="add_date_button"
     ):
 
@@ -351,6 +344,7 @@ font-weight:700;
             )
 
             if (
+
                 date_str
                 not in
                 st.session_state.selected_dates
@@ -363,7 +357,7 @@ font-weight:700;
                 st.rerun()
 
     # =========================
-    # 선택된 날짜 목록
+    # 선택된 날짜 출력
     # =========================
 
     if st.session_state.selected_dates:
@@ -430,7 +424,7 @@ border-radius:12px;
                     st.rerun()
 
     # =========================
-    # 저장 버튼
+    # 정보 저장
     # =========================
 
     if st.button(
@@ -440,37 +434,66 @@ border-radius:12px;
         key=f"save_user_{st.session_state.current_room}"
     ):
 
+        # =========================
+        # 입력 검증
+        # =========================
+
         if not nickname.strip():
 
             st.error(
                 "닉네임을 입력하세요."
             )
 
-        elif not location_name.strip():
+            st.stop()
+
+        if not location_name.strip():
 
             st.error(
                 "출발 위치를 입력하세요."
             )
 
-        else:
-
-            # =========================
-            # 장소 검색
-            # =========================
-
-            place_name, lat, lng = (
-                geocode_location(
-                    location_name.strip()
-                )
-            )
+            st.stop()
 
         # =========================
-        # Google Place ID
+        # 주소 -> 좌표
+        # =========================
+
+        result = geocode_location(
+
+            location_name.strip()
+        )
+
+        # 실패
+        if result is None:
+
+            st.error(
+                "출발 위치를 찾을 수 없습니다."
+            )
+
+            st.stop()
+
+        place_name, lat, lng = result
+
+        # =========================
+        # 좌표 검증
+        # =========================
+
+        if lat is None or lng is None:
+
+            st.error(
+                "좌표 변환 실패"
+            )
+
+            st.stop()
+
+        # =========================
+        # Place ID 생성
         # =========================
 
         try:
 
             place_id = (
+
                 get_google_place_id(
                     location_name.strip()
                 )
@@ -478,23 +501,52 @@ border-radius:12px;
 
         except Exception as e:
 
-            st.warning(
+            st.error(
                 f"PLACE_ID 생성 실패: {str(e)}"
             )
 
             place_id = None
 
-
         # =========================
-        # PLACE_ID 실패해도 저장 진행
+        # place_id 실패
         # =========================
 
-        if place_id is None:
+        if not place_id:
 
-            st.warning(
-                "Google Place ID 없이 저장합니다."
+            st.error(
+                "Google Place ID 생성 실패"
             )
 
+            st.stop()
+
+        # =========================
+        # DEBUG
+        # =========================
+
+        st.subheader(
+            "SAVE DEBUG"
+        )
+
+        st.code({
+
+            "nickname":
+            nickname,
+
+            "place_name":
+            place_name,
+
+            "lat":
+            lat,
+
+            "lng":
+            lng,
+
+            "place_id":
+            place_id,
+
+            "transport":
+            transport
+        })
 
         # =========================
         # 사용자 저장
@@ -535,20 +587,20 @@ border-radius:12px;
     )
 
     # =========================
-    # 참가자 존재 시만 출력
+    # 참가자 출력
     # =========================
 
     if len(users_data) > 0:
 
         st.markdown(
             """
-    <h2 style="
-    margin-top:40px;
-    margin-bottom:20px;
-    ">
-    참가자
-    </h2>
-    """,
+<h2 style="
+margin-top:40px;
+margin-bottom:20px;
+">
+참가자
+</h2>
+""",
             unsafe_allow_html=True
         )
 
@@ -556,41 +608,42 @@ border-radius:12px;
 
             st.markdown(
                 f"""
-    <div class="card">
+<div class="card">
 
-    <div style="
-    font-size:22px;
-    font-weight:700;
-    color:#8b5cf6;
-    margin-bottom:10px;
-    ">
-    {user[2]}
-    </div>
+<div style="
+font-size:22px;
+font-weight:700;
+color:#8b5cf6;
+margin-bottom:10px;
+">
+{user[2]}
+</div>
 
-    <div style="
-    margin-bottom:6px;
-    opacity:0.85;
-    ">
-    {user[4]}
-    </div>
+<div style="
+margin-bottom:6px;
+opacity:0.85;
+">
+{user[4]}
+</div>
 
-    <div style="
-    margin-bottom:6px;
-    opacity:0.85;
-    ">
-    {user[7]}
-    </div>
+<div style="
+margin-bottom:6px;
+opacity:0.85;
+">
+{user[8]}
+</div>
 
-    <div style="
-    opacity:0.85;
-    ">
-    {user[3]}
-    </div>
+<div style="
+opacity:0.85;
+">
+{user[3]}
+</div>
 
-    </div>
-    """,
+</div>
+""",
                 unsafe_allow_html=True
             )
+
     # =========================
     # 추천 장소 버튼
     # =========================
@@ -598,17 +651,16 @@ border-radius:12px;
     if len(users_data) >= 2:
 
         if st.button(
+
             "추천 장소 찾기",
+
             key="recommend_button"
         ):
 
             with st.spinner(
+
                 "추천 장소를 찾는 중..."
             ):
-
-                # =========================
-                # 지도용 사용자 데이터
-                # =========================
 
                 users = []
 
@@ -616,36 +668,48 @@ border-radius:12px;
 
                     users.append({
 
-                        "nickname": user[2],
+                        "nickname":
+                        user[2],
 
-                        "address": user[4],
+                        "address":
+                        user[4],
 
-                        "location_name": user[4],
+                        "location_name":
+                        user[4],
 
-                        "lat": user[5],
+                        "lat":
+                        user[5],
 
-                        "lng": user[6],
+                        "lng":
+                        user[6],
 
-                        "place_id": user[7],
+                        "place_id":
+                        user[7],
 
-                        "transport": user[8]
+                        "transport":
+                        user[8]
                     })
 
                 # =========================
-                # 추천 장소 계산
+                # DEBUG
                 # =========================
 
-                st.write("recommend 시작")
+                st.subheader(
+                    "RECOMMEND USERS"
+                )
+
+                st.code(users)
+
+                # =========================
+                # 추천 계산
+                # =========================
+
                 recommendations = (
+
                     recommend_places(
                         users
                     )
                 )
-                st.write("recommend 끝")  
-
-                # =========================
-                # session 저장
-                # =========================
 
                 st.session_state.recommendations = (
                     recommendations
@@ -658,24 +722,21 @@ border-radius:12px;
     if st.session_state.recommendations:
 
         recommendations = (
+
             st.session_state.recommendations
         )
 
         st.markdown(
             """
-    <h2 style="
-    margin-top:40px;
-    margin-bottom:20px;
-    ">
-    추천 장소
-    </h2>
-    """,
+<h2 style="
+margin-top:40px;
+margin-bottom:20px;
+">
+추천 장소
+</h2>
+""",
             unsafe_allow_html=True
         )
-
-        # =========================
-        # 추천 장소 여러 개 출력
-        # =========================
 
         for idx, place in enumerate(
             recommendations
@@ -683,22 +744,21 @@ border-radius:12px;
 
             st.markdown(
                 f"""
-    <h3 style="
-    margin-top:25px;
-    margin-bottom:10px;
-    color:#8b5cf6;
-    ">
-    #{idx + 1} 추천
-    </h3>
-    """,
+<h3 style="
+margin-top:25px;
+margin-bottom:10px;
+color:#8b5cf6;
+">
+#{idx + 1} 추천
+</h3>
+""",
                 unsafe_allow_html=True
             )
 
             render_place_card(
                 place
             )
-            
-    
+
         # =========================
         # 지도용 사용자 데이터
         # =========================
@@ -709,40 +769,43 @@ border-radius:12px;
 
             users.append({
 
-                "nickname": user[2],
+                "nickname":
+                user[2],
 
-                "address": user[4],
+                "address":
+                user[4],
 
-                "location_name": user[4],
+                "location_name":
+                user[4],
 
-                "lat": user[5],
+                "lat":
+                user[5],
 
-                "lng": user[6],
+                "lng":
+                user[6],
 
-                "place_id": user[7],
+                "place_id":
+                user[7],
 
-                "transport": user[8]
+                "transport":
+                user[8]
             })
 
         # =========================
-        # 지도 제목
+        # 지도
         # =========================
 
         st.markdown(
             """
-    <h2 style="
-    margin-top:40px;
-    margin-bottom:20px;
-    ">
-    지도
-    </h2>
-    """,
+<h2 style="
+margin-top:40px;
+margin-bottom:20px;
+">
+지도
+</h2>
+""",
             unsafe_allow_html=True
         )
-
-        # =========================
-        # 지도 출력
-        # =========================
 
         render_map(
 
@@ -757,7 +820,9 @@ border-radius:12px;
 
 if "debug_logs" in st.session_state:
 
-    st.subheader("DEBUG LOGS")
+    st.subheader(
+        "DEBUG LOGS"
+    )
 
     for log in st.session_state.debug_logs:
 
