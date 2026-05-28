@@ -1,5 +1,5 @@
 from route_api import (
-    compute_route_duration
+    get_travel_time
 )
 
 from place_api import (
@@ -28,7 +28,7 @@ def get_real_travel_time(
             "자동차"
         )
 
-    ).strip().lower()
+    ).strip()
 
     # =========================
     # 사용자 출발지 place_id
@@ -134,71 +134,17 @@ def get_real_travel_time(
     )
 
     # =========================
-    # 자동차
+    # 이동시간 계산
     # =========================
 
-    if transport in [
+    return get_travel_time(
 
-        "자동차",
-        "car",
-        "drive"
-    ]:
+        origin_place_id,
 
-        return compute_route_duration(
+        destination_place_id,
 
-            origin_place_id,
-
-            destination_place_id,
-
-            "DRIVE"
-        )
-
-    # =========================
-    # 도보
-    # =========================
-
-    elif transport in [
-
-        "도보",
-        "walk",
-        "walking"
-    ]:
-
-        return compute_route_duration(
-
-            origin_place_id,
-
-            destination_place_id,
-
-            "WALK"
-        )
-
-    # =========================
-    # 대중교통
-    # =========================
-
-    elif transport in [
-
-        "대중교통",
-        "transit",
-        "bus",
-        "subway"
-    ]:
-
-        return compute_route_duration(
-
-            origin_place_id,
-
-            destination_place_id,
-
-            "TRANSIT"
-        )
-
-    st.error(
-        f"알 수 없는 이동수단: {transport}"
+        transport
     )
-
-    return None
 
 
 # =========================
@@ -246,7 +192,6 @@ def collect_candidate_places(users):
             lat2 = users[j]["lat"]
             lng2 = users[j]["lng"]
 
-            # 좌표 없으면 스킵
             if (
                 lat1 is None
                 or lng1 is None
@@ -280,10 +225,6 @@ def collect_candidate_places(users):
                 search_points.append(
                     (lat, lng)
                 )
-
-    # =========================
-    # DEBUG
-    # =========================
 
     st.subheader(
         "SEARCH POINTS"
@@ -370,10 +311,6 @@ def recommend_places(users):
 
     st.code(users)
 
-    # =========================
-    # 후보 장소
-    # =========================
-
     places = collect_candidate_places(
         users
     )
@@ -385,10 +322,6 @@ def recommend_places(users):
     st.code(places)
 
     recommendations = []
-
-    # =========================
-    # 장소 평가
-    # =========================
 
     for place in places:
 
@@ -423,7 +356,6 @@ def recommend_places(users):
                 travel_time
             )
 
-            # 실패
             if travel_time is None:
 
                 failed = True
@@ -447,14 +379,9 @@ def recommend_places(users):
                 travel_time
             })
 
-        # 실패 장소 제외
         if failed:
 
             continue
-
-        # =========================
-        # 점수 계산
-        # =========================
 
         balance_score = (
 
@@ -507,10 +434,6 @@ def recommend_places(users):
         st.success(
             f"{place['name']} 추가 완료"
         )
-
-    # =========================
-    # 점수 정렬
-    # =========================
 
     recommendations.sort(
 
