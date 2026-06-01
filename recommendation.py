@@ -22,7 +22,7 @@ def generate_grid_points(
 
     users,
 
-    grid_size=5
+    grid_size=10
 ):
 
     lats = [
@@ -168,11 +168,11 @@ def evaluate_grid_point(
 
     score = (
 
-        balance * 5
+        balance * 1
 
-        + avg_time * 0.8
+        + avg_time * 3
 
-        + max_time * 1.2
+        + max_time * 1
     )
 
     return {
