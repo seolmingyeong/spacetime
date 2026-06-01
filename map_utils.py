@@ -1,6 +1,7 @@
 import folium
 import streamlit as st
 
+from pathlib import Path
 from folium.features import DivIcon
 
 from streamlit_folium import (
@@ -86,17 +87,21 @@ def render_map(
 
         tiles="OpenStreetMap",
 
-        control_scale=True
+        control_scale=True,
+
+        prefer_canvas=True
     )
 
     # =========================
     # 사용자 아이콘
     # =========================
 
+    BASE_DIR = Path(__file__).resolve().parent
+
     user_icons = [
-        "p1.png",
-        "p2.png",
-        "p3.png"
+        str(BASE_DIR / "p1.png"),
+        str(BASE_DIR / "p2.png"),
+        str(BASE_DIR / "p3.png")
     ]
 
     # =========================
@@ -139,7 +144,8 @@ margin-bottom:6px;
 
         custom_icon = folium.CustomIcon(
             icon_image=icon_path,
-            icon_size=(40, 40)
+            icon_size=(80, 80),
+            icon_anchor=(40, 40)
         )
 
         folium.Marker(
@@ -244,6 +250,26 @@ text-align:center;
 
         ).add_to(m)
 
+    bounds = []
+
+    for user in users:
+
+        bounds.append([
+            float(user["lat"]),
+            float(user["lng"])
+        ])
+
+    for place in recommendations:
+
+        bounds.append([
+            float(place["lat"]),
+            float(place["lng"])
+        ])
+
+    if bounds:
+
+        m.fit_bounds(bounds)
+
     # =========================
     # 지도 출력
     # =========================
@@ -254,5 +280,7 @@ text-align:center;
 
         height=700,
 
-        use_container_width=True
+        use_container_width=True,
+
+        key="spacetime_map"
     )
