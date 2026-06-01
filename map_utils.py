@@ -1,5 +1,4 @@
 import folium
-
 import streamlit as st
 
 from streamlit_folium import (
@@ -15,10 +14,7 @@ def render_map(
 
     users,
 
-    recommendations,
-
-    middle_lat,
-    middle_lng
+    recommendations
 ):
 
     # =========================
@@ -34,14 +30,54 @@ def render_map(
         return
 
     # =========================
+    # 지도 중심 계산
+    # =========================
+
+    try:
+
+        center_lat = (
+
+            sum(
+                float(user["lat"])
+                for user in users
+            )
+
+            / len(users)
+        )
+
+        center_lng = (
+
+            sum(
+                float(user["lng"])
+                for user in users
+            )
+
+            / len(users)
+        )
+
+    except Exception:
+
+        center_lat = (
+            float(
+                recommendations[0]["lat"]
+            )
+        )
+
+        center_lng = (
+            float(
+                recommendations[0]["lng"]
+            )
+        )
+
+    # =========================
     # 지도 생성
     # =========================
 
     m = folium.Map(
 
         location=[
-            middle_lat,
-            middle_lng
+            center_lat,
+            center_lng
         ],
 
         zoom_start=12,
@@ -88,8 +124,8 @@ margin-bottom:6px;
         folium.CircleMarker(
 
             location=[
-                user["lat"],
-                user["lng"]
+                float(user["lat"]),
+                float(user["lng"])
             ],
 
             radius=10,
@@ -108,6 +144,7 @@ margin-bottom:6px;
             ),
 
             tooltip=user["nickname"]
+
         ).add_to(m)
 
     # =========================
@@ -115,8 +152,6 @@ margin-bottom:6px;
     # =========================
 
     for place in recommendations:
-
-        # None 방지
 
         if not place:
             continue
@@ -153,8 +188,8 @@ margin-bottom:6px;
         folium.CircleMarker(
 
             location=[
-                place["lat"],
-                place["lng"]
+                float(place["lat"]),
+                float(place["lng"])
             ],
 
             radius=14,
@@ -176,7 +211,37 @@ margin-bottom:6px;
                 "name",
                 "추천 장소"
             )
+
         ).add_to(m)
+
+    # =========================
+    # 추천 장소 연결선
+    # =========================
+
+    for place in recommendations[:1]:
+
+        for user in users:
+
+            folium.PolyLine(
+
+                locations=[
+
+                    [
+                        float(user["lat"]),
+                        float(user["lng"])
+                    ],
+
+                    [
+                        float(place["lat"]),
+                        float(place["lng"])
+                    ]
+                ],
+
+                weight=3,
+
+                opacity=0.5
+
+            ).add_to(m)
 
     # =========================
     # 지도 출력
