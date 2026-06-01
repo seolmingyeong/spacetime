@@ -76,26 +76,11 @@ def search_places(
         for place in documents:
 
             places.append({
-
-                "name":
-                place.get(
-                    "place_name"
-                ),
-
-                "address":
-                place.get(
-                    "road_address_name"
-                ),
-
-                "lat":
-                float(
-                    place.get("y")
-                ),
-
-                "lng":
-                float(
-                    place.get("x")
-                )
+                "place_id": place.get("id"),
+                "name": place.get("place_name"),
+                "address": place.get("road_address_name"),
+                "lat": float(place.get("y")),
+                "lng": float(place.get("x"))
             })
 
         return places
