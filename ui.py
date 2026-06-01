@@ -47,6 +47,7 @@ def render_place_card(place):
         )
 
         users_html += f"""
+
 <div style="
 margin-bottom:10px;
 padding:12px;
@@ -79,14 +80,21 @@ border-radius:20px;
 border:1px solid rgba(148,163,184,0.2);
 margin-top:30px;
 margin-bottom:30px;
-background:rgba(139,92,246,0.08);
 ">
 
 <div style="
-font-size:22px;
+font-size:28px;
 font-weight:700;
-margin-bottom:14px;
 color:#8b5cf6;
+margin-bottom:18px;
+">
+추천 장소
+</div>
+
+<div style="
+font-size:22px;
+font-weight:600;
+margin-bottom:14px;
 ">
 {place.get("name", "추천 실패")}
 </div>
