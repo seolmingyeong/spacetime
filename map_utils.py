@@ -1,6 +1,8 @@
 import folium
 import streamlit as st
 
+from folium.features import DivIcon
+
 from streamlit_folium import (
     st_folium
 )
@@ -88,10 +90,20 @@ def render_map(
     )
 
     # =========================
+    # 사용자 아이콘
+    # =========================
+
+    user_icons = [
+        "p1.png",
+        "p2.png",
+        "p3.png"
+    ]
+
+    # =========================
     # 사용자 위치 마커
     # =========================
 
-    for user in users:
+    for idx, user in enumerate(users):
 
         popup_html = f"""
 <div style="
@@ -121,22 +133,23 @@ margin-bottom:6px;
 </div>
 """
 
-        folium.CircleMarker(
+        icon_path = user_icons[
+            idx % len(user_icons)
+        ]
+
+        custom_icon = folium.CustomIcon(
+            icon_image=icon_path,
+            icon_size=(40, 40)
+        )
+
+        folium.Marker(
 
             location=[
                 float(user["lat"]),
                 float(user["lng"])
             ],
 
-            radius=10,
-
-            color="#3b82f6",
-
-            fill=True,
-
-            fill_color="#60a5fa",
-
-            fill_opacity=0.9,
+            icon=custom_icon,
 
             popup=folium.Popup(
                 popup_html,
@@ -151,7 +164,13 @@ margin-bottom:6px;
     # 추천 장소 마커
     # =========================
 
-    for place in recommendations:
+    medal_icons = [
+        "🥇",
+        "🥈",
+        "🥉"
+    ]
+
+    for rank, place in enumerate(recommendations):
 
         if not place:
             continue
@@ -167,6 +186,7 @@ font-weight:700;
 margin-bottom:10px;
 color:#8b5cf6;
 ">
+#{rank + 1}
 {place.get("name", "추천 장소")}
 </div>
 
@@ -185,35 +205,44 @@ margin-bottom:6px;
 </div>
 """
 
-        folium.CircleMarker(
+        medal = (
+            medal_icons[rank]
+            if rank < 3
+            else "🏅"
+        )
+
+        size = (
+            60
+            if rank == 0
+            else 42
+        )
+
+        folium.Marker(
 
             location=[
                 float(place["lat"]),
                 float(place["lng"])
             ],
 
-            radius=14,
-
-            color="#8b5cf6",
-
-            fill=True,
-
-            fill_color="#a78bfa",
-
-            fill_opacity=0.95,
+            icon=DivIcon(
+                html=f"""
+<div style="
+font-size:{size}px;
+text-align:center;
+">
+{medal}
+</div>
+"""
+            ),
 
             popup=folium.Popup(
                 popup_html,
                 max_width=300
             ),
 
-            tooltip=place.get(
-                "name",
-                "추천 장소"
-            )
+            tooltip=f"{rank + 1}순위 추천 장소"
 
         ).add_to(m)
-
 
     # =========================
     # 지도 출력
