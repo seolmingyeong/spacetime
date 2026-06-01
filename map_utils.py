@@ -1,11 +1,9 @@
 import folium
 import streamlit as st
 
+from pathlib import Path
 from folium.features import DivIcon
-
-from streamlit_folium import (
-    st_folium
-)
+from streamlit_folium import st_folium
 
 
 # =========================
@@ -90,13 +88,18 @@ def render_map(
     )
 
     # =========================
-    # 사용자 아이콘
+    # 사용자 이미지 경로
     # =========================
 
+    BASE_DIR = Path(__file__).resolve().parent
+
     user_icons = [
-        "p1.png",
-        "p2.png",
-        "p3.png"
+
+        str(BASE_DIR / "p1.png"),
+
+        str(BASE_DIR / "p2.png"),
+
+        str(BASE_DIR / "p3.png")
     ]
 
     # =========================
@@ -115,58 +118,96 @@ font-size:18px;
 font-weight:700;
 margin-bottom:8px;
 ">
-{user["nickname"]}
+{user.get("nickname", "사용자")}
 </div>
 
 <div style="
 margin-bottom:6px;
 ">
 출발 위치:
-{user["location_name"]}
+{user.get("location_name", "-")}
 </div>
 
 <div>
 이동수단:
-{user["transport"]}
+{user.get("transport", "-")}
 </div>
 
 </div>
 """
 
-        icon_path = user_icons[
-            idx % len(user_icons)
-        ]
+        try:
 
-        custom_icon = folium.CustomIcon(
-            icon_image=icon_path,
-            icon_size=(40, 40)
-        )
+            icon_path = user_icons[
+                idx % len(user_icons)
+            ]
 
-        folium.Marker(
+            custom_icon = folium.CustomIcon(
 
-            location=[
-                float(user["lat"]),
-                float(user["lng"])
-            ],
+                icon_image=icon_path,
 
-            icon=custom_icon,
+                icon_size=(40, 40)
+            )
 
-            popup=folium.Popup(
-                popup_html,
-                max_width=300
-            ),
+            folium.Marker(
 
-            tooltip=user["nickname"]
+                location=[
+                    float(user["lat"]),
+                    float(user["lng"])
+                ],
 
-        ).add_to(m)
+                icon=custom_icon,
+
+                popup=folium.Popup(
+                    popup_html,
+                    max_width=300
+                ),
+
+                tooltip=user.get(
+                    "nickname",
+                    "사용자"
+                )
+
+            ).add_to(m)
+
+        except Exception:
+
+            # 이미지 로드 실패 시 대체 마커
+
+            folium.CircleMarker(
+
+                location=[
+                    float(user["lat"]),
+                    float(user["lng"])
+                ],
+
+                radius=12,
+
+                color="#2563eb",
+
+                fill=True,
+
+                fill_color="#60a5fa",
+
+                fill_opacity=1.0,
+
+                popup=folium.Popup(
+                    popup_html,
+                    max_width=300
+                )
+
+            ).add_to(m)
 
     # =========================
     # 추천 장소 마커
     # =========================
 
-    medal_icons = [
+    medals = [
+
         "🥇",
+
         "🥈",
+
         "🥉"
     ]
 
@@ -206,14 +247,20 @@ margin-bottom:6px;
 """
 
         medal = (
-            medal_icons[rank]
+
+            medals[rank]
+
             if rank < 3
+
             else "🏅"
         )
 
         size = (
+
             60
+
             if rank == 0
+
             else 42
         )
 
@@ -229,6 +276,7 @@ margin-bottom:6px;
 <div style="
 font-size:{size}px;
 text-align:center;
+line-height:1;
 ">
 {medal}
 </div>
@@ -243,6 +291,46 @@ text-align:center;
             tooltip=f"{rank + 1}순위 추천 장소"
 
         ).add_to(m)
+
+    # =========================
+    # 화면에 모두 보이도록 자동 조정
+    # =========================
+
+    bounds = []
+
+    for user in users:
+
+        try:
+
+            bounds.append([
+
+                float(user["lat"]),
+
+                float(user["lng"])
+            ])
+
+        except Exception:
+
+            pass
+
+    for place in recommendations:
+
+        try:
+
+            bounds.append([
+
+                float(place["lat"]),
+
+                float(place["lng"])
+            ])
+
+        except Exception:
+
+            pass
+
+    if bounds:
+
+        m.fit_bounds(bounds)
 
     # =========================
     # 지도 출력
