@@ -1,5 +1,5 @@
 import sqlite3
-
+import hashlib
 
 DB_NAME = "spacetime.db"
 
@@ -28,6 +28,7 @@ def init_db():
 
     cursor = conn.cursor()
 
+    # 기존 users 테이블 (방 안에서의 참가자 출발 정보 저장)
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -53,13 +54,120 @@ def init_db():
         """
     )
 
+    # 1. 자체 계정 관리 테이블 (accounts)
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS accounts (
+            username TEXT PRIMARY KEY,
+            password TEXT,
+            nickname TEXT
+        )
+        """
+    )
+
+    # 2. 방 멤버십/가입 목록 테이블 (room_participants)
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS room_participants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            room_id TEXT,
+            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(username, room_id)
+        )
+        """
+    )
+
     conn.commit()
 
     conn.close()
 
 
 # =========================
-# 사용자 저장
+# 회원가입 및 로그인 비즈니스 로직
+# =========================
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+def register_account(username, password, nickname):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        hashed = hash_password(password)
+        cursor.execute(
+            """
+            INSERT INTO accounts (username, password, nickname)
+            VALUES (?, ?, ?)
+            """,
+            (username, hashed, nickname)
+        )
+        conn.commit()
+        success = True
+    except sqlite3.IntegrityError:
+        success = False  # 중복 아이디
+    finally:
+        conn.close()
+    return success
+
+
+def login_account(username, password):
+    conn = get_connection()
+    cursor = conn.cursor()
+    hashed = hash_password(password)
+    cursor.execute(
+        """
+        SELECT nickname FROM accounts
+        WHERE username=? AND password=?
+        """,
+        (username, hashed)
+    )
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return result[0]  # nickname 반환
+    return None
+
+
+# =========================
+# 유저별 참여 중인 방 목록 관리
+# =========================
+
+def join_room_db(username, room_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO room_participants (username, room_id)
+            VALUES (?, ?)
+            """,
+            (username, room_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_user_rooms(username):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT room_id FROM room_participants
+        WHERE username=?
+        ORDER BY joined_at DESC
+        """,
+        (username,)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [row[0] for row in rows]
+
+
+# =========================
+# 기존 사용자 저장 (방 상세용)
 # =========================
 
 def save_user(
@@ -212,11 +320,22 @@ def room_exists(room_id):
         (room_id,)
     )
 
-    count = cursor.fetchone()[0]
+    count_users = cursor.fetchone()[0]
+    
+    # 방 참여자 맵핑 테이블에라도 존재하는지 교차 검증
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM room_participants
+        WHERE room_id=?
+        """,
+        (room_id,)
+    )
+    count_participants = cursor.fetchone()[0]
 
     conn.close()
 
-    return count > 0
+    return (count_users > 0) or (count_participants > 0)
 
 
 # =========================
