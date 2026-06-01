@@ -2,145 +2,104 @@ import requests
 import streamlit as st
 
 
-GOOGLE_API_KEY = (
-    st.secrets["GOOGLE_API_KEY"]
-    .strip()
+# =========================
+# Kakao API Key
+# =========================
+
+KAKAO_REST_API_KEY = st.secrets.get(
+    "KAKAO_REST_API_KEY"
 )
 
+
+# =========================
+# 장소 검색
+# =========================
 
 def search_places(
 
     lat,
     lng,
-    keyword
+
+    category="카페"
 ):
 
     url = (
-        "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        "https://dapi.kakao.com/v2/local/search/keyword.json"
     )
+
+    headers = {
+
+        "Authorization":
+        f"KakaoAK {KAKAO_REST_API_KEY}"
+    }
 
     params = {
 
-        "location":
-        f"{lat},{lng}",
+        "query":
+        category,
+
+        "x":
+        lng,
+
+        "y":
+        lat,
 
         "radius":
-        1500,
+        3000,
 
-        "keyword":
-        keyword,
-
-        "language":
-        "ko",
-
-        "key":
-        GOOGLE_API_KEY
+        "size":
+        10
     }
 
-    response = requests.get(
+    try:
 
-        url,
+        response = requests.get(
 
-        params=params,
+            url,
 
-        timeout=10
-    )
+            headers=headers,
 
-    data = response.json()
+            params=params,
 
-    results = data.get(
-        "results",
-        []
-    )
-
-    places = []
-
-    for place in results[:10]:
-
-        geometry = place.get(
-            "geometry",
-            {}
+            timeout=5
         )
 
-        location = geometry.get(
-            "location",
-            {}
+        data = response.json()
+
+        documents = data.get(
+            "documents",
+            []
         )
 
-        places.append({
+        places = []
 
-            "name":
-            place.get(
-                "name"
-            ),
+        for place in documents:
 
-            "lat":
-            location.get(
-                "lat"
-            ),
+            places.append({
 
-            "lng":
-            location.get(
-                "lng"
-            ),
+                "name":
+                place.get(
+                    "place_name"
+                ),
 
-            "address":
-            place.get(
-                "vicinity",
-                ""
-            ),
+                "address":
+                place.get(
+                    "road_address_name"
+                ),
 
-            "place_id":
-            place.get(
-                "place_id"
-            )
-        })
+                "lat":
+                float(
+                    place.get("y")
+                ),
 
-    return places
+                "lng":
+                float(
+                    place.get("x")
+                )
+            })
 
-def search_place_id(query):
+        return places
 
-    url = (
-        "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-    )
+    except Exception:
 
-    params = {
-
-        "input":
-        query,
-
-        "inputtype":
-        "textquery",
-
-        "fields":
-        "place_id",
-
-        "language":
-        "ko",
-
-        "key":
-        GOOGLE_API_KEY
-    }
-
-    response = requests.get(
-
-        url,
-
-        params=params,
-
-        timeout=10
-    )
-
-    data = response.json()
-
-    candidates = data.get(
-        "candidates",
-        []
-    )
-
-    if not candidates:
-        return None
-
-    return candidates[0].get(
-        "place_id"
-    )
+        return []
