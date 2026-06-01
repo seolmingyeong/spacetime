@@ -266,7 +266,7 @@ text-align:center;
             float(place["lng"])
         ])
 
-    #if bounds:
+    if bounds:
 
         m.fit_bounds(bounds)
 
