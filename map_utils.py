@@ -214,34 +214,6 @@ margin-bottom:6px;
 
         ).add_to(m)
 
-    # =========================
-    # 추천 장소 연결선
-    # =========================
-
-    for place in recommendations[:1]:
-
-        for user in users:
-
-            folium.PolyLine(
-
-                locations=[
-
-                    [
-                        float(user["lat"]),
-                        float(user["lng"])
-                    ],
-
-                    [
-                        float(place["lat"]),
-                        float(place["lng"])
-                    ]
-                ],
-
-                weight=3,
-
-                opacity=0.5
-
-            ).add_to(m)
 
     # =========================
     # 지도 출력
