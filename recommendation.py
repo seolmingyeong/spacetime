@@ -251,9 +251,8 @@ def find_best_meeting_points(
                 result
             )
 
-        progress_bar.empty()
-
-        status_text.empty()
+    progress_bar.empty()
+    status_text.empty()
 
 
     # =========================
@@ -335,12 +334,14 @@ def collect_candidate_places(
     return unique_places[:15]
 
 # =========================
-# 최종 추천
+# 최종 추천 (구조 불일치 방지를 위해 기본값 처리 추가)
 # =========================
 
 def recommend_places(
 
-    users
+    users,
+    middle_lat=None,
+    middle_lng=None
 ):
 
     places = collect_candidate_places(
