@@ -85,7 +85,7 @@ def render_map(
 
         zoom_start=12,
 
-        tiles="CartoDB positron",
+        tiles="OpenStreetMap",
 
         control_scale=True,
 
@@ -266,7 +266,7 @@ text-align:center;
             float(place["lng"])
         ])
 
-    if bounds:
+    #if bounds:
 
         m.fit_bounds(bounds)
 
