@@ -84,7 +84,13 @@ st.markdown("""
 }
 
 .fc-event-title {
-    display: none !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+}
+
+.fc-event {
+    min-height: 18px !important;
 }
 
 .fc-daygrid-event-dot {
@@ -119,6 +125,12 @@ if "save_success" not in st.session_state:
 
 if "calendar_selected_date" not in st.session_state:
     st.session_state.calendar_selected_date = None
+
+if "calendar_selected_dates" not in st.session_state:
+    st.session_state.calendar_selected_dates = []
+
+if "last_clicked_date" not in st.session_state:
+    st.session_state.last_clicked_date = None
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
@@ -541,13 +553,27 @@ else:
 
             calendar_events = []
 
+            # 이미 저장된 일정 표시
             for item in st.session_state.selected_dates:
 
-                date_only = item.split(" ")[0]
+                parts = item.split(" ", 1)
+
+                date_only = parts[0]
+
+                if len(parts) > 1:
+
+                    time_text = parts[1]
+
+                    if time_text == "00:00~24:00":
+                        time_text = "상관없음"
+
+                else:
+
+                    time_text = "상관없음"
 
                 calendar_events.append(
                     {
-                        "title": "선택",
+                        "title": time_text,
                         "start": date_only,
                         "backgroundColor": "#8b5cf6",
                         "borderColor": "#8b5cf6",
@@ -555,6 +581,28 @@ else:
                     }
                 )
 
+            # 아직 저장 안 된 선택 날짜 표시
+            for date_only in st.session_state.calendar_selected_dates:
+
+                already_exists = False
+
+                for item in st.session_state.selected_dates:
+
+                    if item.startswith(date_only):
+                        already_exists = True
+                        break
+
+                if not already_exists:
+
+                    calendar_events.append(
+                        {
+                            "title": "상관없음",
+                            "start": date_only,
+                            "backgroundColor": "#c4b5fd",
+                            "borderColor": "#c4b5fd",
+                            "textColor": "#ffffff"
+                        }
+                    )
             calendar_state = calendar(
                 events=calendar_events,
                 options=calendar_options,
@@ -576,9 +624,31 @@ else:
                     + timedelta(hours=9)
                 ).strftime("%Y-%m-%d")
 
-                st.session_state.calendar_selected_date = clicked_date
+                if clicked_date in st.session_state.calendar_selected_dates:
 
-            selected_date = st.session_state.calendar_selected_date
+                    st.session_state.calendar_selected_dates.remove(
+                        clicked_date
+                    )
+
+                else:
+
+                    if (
+                        clicked_date
+                        in
+                        st.session_state.calendar_selected_dates
+                    ):
+
+                        st.session_state.calendar_selected_dates.remove(
+                            clicked_date
+                        )
+
+                    else:
+
+                        st.session_state.calendar_selected_dates.append(
+                            clicked_date
+                        )
+
+                    st.session_state.last_clicked_date = clicked_date
 
             anytime_checked = st.checkbox(
                 "상관없음 (하루 종일 가능)",
@@ -608,52 +678,65 @@ else:
                 )
 
             if st.button("날짜 및 시간 추가", key="add_date_button"):
-                if selected_date:
-                    if isinstance(selected_date, str):
 
-                        if "T" in selected_date:
-                            date_str = selected_date.split("T")[0]
-                        else:
-                            date_str = selected_date[:10]
+                if not st.session_state.calendar_selected_dates:
 
-                    else:
+                    st.warning(
+                        "⚠️ 날짜를 먼저 선택해 주세요!"
+                    )
 
-                        date_str = selected_date
-
-                    if anytime_checked:
-                        combined_str = f"{date_str} 00:00~24:00"
-                        if combined_str not in st.session_state.selected_dates:
-                            st.session_state.selected_dates.append(combined_str)
-
-                            st.session_state.calendar_selected_date = None
-
-                            st.rerun()
-                    else:
-                        s_t = start_time.strip()
-                        e_t = end_time.strip()
-                        
-                        if not s_t or not e_t:
-                            st.warning("⚠️ 시작 시간과 종료 시간을 모두 적어주세요!")
-                        elif not (validate_time_format(s_t) and validate_time_format(e_t)):
-                            st.error("⚠️ 시간은 반드시 24시간제 00:00 형식(예: 09:30, 18:00)으로 맞춰서 정직하게 입력해야 합니다!")
-                        else:
-                            try:
-                                sh, sm = map(int, s_t.split(":"))
-                                eh, em = map(int, e_t.split(":"))
-                                if (sh * 60 + sm) >= (eh * 60 + em):
-                                    st.error("⚠️ 종료 시간은 시작 시간보다 미래여야 합니다!")
-                                else:
-                                    combined_str = f"{date_str} {s_t}~{e_t}"
-                                    if combined_str not in st.session_state.selected_dates:
-                                        st.session_state.selected_dates.append(combined_str)
-
-                                        st.session_state.calendar_selected_date = None
-
-                                        st.rerun()
-                            except ValueError:
-                                st.error("⚠️ 올바른 형식을 사용해 주세요.")
                 else:
-                    st.warning("⚠️ 날짜를 먼저 선택해 주세요!")
+
+                    for date_str in st.session_state.calendar_selected_dates:
+
+                        if anytime_checked:
+
+                            combined_str = (
+                                f"{date_str} 00:00~24:00"
+                            )
+
+                        else:
+
+                            s_t = start_time.strip()
+                            e_t = end_time.strip()
+
+                            if not s_t or not e_t:
+
+                                st.warning(
+                                    "⚠️ 시작 시간과 종료 시간을 모두 적어주세요!"
+                                )
+
+                                st.stop()
+
+                            elif not (
+                                validate_time_format(s_t)
+                                and
+                                validate_time_format(e_t)
+                            ):
+
+                                st.error(
+                                    "⚠️ 시간 형식이 올바르지 않습니다!"
+                                )
+
+                                st.stop()
+
+                            combined_str = (
+                                f"{date_str} "
+                                f"{s_t}~{e_t}"
+                            )
+
+                        if (
+                            combined_str
+                            not in st.session_state.selected_dates
+                        ):
+
+                            st.session_state.selected_dates.append(
+                                combined_str
+                            )
+
+                    st.session_state.calendar_selected_dates = []
+
+                    st.rerun()
 
             if st.session_state.selected_dates:
                 st.markdown("<h4>선택된 일정</h4>", unsafe_allow_html=True)
