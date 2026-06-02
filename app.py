@@ -638,8 +638,6 @@ else:
 
                 st.session_state.last_clicked_date = clicked_date
 
-                st.rerun()
-
             st.write(
                 "calendar_selected_dates =",
                 st.session_state.calendar_selected_dates
