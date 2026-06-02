@@ -573,28 +573,6 @@ else:
                     }
                 )
 
-            # 아직 저장 안 된 선택 날짜 표시
-            for date_only in st.session_state.calendar_selected_dates:
-
-                already_saved = False
-
-                for item in st.session_state.selected_dates:
-
-                    if item.startswith(date_only):
-                        already_saved = True
-                        break
-
-                if not already_saved:
-
-                    calendar_events.append(
-                        {
-                            "title": "상관없음",
-                            "start": date_only,
-                            "backgroundColor": "#c4b5fd",
-                            "borderColor": "#c4b5fd",
-                            "textColor": "#ffffff"
-                        }
-                    )
             calendar_key = (
                 "availability_calendar_"
                 + str(hash(str(calendar_events)))
@@ -647,7 +625,7 @@ else:
                 st.markdown("### 선택된 일정")
 
                 for idx, item in enumerate(
-                    sorted(st.session_state.selected_dates)
+                    st.session_state.selected_dates
                 ):
 
                     parts = item.split(" ", 1)
