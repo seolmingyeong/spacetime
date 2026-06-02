@@ -531,7 +531,7 @@ else:
 
             with st.expander(
                 "📅 가능한 날짜 선택",
-                expanded=False
+                expanded=True
             ):
 
                 calendar_options = {
