@@ -95,6 +95,8 @@ if "selected_dates" not in st.session_state:
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
 
+if "calendar_selected_date" not in st.session_state:
+    st.session_state.calendar_selected_date = None
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
@@ -495,6 +497,8 @@ else:
                 transport = st.selectbox("이동수단", ["대중교통", "자동차"])
 
             # 시간 직접 입력을 위한 UI 레이아웃
+            from datetime import datetime, timedelta
+
             st.markdown(
                 """
                 <h3 style='margin-top:30px; margin-bottom:15px;'>
@@ -520,43 +524,40 @@ else:
                 key="availability_calendar"
             )
 
-            # 디버깅용
-            st.write(calendar_state)
+            # 날짜 클릭 처리
+            if (
+                calendar_state
+                and isinstance(calendar_state, dict)
+                and calendar_state.get("callback") == "dateClick"
+            ):
 
-            selected_date = None
-
-            try:
-                if (
-                    calendar_state
-                    and isinstance(calendar_state, dict)
-                ):
-                    selected_date = (
-                        calendar_state.get("dateClick", {})
-                        .get("date")
+                clicked_date = (
+                    datetime.fromisoformat(
+                        calendar_state["dateClick"]["date"]
+                        .replace("Z", "+00:00")
                     )
-            except:
-                pass
+                    + timedelta(hours=9)
+                ).strftime("%Y-%m-%d")
 
-            try:
-                if (
-                    calendar_state
-                    and isinstance(calendar_state, dict)
-                ):
-                    selected_date = (
-                        calendar_state.get("dateClick", {})
-                        .get("date")
-                    )
-            except:
-                pass
+                st.session_state.calendar_selected_date = clicked_date
 
-            col_d2, col_d3 = st.columns(2)
+            selected_date = st.session_state.calendar_selected_date
+
+            # 선택 날짜 표시
+            if selected_date:
+                st.success(
+                    f"선택된 날짜: {selected_date}"
+                )
 
             anytime_checked = st.checkbox(
                 "상관없음 (하루 종일 가능)",
                 key="anytime_checkbox"
             )
 
+            col_d2, col_d3 = st.columns(2)
+
             with col_d2:
+
                 start_time = st.text_input(
                     "시작 시간",
                     value="00:00" if anytime_checked else "",
@@ -566,6 +567,7 @@ else:
                 )
 
             with col_d3:
+
                 end_time = st.text_input(
                     "종료 시간",
                     value="24:00" if anytime_checked else "",
@@ -585,9 +587,8 @@ else:
 
                     else:
 
-                        date_str = selected_date.strftime(
-                            "%Y-%m-%d"
-                        )
+                        date_str = selected_date
+                        
                     if anytime_checked:
                         combined_str = f"{date_str} 00:00~24:00"
                         if combined_str not in st.session_state.selected_dates:
