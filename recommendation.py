@@ -453,11 +453,11 @@ def recommend_places(
 
         score = (
 
-            balance * 5
+            balance * 1
 
-            + avg_time * 0.8
+            + avg_time * 5
 
-            + max_time * 1.2
+            + max_time * 1
         )
 
         recommendations.append({
