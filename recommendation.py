@@ -146,7 +146,7 @@ def evaluate_grid_point(
 
     score = (
         balance * 1
-        + avg_time * 3
+        + avg_time * 5
         + max_time * 1
     )
 
