@@ -68,6 +68,28 @@ st.markdown("""
 .fc-highlight {
     background: rgba(139,92,246,0.25) !important;
 }
+            
+.fc-event {
+    background: linear-gradient(
+        90deg,
+        #8b5cf6,
+        #60a5fa
+    ) !important;
+
+    border: none !important;
+
+    border-radius: 8px !important;
+
+    min-height: 8px !important;
+}
+
+.fc-event-title {
+    display: none !important;
+}
+
+.fc-daygrid-event-dot {
+    display: none !important;
+}
 
 </style>
 """, unsafe_allow_html=True)
@@ -113,7 +135,6 @@ if "show_category_select" not in st.session_state:
 
 if "meeting_category" not in st.session_state:
     st.session_state.meeting_category = None
-    
 # =========================
 # ⏱️ 시간 형식 검증 유틸리티
 # =========================
@@ -518,8 +539,24 @@ else:
                 "height": 450
             }
 
+            calendar_events = []
+
+            for item in st.session_state.selected_dates:
+
+                date_only = item.split(" ")[0]
+
+                calendar_events.append(
+                    {
+                        "title": "선택",
+                        "start": date_only,
+                        "backgroundColor": "#8b5cf6",
+                        "borderColor": "#8b5cf6",
+                        "textColor": "#ffffff"
+                    }
+                )
+
             calendar_state = calendar(
-                events=[],
+                events=calendar_events,
                 options=calendar_options,
                 key="availability_calendar"
             )
@@ -588,7 +625,7 @@ else:
                     else:
 
                         date_str = selected_date
-                        
+
                     if anytime_checked:
                         combined_str = f"{date_str} 00:00~24:00"
                         if combined_str not in st.session_state.selected_dates:
