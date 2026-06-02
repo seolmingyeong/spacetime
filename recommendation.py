@@ -248,8 +248,8 @@ def find_best_meeting_points(
 # =========================
 
 def collect_candidate_places(
-
-    users
+    users,
+    category="카페"
 ):
 
     best_points = (
@@ -267,9 +267,34 @@ def collect_candidate_places(
 
     for point in best_points:
 
-        places = search_places(point["lat"], point["lng"], "카페")
+        if category == "상관없음":
 
-        candidate_places.extend(places)
+            all_categories = [
+                "카페",
+                "음식점",
+                "영화관",
+                "공원"
+            ]
+
+            places = []
+
+            for c in all_categories:
+
+                places.extend(
+                    search_places(
+                        point["lat"],
+                        point["lng"],
+                        c
+                    )
+                )
+
+        else:
+
+            places = search_places(
+                point["lat"],
+                point["lng"],
+                category
+            )
 
     # =========================
     # 중복 제거
@@ -304,9 +329,17 @@ def collect_candidate_places(
 # 최종 추천 (구조 불일치 방지를 위해 기본값 처리 추가)
 # =========================
 
-def recommend_places(users, middle_lat=None, middle_lng=None):
+def recommend_places(
+    users,
+    category="카페",
+    middle_lat=None,
+    middle_lng=None
+):
 
-    places = collect_candidate_places(users)
+    places = collect_candidate_places(
+    users,
+    category
+)
 
     recommendations = []
 

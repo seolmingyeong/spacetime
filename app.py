@@ -68,7 +68,12 @@ if "user_nickname" not in st.session_state:
 if "room_step" not in st.session_state:
     st.session_state.room_step = 1
 
+if "show_category_select" not in st.session_state:
+    st.session_state.show_category_select = False
 
+if "meeting_category" not in st.session_state:
+    st.session_state.meeting_category = None
+    
 # =========================
 # ⏱️ 시간 형식 검증 유틸리티
 # =========================
@@ -702,10 +707,53 @@ else:
                 
                 with col_actions2:
                     if final_date:
-                        if st.button("🔍 이 날짜로 추천 장소 찾기", type="primary", use_container_width=True):
-                            with st.spinner(f"{final_date} 일정에 맞는 최적의 장소를 찾는 중..."):
+                        if st.button(
+                            "🔍 이 날짜로 추천 장소 찾기",
+                            type="primary",
+                            use_container_width=True
+                        ):
+                            st.session_state.show_category_select = True
+                            st.rerun()
+
+                if st.session_state.show_category_select:
+
+                    st.markdown("---")
+
+                    st.markdown(
+                        """
+                        <h3 style='text-align:center; margin-bottom:20px;'>
+                        어디서 만나고 싶으신가요?
+                        </h3>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                    category_cols = st.columns(5)
+
+                    categories = [
+                        ("☕ 카페", "카페"),
+                        ("🍽 음식점", "음식점"),
+                        ("🎬 영화관", "영화관"),
+                        ("🌳 공원", "공원"),
+                        ("✨ 상관없음", "상관없음")
+                    ]
+
+                    for idx, (label, category) in enumerate(categories):
+
+                        with category_cols[idx]:
+
+                            if st.button(
+                                label,
+                                key=f"category_{category}",
+                                use_container_width=True
+                            ):
+
+                                st.session_state.meeting_category = category
+
                                 users = []
+
                                 for user in users_data:
+
                                     users.append({
                                         "nickname": user[2],
                                         "address": user[4],
@@ -716,9 +764,18 @@ else:
                                         "transport": user[8]
                                     })
 
-                                recommendations = recommend_places(users)
-                                st.session_state.recommendations = recommendations
-                            st.rerun()
+                                with st.spinner(
+                                    f"{category} 추천 장소를 찾는 중..."
+                                ):
+
+                                    recommendations = recommend_places(
+                                        users,
+                                        category
+                                    )
+
+                                    st.session_state.recommendations = recommendations
+
+                                st.rerun()
 
             # =========================
             # 하단: 추천 결과 및 지도
