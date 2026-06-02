@@ -5,7 +5,11 @@
 import random
 import string
 import re
-from datetime import date
+from datetime import (
+    datetime,
+    timedelta,
+    time
+)
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -643,37 +647,72 @@ else:
 
                     with col2:
 
-                        time_options = [
+                        current_is_anytime = (
+                            current_time == "00:00~24:00"
+                        )
+
+                        anytime = st.checkbox(
                             "상관없음",
-                            "09:00~18:00",
-                            "10:00~20:00",
-                            "14:00~20:00",
-                            "18:00~24:00"
-                        ]
-
-                        current_display = (
-                            "상관없음"
-                            if current_time == "00:00~24:00"
-                            else current_time
+                            value=current_is_anytime,
+                            key=f"anytime_{date_only}"
                         )
 
-                        selected_time = st.selectbox(
-                            "시간",
-                            time_options,
-                            index=(
-                                time_options.index(current_display)
-                                if current_display in time_options
-                                else 0
-                            ),
-                            key=f"time_{date_only}",
-                            label_visibility="collapsed"
-                        )
+                        if anytime:
 
-                        new_time = (
-                            "00:00~24:00"
-                            if selected_time == "상관없음"
-                            else selected_time
-                        )
+                            new_time = "00:00~24:00"
+
+                        else:
+
+                            default_start = time(9, 0)
+                            default_end = time(18, 0)
+
+                            if "~" in current_time:
+
+                                try:
+
+                                    start_str, end_str = (
+                                        current_time.split("~")
+                                    )
+
+                                    start_h, start_m = map(
+                                        int,
+                                        start_str.split(":")
+                                    )
+
+                                    end_h, end_m = map(
+                                        int,
+                                        end_str.split(":")
+                                    )
+
+                                    default_start = time(
+                                        start_h,
+                                        start_m
+                                    )
+
+                                    default_end = time(
+                                        end_h,
+                                        end_m
+                                    )
+
+                                except Exception:
+                                    pass
+
+                            start_time = st.time_input(
+                                "시작 시간",
+                                value=default_start,
+                                key=f"start_{date_only}"
+                            )
+
+                            end_time = st.time_input(
+                                "종료 시간",
+                                value=default_end,
+                                key=f"end_{date_only}"
+                            )
+
+                            new_time = (
+                                f"{start_time.strftime('%H:%M')}~"
+                                f"{end_time.strftime('%H:%M')}"
+                            )
 
                         st.session_state.selected_dates[idx] = (
                             f"{date_only} {new_time}"
