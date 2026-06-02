@@ -529,59 +529,88 @@ else:
             # 시간 직접 입력을 위한 UI 레이아웃
             from datetime import datetime, timedelta
 
-            st.markdown(
-                """
-                <h3 style='margin-top:30px; margin-bottom:15px;'>
-                📅 가능한 날짜 선택
-                </h3>
-                """,
-                unsafe_allow_html=True
-            )
+            with st.expander(
+                "📅 가능한 날짜 선택",
+                expanded=False
+            ):
 
-            calendar_options = {
-                "initialView": "dayGridMonth",
-                "headerToolbar": {
-                    "left": "prev,next",
-                    "center": "title",
-                    "right": ""
-                },
-                "height": 450
-            }
+                calendar_options = {
+                    "initialView": "dayGridMonth",
+                    "headerToolbar": {
+                        "left": "prev,next",
+                        "center": "title",
+                        "right": ""
+                    },
+                    "height": 350
+                }
 
-            calendar_events = []
+                calendar_events = []
 
-            # 이미 저장된 일정 표시
-            for item in st.session_state.selected_dates:
+                for item in st.session_state.selected_dates:
 
-                parts = item.split(" ", 1)
+                    parts = item.split(" ", 1)
 
-                date_only = parts[0]
+                    date_only = parts[0]
 
-                if len(parts) > 1:
+                    calendar_events.append(
+                        {
+                            "title": "",
+                            "start": date_only,
+                            "backgroundColor": "#8b5cf6",
+                            "borderColor": "#8b5cf6"
+                        }
+                    )
 
-                    time_text = parts[1]
-
-                    if time_text == "00:00~24:00":
-                        time_text = "상관없음"
-
-                else:
-
-                    time_text = "상관없음"
-
-                calendar_events.append(
-                    {
-                        "title": "",
-                        "start": date_only,
-                        "backgroundColor": "#8b5cf6",
-                        "borderColor": "#8b5cf6"
-                    }
+                calendar_state = calendar(
+                    events=calendar_events,
+                    options=calendar_options,
+                    key="availability_calendar"
                 )
 
-            calendar_state = calendar(
-                events=calendar_events,
-                options=calendar_options,
-                key="availability_calendar"
-            )
+                # 날짜 클릭 처리
+                if (
+                    calendar_state
+                    and isinstance(calendar_state, dict)
+                    and calendar_state.get("callback") == "dateClick"
+                ):
+
+                    clicked_date = (
+                        datetime.fromisoformat(
+                            calendar_state["dateClick"]["date"]
+                            .replace("Z", "+00:00")
+                        )
+                        + timedelta(hours=9)
+                    ).strftime("%Y-%m-%d")
+
+                    event_id = (
+                        calendar_state["dateClick"]["date"]
+                    )
+
+                    if (
+                        st.session_state.last_calendar_click
+                        != event_id
+                    ):
+
+                        st.session_state.last_calendar_click = event_id
+
+                        existing_dates = [
+                            item.split(" ")[0]
+                            for item in st.session_state.selected_dates
+                        ]
+
+                        if clicked_date in existing_dates:
+
+                            st.session_state.selected_dates = [
+                                item
+                                for item in st.session_state.selected_dates
+                                if not item.startswith(clicked_date)
+                            ]
+
+                        else:
+
+                            st.session_state.selected_dates.append(
+                                f"{clicked_date} 00:00~24:00"
+                            )
 
             # 날짜 클릭 처리
             if (
