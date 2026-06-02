@@ -617,8 +617,6 @@ else:
                     st.session_state.selected_dates.append(
                         f"{clicked_date} 00:00~24:00"
                     )
-
-                st.rerun()
              
             if st.session_state.selected_dates:
 
