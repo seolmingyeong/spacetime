@@ -21,6 +21,8 @@ from geo import geocode_location
 
 from place_api import search_places
 
+from streamlit_calendar import calendar
+
 # =========================
 # 페이지 설정
 # =========================
@@ -33,6 +35,42 @@ st.set_page_config(
 # 테마 적용
 # =========================
 apply_theme()
+
+st.markdown("""
+<style>
+
+.fc {
+    background: white;
+    border-radius: 18px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.fc-toolbar-title {
+    color: #111827 !important;
+    font-weight: 700 !important;
+}
+
+.fc-button {
+    background: #8b5cf6 !important;
+    border: none !important;
+    border-radius: 10px !important;
+}
+
+.fc-daygrid-day-number {
+    color: #374151 !important;
+}
+
+.fc-day-today {
+    background: rgba(139,92,246,0.15) !important;
+}
+
+.fc-highlight {
+    background: rgba(139,92,246,0.25) !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 # =========================
 # DB 초기화
@@ -457,37 +495,99 @@ else:
                 transport = st.selectbox("이동수단", ["대중교통", "자동차"])
 
             # 시간 직접 입력을 위한 UI 레이아웃
-            st.markdown("<h3 style='margin-top:30px; margin-bottom:10px;'>가능한 날짜 및 시간</h3>", unsafe_allow_html=True)
-            
-            col_d1, col_d2, col_d3 = st.columns([2, 1, 1])
-            with col_d1:
-                selected_date = st.date_input("날짜 선택", value=None, min_value=date.today())
-                
-            # 상관없음 체크박스 추가
-            anytime_checked = st.checkbox("상관없음 (하루 종일 가능)", key="anytime_checkbox")
-                
+            st.markdown(
+                """
+                <h3 style='margin-top:30px; margin-bottom:15px;'>
+                📅 가능한 날짜 선택
+                </h3>
+                """,
+                unsafe_allow_html=True
+            )
+
+            calendar_options = {
+                "initialView": "dayGridMonth",
+                "headerToolbar": {
+                    "left": "prev,next",
+                    "center": "title",
+                    "right": ""
+                },
+                "height": 450
+            }
+
+            calendar_state = calendar(
+                events=[],
+                options=calendar_options,
+                key="availability_calendar"
+            )
+
+            # 디버깅용
+            st.write(calendar_state)
+
+            selected_date = None
+
+            try:
+                if (
+                    calendar_state
+                    and isinstance(calendar_state, dict)
+                ):
+                    selected_date = (
+                        calendar_state.get("dateClick", {})
+                        .get("date")
+                    )
+            except:
+                pass
+
+            try:
+                if (
+                    calendar_state
+                    and isinstance(calendar_state, dict)
+                ):
+                    selected_date = (
+                        calendar_state.get("dateClick", {})
+                        .get("date")
+                    )
+            except:
+                pass
+
+            col_d2, col_d3 = st.columns(2)
+
+            anytime_checked = st.checkbox(
+                "상관없음 (하루 종일 가능)",
+                key="anytime_checkbox"
+            )
+
             with col_d2:
                 start_time = st.text_input(
-                    "시작 시간", 
+                    "시작 시간",
                     value="00:00" if anytime_checked else "",
-                    placeholder="예: 09:30", 
+                    placeholder="예: 09:30",
                     disabled=anytime_checked,
-                    key="start_time_input",
-                    help="HH:MM 형식으로 적어주세요."
+                    key="start_time_input"
                 )
+
             with col_d3:
                 end_time = st.text_input(
-                    "종료 시간", 
+                    "종료 시간",
                     value="24:00" if anytime_checked else "",
-                    placeholder="예: 18:00", 
+                    placeholder="예: 18:00",
                     disabled=anytime_checked,
-                    key="end_time_input",
-                    help="HH:MM 형식으로 적어주세요."
+                    key="end_time_input"
                 )
 
             if st.button("날짜 및 시간 추가", key="add_date_button"):
                 if selected_date:
-                    date_str = selected_date.strftime("%Y-%m-%d")
+                    if isinstance(selected_date, str):
+
+                        if "T" in selected_date:
+                            date_str = selected_date.split("T")[0]
+                        else:
+                            date_str = selected_date[:10]
+
+                    else:
+
+                        date_str = selected_date.strftime(
+                            "%Y-%m-%d"
+                        )
                     if anytime_checked:
                         combined_str = f"{date_str} 00:00~24:00"
                         if combined_str not in st.session_state.selected_dates:
@@ -732,7 +832,7 @@ else:
 
                     categories = [
                         ("☕ 카페", "카페"),
-                        ("🍽 음식점", "음식점"),
+                        ("🍽 음식점", "맛집"),
                         ("🎬 영화관", "영화관"),
                         ("🌳 공원", "공원"),
                         ("✨ 상관없음", "상관없음")
