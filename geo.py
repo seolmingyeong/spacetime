@@ -77,7 +77,7 @@ def search_locations(query):
 
     params = {
         "query": query,
-        "size": 10
+        "size": 5
     }
 
     response = requests.get(
