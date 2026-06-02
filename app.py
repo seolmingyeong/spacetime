@@ -541,7 +541,7 @@ else:
                         "center": "title",
                         "right": ""
                     },
-                    "height": 350
+                    "height": 450
                 }
 
                 calendar_events = []
@@ -663,9 +663,12 @@ else:
                     f"### 📋 선택된 일정 ({len(st.session_state.selected_dates)}개)"
                 )
 
-                for idx, item in enumerate(
-                    st.session_state.selected_dates
-                ):
+                sorted_dates = sorted(
+                    st.session_state.selected_dates,
+                    key=lambda x: x.split(" ")[0]
+                )
+
+                for item in sorted_dates:
 
                     parts = item.split(" ", 1)
 
@@ -757,14 +760,18 @@ else:
                             )
 
                         updated_value = (
-                                f"{date_only} {new_time}"
-                            )
+                            f"{date_only} {new_time}"
+                        )
 
                         if updated_value != item:
 
-                            st.session_state.selected_dates[idx] = (
-                                updated_value
-                            )    
+                            original_idx = (
+                                st.session_state.selected_dates.index(item)
+                            )
+
+                            st.session_state.selected_dates[
+                                original_idx
+                            ] = updated_value    
 
                         if st.button(
                             "🗑 삭제",
