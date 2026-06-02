@@ -14,9 +14,7 @@ from streamlit_folium import (
 # =========================
 
 def render_map(
-
     users,
-
     recommendations
 ):
 
@@ -59,38 +57,20 @@ def render_map(
         )
 
     except Exception:
-
-        center_lat = (
-            float(
-                recommendations[0]["lat"]
-            )
-        )
-
-        center_lng = (
-            float(
-                recommendations[0]["lng"]
-            )
-        )
+        center_lat = (float(recommendations[0]["lat"]))
+        center_lng = (float(recommendations[0]["lng"]))
 
     # =========================
     # 지도 생성
     # =========================
 
     m = folium.Map(
-
-        location=[
-            center_lat,
-            center_lng
-        ],
-
+        location=[center_lat,center_lng],
         zoom_start=12,
-
         tiles="OpenStreetMap",
-
         control_scale=True,
-
         prefer_canvas=True
-    )
+        )
 
     # =========================
     # 사용자 아이콘
@@ -102,7 +82,7 @@ def render_map(
         str(BASE_DIR / "p1.png"),
         str(BASE_DIR / "p2.png"),
         str(BASE_DIR / "p3.png")
-    ]
+        ]
 
     # =========================
     # 사용자 위치 마커
@@ -244,7 +224,7 @@ text-align:center;
             popup=folium.Popup(
                 popup_html,
                 max_width=300
-            ),
+                ),
 
             tooltip=f"{rank + 1}순위 추천 장소"
 
@@ -257,14 +237,14 @@ text-align:center;
         bounds.append([
             float(user["lat"]),
             float(user["lng"])
-        ])
+            ])
 
     for place in recommendations:
 
         bounds.append([
             float(place["lat"]),
             float(place["lng"])
-        ])
+            ])
 
     if bounds:
 

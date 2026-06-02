@@ -18,22 +18,17 @@ travel_time_cache = {}
 # grid 생성
 # =========================
 
-def generate_grid_points(
-
-    users,
-
-    grid_size=10
-):
+def generate_grid_points(users,grid_size=10):
 
     lats = [
         user["lat"]
         for user in users
-    ]
+        ]
 
     lngs = [
         user["lng"]
         for user in users
-    ]
+        ]
 
     min_lat = min(lats)
     max_lat = max(lats)
@@ -61,28 +56,22 @@ def generate_grid_points(
         for j in range(grid_size):
 
             lat = (
-
                 min_lat
-
                 + (max_lat - min_lat)
-
                 * i
                 / (grid_size - 1)
-            )
+                )
 
             lng = (
-
                 min_lng
-
                 + (max_lng - min_lng)
-
                 * j
                 / (grid_size - 1)
-            )
+                )
 
             grid_points.append(
                 (lat, lng)
-            )
+                )
 
     return grid_points
 
@@ -92,9 +81,7 @@ def generate_grid_points(
 # =========================
 
 def evaluate_grid_point(
-
     users,
-
     lat,
     lng
 ):
@@ -104,7 +91,6 @@ def evaluate_grid_point(
     for user in users:
 
         cache_key = (
-
             round(user["lat"], 5),
             round(user["lng"], 5),
 
@@ -112,33 +98,27 @@ def evaluate_grid_point(
             round(lng, 5),
 
             user["transport"]
-        )
+            )
 
         if cache_key in travel_time_cache:
 
             result = travel_time_cache[
                 cache_key
-            ]
+                ]
 
         else:
 
             result = get_travel_time(
-
                 user["lat"],
                 user["lng"],
-
                 lat,
                 lng,
-
                 user["transport"]
-            )
+                )
 
-            travel_time_cache[
-                cache_key
-            ] = result
+            travel_time_cache[cache_key] = result
 
         if result is None:
-
             return None
 
         minutes = result["minutes"]
@@ -148,13 +128,11 @@ def evaluate_grid_point(
         )
 
     balance = (
-
         max(times)
         - min(times)
     )
 
     avg_time = (
-
         sum(times)
         / len(times)
     )
@@ -167,11 +145,8 @@ def evaluate_grid_point(
     # =========================
 
     score = (
-
         balance * 1
-
         + avg_time * 3
-
         + max_time * 1
     )
 
@@ -292,17 +267,9 @@ def collect_candidate_places(
 
     for point in best_points:
 
-        places = search_places(
+        places = search_places(point["lat"], point["lng"], "카페")
 
-            point["lat"],
-            point["lng"],
-
-            "카페"
-        )
-
-        candidate_places.extend(
-            places
-        )
+        candidate_places.extend(places)
 
     # =========================
     # 중복 제거
@@ -337,16 +304,9 @@ def collect_candidate_places(
 # 최종 추천 (구조 불일치 방지를 위해 기본값 처리 추가)
 # =========================
 
-def recommend_places(
+def recommend_places(users, middle_lat=None, middle_lng=None):
 
-    users,
-    middle_lat=None,
-    middle_lng=None
-):
-
-    places = collect_candidate_places(
-        users
-    )
+    places = collect_candidate_places(users)
 
     recommendations = []
 

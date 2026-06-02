@@ -9,11 +9,8 @@ DB_NAME = "spacetime.db"
 # =========================
 
 def get_connection():
-
     return sqlite3.connect(
-
         DB_NAME,
-
         check_same_thread=False
     )
 
@@ -23,9 +20,7 @@ def get_connection():
 # =========================
 
 def init_db():
-
     conn = get_connection()
-
     cursor = conn.cursor()
 
     # 기존 users 테이블 (방 안에서의 참가자 출발 정보 저장)
@@ -79,7 +74,6 @@ def init_db():
     )
 
     conn.commit()
-
     conn.close()
 
 
@@ -171,21 +165,13 @@ def get_user_rooms(username):
 # =========================
 
 def save_user(
-
     room_id,
-
     nickname,
-
     dates,
-
     location_name,
-
     lat,
-
     lng,
-
     place_id,
-
     transport
 ):
 
@@ -253,25 +239,17 @@ def save_user(
         """,
         (
             room_id,
-
             nickname,
-
             dates,
-
             location_name,
-
             float(lat),
-
             float(lng),
-
             place_id,
-
             transport
         )
     )
 
     conn.commit()
-
     conn.close()
 
 
@@ -280,11 +258,8 @@ def save_user(
 # =========================
 
 def get_room_users(room_id):
-
     conn = get_connection()
-
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT *
@@ -306,11 +281,8 @@ def get_room_users(room_id):
 # =========================
 
 def room_exists(room_id):
-
     conn = get_connection()
-
     cursor = conn.cursor()
-
     cursor.execute(
         """
         SELECT COUNT(*)
@@ -332,22 +304,16 @@ def room_exists(room_id):
         (room_id,)
     )
     count_participants = cursor.fetchone()[0]
-
     conn.close()
-
     return (count_users > 0) or (count_participants > 0)
 
 
 # =========================
 # 전체 사용자 삭제
 # =========================
-
 def clear_all_users():
-
     conn = get_connection()
-
     cursor = conn.cursor()
-
     cursor.execute(
         """
         DELETE FROM users
@@ -355,5 +321,4 @@ def clear_all_users():
     )
 
     conn.commit()
-
     conn.close()

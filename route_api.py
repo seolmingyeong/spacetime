@@ -20,105 +20,63 @@ KAKAO_REST_API_KEY = (
 # =========================
 
 def get_kakao_drive_time(
-
     origin_lat,
     origin_lng,
-
     destination_lat,
     destination_lng
 ):
 
-    url = (
-        "https://apis-navi.kakaomobility.com/v1/directions"
-    )
+    url = ("https://apis-navi.kakaomobility.com/v1/directions")
 
-    headers = {
-
-        "Authorization":
-        f"KakaoAK {KAKAO_REST_API_KEY}"
-    }
+    headers = {"Authorization":f"KakaoAK {KAKAO_REST_API_KEY}"}
 
     params = {
-
-        "origin":
-        f"{origin_lng},{origin_lat}",
-
-        "destination":
-        f"{destination_lng},{destination_lat}"
+        "origin":f"{origin_lng},{origin_lat}",
+        "destination":f"{destination_lng},{destination_lat}"
     }
 
     try:
-
         response = requests.get(
-
             url,
-
             headers=headers,
-
             params=params,
-
             timeout=15
-        )
+            )
 
     except:
-
         return None
 
     if response.status_code != 200:
-
         return None
 
     try:
-
         data = response.json()
 
     except:
-
         return None
 
-    routes = data.get(
-        "routes",
-        []
-    )
+    routes = data.get("routes", [])
 
     if not routes:
-
         return None
 
-    summary = routes[0].get(
-        "summary",
-        {}
-    )
+    summary = routes[0].get("summary", {})
 
-    duration = summary.get(
-        "duration"
-    )
+    duration = summary.get("duration")
 
     if duration is None:
-
         return None
 
-    minutes = round(
-        duration / 60
-    )
+    minutes = round(duration / 60)
 
     return {
-
-        "minutes":
-        minutes,
+        "minutes":minutes,
 
         "steps": [
-
-            {
-
-                "mode":
-                "DRIVE",
-
-                "minutes":
-                minutes
-            }
-        ]
-    }
+            {"mode":"DRIVE",
+             "minutes":minutes}
+            ]
+        }
 
 
 # =========================
@@ -126,7 +84,6 @@ def get_kakao_drive_time(
 # =========================
 
 def get_google_transit_time(
-
     origin_lat,
     origin_lng,
 
@@ -162,11 +119,8 @@ def get_google_transit_time(
 
                 "latLng": {
 
-                    "latitude":
-                    origin_lat,
-
-                    "longitude":
-                    origin_lng
+                    "latitude":origin_lat,
+                    "longitude":origin_lng
                 }
             }
         },
@@ -177,22 +131,16 @@ def get_google_transit_time(
 
                 "latLng": {
 
-                    "latitude":
-                    destination_lat,
-
-                    "longitude":
-                    destination_lng
+                    "latitude":destination_lat,
+                    "longitude":destination_lng
                 }
             }
         },
 
-        "travelMode":
-        "TRANSIT",
+        "travelMode":"TRANSIT",
 
         "departureTime": (
-
             datetime.utcnow()
-
             .replace(
                 microsecond=0
             )
@@ -206,13 +154,9 @@ def get_google_transit_time(
     try:
 
         response = requests.post(
-
             url,
-
             headers=headers,
-
             json=body,
-
             timeout=15
         )
 

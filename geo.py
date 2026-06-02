@@ -20,28 +20,23 @@ def geocode_location(query):
     url = (
         "https://dapi.kakao.com/v2/local/search/keyword.json"
     )
-
+    
     headers = {
         "Authorization": (
             f"KakaoAK {KAKAO_REST_API_KEY}"
         )
     }
-
     params = {
         "query": query
     }
 
     response = requests.get(
-
         url,
-
         headers=headers,
-
         params=params
     )
 
     data = response.json()
-
     documents = data.get("documents")
 
     # =========================
@@ -49,7 +44,6 @@ def geocode_location(query):
     # =========================
 
     if not documents:
-
         return None, None, None
 
     # =========================
