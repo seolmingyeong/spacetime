@@ -130,6 +130,9 @@ if "save_success" not in st.session_state:
 
 if "last_calendar_click" not in st.session_state:
     st.session_state.last_calendar_click = None
+
+if "selected_place" not in st.session_state:
+    st.session_state.selected_place = None
     
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
@@ -538,8 +541,6 @@ else:
                     "출발 위치 검색"
                 )
 
-                selected_place = None
-
                 if location_name:
 
                     search_results = search_locations(
@@ -548,35 +549,57 @@ else:
 
                     if search_results:
 
-                        place_options = {}
+                        st.markdown("##### 🔍 검색 결과")
 
-                        for place in search_results:
+                        for idx, place in enumerate(search_results):
 
-                            label = (
-                                f"{place['name']} "
-                                f"({place['address']})"
-                            )
+                            with st.container(border=True):
 
-                            place_options[label] = place
+                                col_info, col_btn = st.columns(
+                                    [5, 1]
+                                )
 
-                        selected_label = st.radio(
-                            "검색 결과",
-                            options=list(
-                                place_options.keys()
-                            )
-                        )
+                                with col_info:
 
-                        selected_place = (
-                            place_options[
-                                selected_label
-                            ]
-                        )
+                                    st.markdown(
+                                        f"**📍 {place['name']}**"
+                                    )
+
+                                    if place["address"]:
+
+                                        st.caption(
+                                            place["address"]
+                                        )
+
+                                with col_btn:
+
+                                    if st.button(
+                                        "선택",
+                                        key=f"place_select_{idx}"
+                                    ):
+
+                                        st.session_state.selected_place = place
+
+                                        st.rerun()
 
                     else:
 
                         st.warning(
                             "검색 결과가 없습니다."
                         )
+
+            if st.session_state.selected_place:
+
+                place = st.session_state.selected_place
+
+                st.success(
+                    f"선택된 위치: {place['name']}"
+                )
+
+                st.caption(
+                    place["address"]
+                )
+
             with col2:
                 transport = st.selectbox("이동수단", ["대중교통", "자동차"])
 
@@ -846,7 +869,7 @@ else:
                     st.error("출발 위치를 입력하세요.")
                     st.stop()
 
-                if not selected_place:
+                if not st.session_state.selected_place:
 
                     st.error(
                         "출발 위치를 선택해주세요."
@@ -855,15 +878,15 @@ else:
                     st.stop()
 
                 place_name = (
-                    selected_place["name"]
+                    st.session_state.selected_place["name"]
                 )
 
                 lat = (
-                    selected_place["lat"]
+                    st.session_state.selected_place["lat"]
                 )
 
                 lng = (
-                    selected_place["lng"]
+                    st.session_state.selected_place["lng"]
                 )
                 if lat is None or lng is None:
                     st.error("좌표 변환 실패")
