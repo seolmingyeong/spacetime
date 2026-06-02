@@ -603,10 +603,15 @@ else:
                             "textColor": "#ffffff"
                         }
                     )
+            calendar_key = (
+                "availability_calendar_"
+                + str(hash(str(calendar_events)))
+            )
+
             calendar_state = calendar(
                 events=calendar_events,
                 options=calendar_options,
-                key="availability_calendar"
+                key=calendar_key
             )
 
             # 날짜 클릭 처리
