@@ -128,6 +128,9 @@ if "calendar_selected_dates" not in st.session_state:
 
 if "last_clicked_date" not in st.session_state:
     st.session_state.last_clicked_date = None
+
+if "last_calendar_event" not in st.session_state:
+    st.session_state.last_calendar_event = None
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
