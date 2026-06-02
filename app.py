@@ -573,15 +573,10 @@ else:
                     }
                 )
 
-            calendar_key = (
-                "availability_calendar_"
-                + str(hash(str(calendar_events)))
-            )
-
             calendar_state = calendar(
                 events=calendar_events,
                 options=calendar_options,
-                key=calendar_key
+                key="availability_calendar"
             )
 
             # 날짜 클릭 처리
