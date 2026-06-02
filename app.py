@@ -122,15 +122,7 @@ if "selected_dates" not in st.session_state:
 
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
-
-if "calendar_selected_dates" not in st.session_state:
-    st.session_state.calendar_selected_dates = []
-
-if "last_clicked_date" not in st.session_state:
-    st.session_state.last_clicked_date = None
-
-if "last_calendar_event" not in st.session_state:
-    st.session_state.last_calendar_event = None
+    
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
     st.session_state.logged_in_user = None
@@ -629,128 +621,104 @@ else:
                     + timedelta(hours=9)
                 ).strftime("%Y-%m-%d")
 
-                if clicked_date in st.session_state.calendar_selected_dates:
+                existing_dates = [
+                    item.split(" ")[0]
+                    for item in st.session_state.selected_dates
+                ]
 
-                    st.session_state.calendar_selected_dates.remove(
-                        clicked_date
-                    )
+                if clicked_date in existing_dates:
 
-                else:
-
-                    st.session_state.calendar_selected_dates.append(
-                        clicked_date
-                    )
-
-                st.session_state.last_clicked_date = clicked_date
-
-            st.write(
-                "calendar_selected_dates =",
-                st.session_state.calendar_selected_dates
-            )
-
-            anytime_checked = st.checkbox(
-                "상관없음 (하루 종일 가능)",
-                key="anytime_checkbox"
-            )
-
-            col_d2, col_d3 = st.columns(2)
-
-            with col_d2:
-
-                start_time = st.text_input(
-                    "시작 시간",
-                    value="00:00" if anytime_checked else "",
-                    placeholder="예: 09:30",
-                    disabled=anytime_checked,
-                    key="start_time_input"
-                )
-
-            with col_d3:
-
-                end_time = st.text_input(
-                    "종료 시간",
-                    value="24:00" if anytime_checked else "",
-                    placeholder="예: 18:00",
-                    disabled=anytime_checked,
-                    key="end_time_input"
-                )
-
-            if st.button("날짜 및 시간 추가", key="add_date_button"):
-
-                if not st.session_state.calendar_selected_dates:
-
-                    st.warning(
-                        "⚠️ 날짜를 먼저 선택해 주세요!"
-                    )
+                    st.session_state.selected_dates = [
+                        item
+                        for item in st.session_state.selected_dates
+                        if not item.startswith(clicked_date)
+                    ]
 
                 else:
 
-                    for date_str in st.session_state.calendar_selected_dates:
+                    st.session_state.selected_dates.append(
+                        f"{clicked_date} 00:00~24:00"
+                    )
 
-                        if anytime_checked:
+                st.rerun()
+             
+            if st.session_state.selected_dates:
 
-                            combined_str = (
-                                f"{date_str} 00:00~24:00"
-                            )
+                st.markdown("### 선택된 일정")
 
-                        else:
+                for idx, item in enumerate(
+                    sorted(st.session_state.selected_dates)
+                ):
 
-                            s_t = start_time.strip()
-                            e_t = end_time.strip()
+                    parts = item.split(" ", 1)
 
-                            if not s_t or not e_t:
+                    date_only = parts[0]
 
-                                st.warning(
-                                    "⚠️ 시작 시간과 종료 시간을 모두 적어주세요!"
-                                )
+                    current_time = (
+                        parts[1]
+                        if len(parts) > 1
+                        else "00:00~24:00"
+                    )
 
-                                st.stop()
+                    col1, col2, col3 = st.columns(
+                        [4, 3, 1]
+                    )
 
-                            elif not (
-                                validate_time_format(s_t)
-                                and
-                                validate_time_format(e_t)
-                            ):
+                    with col1:
 
-                                st.error(
-                                    "⚠️ 시간 형식이 올바르지 않습니다!"
-                                )
+                        st.markdown(
+                            f"**{date_only}**"
+                        )
 
-                                st.stop()
+                    with col2:
 
-                            combined_str = (
-                                f"{date_str} "
-                                f"{s_t}~{e_t}"
-                            )
+                        time_options = [
+                            "상관없음",
+                            "09:00~18:00",
+                            "10:00~20:00",
+                            "14:00~20:00",
+                            "18:00~24:00"
+                        ]
 
-                        if (
-                            combined_str
-                            not in st.session_state.selected_dates
+                        current_display = (
+                            "상관없음"
+                            if current_time == "00:00~24:00"
+                            else current_time
+                        )
+
+                        selected_time = st.selectbox(
+                            "시간",
+                            time_options,
+                            index=(
+                                time_options.index(current_display)
+                                if current_display in time_options
+                                else 0
+                            ),
+                            key=f"time_{date_only}",
+                            label_visibility="collapsed"
+                        )
+
+                        new_time = (
+                            "00:00~24:00"
+                            if selected_time == "상관없음"
+                            else selected_time
+                        )
+
+                        st.session_state.selected_dates[idx] = (
+                            f"{date_only} {new_time}"
+                        )
+
+                    with col3:
+
+                        if st.button(
+                            "삭제",
+                            key=f"remove_{date_only}"
                         ):
 
-                            st.session_state.selected_dates.append(
-                                combined_str
+                            st.session_state.selected_dates.remove(
+                                item
                             )
 
-                    st.session_state.calendar_selected_dates = []
-
-                    st.rerun()
-
-            if st.session_state.selected_dates:
-                st.markdown("<h4>선택된 일정</h4>", unsafe_allow_html=True)
-                for idx, d in enumerate(sorted(st.session_state.selected_dates)):
-                    c1, c2 = st.columns([8, 1])
-                    with c1:
-                        # 화면에 알기 쉽게 표시
-                        display_text = d.replace("00:00~24:00", "하루 종일 (상관없음)")
-                        st.markdown(f"""
-                        <div style="padding:14px; margin-bottom:10px; background: linear-gradient(90deg, #8b5cf6, #60a5fa); color:white; font-weight:700; border-radius:12px;">
-                        {display_text}
-                        </div>
-                        """, unsafe_allow_html=True)
-                    with c2:
-                        if st.button("삭제", key=f"remove_date_{idx}"):
-                            st.session_state.selected_dates.remove(d)
                             st.rerun()
 
             if st.button("정보 저장", key=f"save_user_{st.session_state.current_room}"):
