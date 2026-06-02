@@ -580,12 +580,6 @@ else:
 
             selected_date = st.session_state.calendar_selected_date
 
-            # 선택 날짜 표시
-            if selected_date:
-                st.success(
-                    f"선택된 날짜: {selected_date}"
-                )
-
             anytime_checked = st.checkbox(
                 "상관없음 (하루 종일 가능)",
                 key="anytime_checkbox"
@@ -630,6 +624,9 @@ else:
                         combined_str = f"{date_str} 00:00~24:00"
                         if combined_str not in st.session_state.selected_dates:
                             st.session_state.selected_dates.append(combined_str)
+
+                            st.session_state.calendar_selected_date = None
+
                             st.rerun()
                     else:
                         s_t = start_time.strip()
@@ -649,6 +646,9 @@ else:
                                     combined_str = f"{date_str} {s_t}~{e_t}"
                                     if combined_str not in st.session_state.selected_dates:
                                         st.session_state.selected_dates.append(combined_str)
+
+                                        st.session_state.calendar_selected_date = None
+
                                         st.rerun()
                             except ValueError:
                                 st.error("⚠️ 올바른 형식을 사용해 주세요.")
