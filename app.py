@@ -124,6 +124,9 @@ if "selected_dates" not in st.session_state:
 
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
+
+if "last_calendar_click" not in st.session_state:
+    st.session_state.last_calendar_click = None
     
 # 자체 로그인 관련 세션
 if "logged_in_user" not in st.session_state:
@@ -595,24 +598,35 @@ else:
                     + timedelta(hours=9)
                 ).strftime("%Y-%m-%d")
 
-                existing_dates = [
-                    item.split(" ")[0]
-                    for item in st.session_state.selected_dates
-                ]
+                event_id = (
+                    calendar_state["dateClick"]["date"]
+                )
 
-                if clicked_date in existing_dates:
+                if (
+                    st.session_state.last_calendar_click
+                    != event_id
+                ):
 
-                    st.session_state.selected_dates = [
-                        item
+                    st.session_state.last_calendar_click = event_id
+
+                    existing_dates = [
+                        item.split(" ")[0]
                         for item in st.session_state.selected_dates
-                        if not item.startswith(clicked_date)
                     ]
 
-                else:
+                    if clicked_date in existing_dates:
 
-                    st.session_state.selected_dates.append(
-                        f"{clicked_date} 00:00~24:00"
-                    )
+                        st.session_state.selected_dates = [
+                            item
+                            for item in st.session_state.selected_dates
+                            if not item.startswith(clicked_date)
+                        ]
+
+                    else:
+
+                        st.session_state.selected_dates.append(
+                            f"{clicked_date} 00:00~24:00"
+                        )
              
             if st.session_state.selected_dates:
 
@@ -713,9 +727,15 @@ else:
                                 f"{end_time.strftime('%H:%M')}"
                             )
 
-                        st.session_state.selected_dates[idx] = (
-                            f"{date_only} {new_time}"
-                        )
+                        updated_value = (
+                                f"{date_only} {new_time}"
+                            )
+
+                        if updated_value != item:
+
+                            st.session_state.selected_dates[idx] = (
+                                updated_value
+                            )    
 
                         if st.button(
                             "🗑 삭제",
@@ -726,13 +746,7 @@ else:
                                 item
                             )
 
-                            st.rerun()
-
-                            st.session_state.selected_dates.remove(
-                                item
-                            )
-
-                            st.rerun()
+                            st.rerun()    
 
             if st.button("정보 저장", key=f"save_user_{st.session_state.current_room}"):
                 if not nickname.strip():
