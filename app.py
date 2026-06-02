@@ -123,9 +123,6 @@ if "selected_dates" not in st.session_state:
 if "save_success" not in st.session_state:
     st.session_state.save_success = False
 
-if "calendar_selected_date" not in st.session_state:
-    st.session_state.calendar_selected_date = None
-
 if "calendar_selected_dates" not in st.session_state:
     st.session_state.calendar_selected_dates = []
 
@@ -584,15 +581,15 @@ else:
             # 아직 저장 안 된 선택 날짜 표시
             for date_only in st.session_state.calendar_selected_dates:
 
-                already_exists = False
+                already_saved = False
 
                 for item in st.session_state.selected_dates:
 
                     if item.startswith(date_only):
-                        already_exists = True
+                        already_saved = True
                         break
 
-                if not already_exists:
+                if not already_saved:
 
                     calendar_events.append(
                         {
@@ -632,23 +629,18 @@ else:
 
                 else:
 
-                    if (
+                    st.session_state.calendar_selected_dates.append(
                         clicked_date
-                        in
-                        st.session_state.calendar_selected_dates
-                    ):
+                    )
 
-                        st.session_state.calendar_selected_dates.remove(
-                            clicked_date
-                        )
+                st.session_state.last_clicked_date = clicked_date
 
-                    else:
+                st.rerun()
 
-                        st.session_state.calendar_selected_dates.append(
-                            clicked_date
-                        )
-
-                    st.session_state.last_clicked_date = clicked_date
+            st.write(
+                "calendar_selected_dates =",
+                st.session_state.calendar_selected_dates
+            )
 
             anytime_checked = st.checkbox(
                 "상관없음 (하루 종일 가능)",
