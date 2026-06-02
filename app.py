@@ -88,9 +88,7 @@ st.markdown("""
 }
 
 .fc-event-title {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    text-align: center !important;
+    display: none !important;
 }
 
 .fc-event {
@@ -569,11 +567,10 @@ else:
 
                 calendar_events.append(
                     {
-                        "title": time_text,
+                        "title": "",
                         "start": date_only,
                         "backgroundColor": "#8b5cf6",
-                        "borderColor": "#8b5cf6",
-                        "textColor": "#ffffff"
+                        "borderColor": "#8b5cf6"
                     }
                 )
 
@@ -619,7 +616,9 @@ else:
              
             if st.session_state.selected_dates:
 
-                st.markdown("### 선택된 일정")
+                st.markdown(
+                    f"### 📋 선택된 일정 ({len(st.session_state.selected_dates)}개)"
+                )
 
                 for idx, item in enumerate(
                     st.session_state.selected_dates
@@ -635,17 +634,11 @@ else:
                         else "00:00~24:00"
                     )
 
-                    col1, col2, col3 = st.columns(
-                        [4, 3, 1]
-                    )
-
-                    with col1:
+                    with st.container(border=True):
 
                         st.markdown(
-                            f"**{date_only}**"
+                            f"#### 📅 {date_only}"
                         )
-
-                    with col2:
 
                         current_is_anytime = (
                             current_time == "00:00~24:00"
@@ -657,57 +650,63 @@ else:
                             key=f"anytime_{date_only}"
                         )
 
+                        default_start = time(9, 0)
+                        default_end = time(18, 0)
+
+                        if "~" in current_time:
+
+                            try:
+
+                                start_str, end_str = (
+                                    current_time.split("~")
+                                )
+
+                                start_h, start_m = map(
+                                    int,
+                                    start_str.split(":")
+                                )
+
+                                end_h, end_m = map(
+                                    int,
+                                    end_str.split(":")
+                                )
+
+                                default_start = time(
+                                    start_h,
+                                    start_m
+                                )
+
+                                default_end = time(
+                                    end_h,
+                                    end_m
+                                )
+
+                            except:
+                                pass
+
                         if anytime:
 
                             new_time = "00:00~24:00"
 
                         else:
 
-                            default_start = time(9, 0)
-                            default_end = time(18, 0)
+                            col1, col2 = st.columns(2)
 
-                            if "~" in current_time:
+                            with col1:
 
-                                try:
+                                start_time = st.time_input(
+                                    "시작 시간",
+                                    value=default_start,
+                                    key=f"start_{date_only}"
+                                )
 
-                                    start_str, end_str = (
-                                        current_time.split("~")
-                                    )
+                            with col2:
 
-                                    start_h, start_m = map(
-                                        int,
-                                        start_str.split(":")
-                                    )
-
-                                    end_h, end_m = map(
-                                        int,
-                                        end_str.split(":")
-                                    )
-
-                                    default_start = time(
-                                        start_h,
-                                        start_m
-                                    )
-
-                                    default_end = time(
-                                        end_h,
-                                        end_m
-                                    )
-
-                                except Exception:
-                                    pass
-
-                            start_time = st.time_input(
-                                "시작 시간",
-                                value=default_start,
-                                key=f"start_{date_only}"
-                            )
-
-                            end_time = st.time_input(
-                                "종료 시간",
-                                value=default_end,
-                                key=f"end_{date_only}"
-                            )
+                                end_time = st.time_input(
+                                    "종료 시간",
+                                    value=default_end,
+                                    key=f"end_{date_only}"
+                                )
 
                             new_time = (
                                 f"{start_time.strftime('%H:%M')}~"
@@ -718,12 +717,16 @@ else:
                             f"{date_only} {new_time}"
                         )
 
-                    with col3:
-
                         if st.button(
-                            "삭제",
+                            "🗑 삭제",
                             key=f"remove_{date_only}"
                         ):
+
+                            st.session_state.selected_dates.remove(
+                                item
+                            )
+
+                            st.rerun()
 
                             st.session_state.selected_dates.remove(
                                 item
