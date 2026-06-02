@@ -296,6 +296,8 @@ def collect_candidate_places(
                 category
             )
 
+    candidate_places.extend(places)
+
     # =========================
     # 중복 제거
     # =========================
