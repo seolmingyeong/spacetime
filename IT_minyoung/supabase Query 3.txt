@@ -1,0 +1,6 @@
+alter table public.profiles
+  add column if not exists user_id text unique,
+  add column if not exists location_consent boolean not null default false;
+
+alter table public.profiles
+  add constraint user_id_format check (user_id ~ '^[A-Za-z0-9]+$');
