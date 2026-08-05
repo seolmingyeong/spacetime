@@ -1,3 +1,6 @@
+https://drive.google.com/file/d/1WZhOqccghdv2iFDdHeTOwaskqdBykv-w/view?usp=sharing
+
+
 supabase SQL Editor 에서 같이 있는 supabase Query 1,2,3,4 파일 내용 복붙해서 넣어야 함.
 supabase table 에서 항목들 제대로 뜨는지 확인
 localhost 숫자 고정시키기
