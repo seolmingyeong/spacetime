@@ -1,0 +1,44 @@
+name: travel_together_app
+description: 여행 그룹 플래닝 앱 (일정 / 방 / 기록 / AI 추천)
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_web_plugins:
+    sdk: flutter
+
+  shared_preferences: ^2.2.2      
+  cupertino_icons: ^1.0.6
+
+  # Backend / Auth / DB
+  supabase_flutter: ^2.5.6
+
+  # State management
+  provider: ^6.1.2
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Utils
+  intl: ^0.19.0
+  http: ^1.2.1
+  table_calendar: ^3.1.2
+  geolocator: ^13.0.1
+  geocoding: ^4.0.0
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  image_picker: ^1.1.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
