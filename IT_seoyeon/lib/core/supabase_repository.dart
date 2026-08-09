@@ -554,8 +554,18 @@ Future<void> clearAlbumEntries(String albumId) async {
       List<Map<String,dynamic>>.from(await supabase.from('album_comments')
           .select('*, profiles(nickname, avatar_url)').eq('album_id', albumId).order('created_at'));
 
-  Future<void> addAlbumComment(String albumId, String content) =>
-      supabase.from('album_comments').insert({'album_id': albumId, 'user_id': _uid, 'content': content.trim()});
+  Future<void> addAlbumComment(String albumId, String content, {String? albumOwnerId, String? albumTitle}) async {
+    await supabase.from('album_comments').insert({'album_id': albumId, 'user_id': _uid, 'content': content.trim()});
+    if (albumOwnerId != null) {
+      final me = await getMyProfile();
+      await _createNotification(
+        recipientId: albumOwnerId,
+        title: '새 댓글',
+        body: '${me.nickname}님이 "${albumTitle ?? '기록'}"에 댓글을 남겼습니다.',
+        data: {'album_id': albumId},
+      );
+    }
+  }
 
   /// 본인이 작성한 댓글만 삭제됩니다 (user_id 조건으로 이중 확인).
   Future<void> deleteAlbumComment(String commentId) =>
@@ -563,11 +573,20 @@ Future<void> clearAlbumEntries(String albumId) async {
           .eq('id', commentId).eq('user_id', _uid);
 
   /// 좋아요 토글. true면 좋아요를 누른 상태, false면 취소된 상태.
-  Future<bool> toggleAlbumLike(String albumId) async {
+  Future<bool> toggleAlbumLike(String albumId, {String? albumOwnerId, String? albumTitle}) async {
     final existing = await supabase.from('album_likes').select('album_id')
         .eq('album_id', albumId).eq('user_id', _uid).maybeSingle();
     if (existing == null) {
       await supabase.from('album_likes').insert({'album_id': albumId, 'user_id': _uid});
+      if (albumOwnerId != null) {
+        final me = await getMyProfile();
+        await _createNotification(
+          recipientId: albumOwnerId,
+          title: '새 좋아요',
+          body: '${me.nickname}님이 "${albumTitle ?? '기록'}"을 좋아합니다.',
+          data: {'album_id': albumId},
+        );
+      }
       return true;
     } else {
       await supabase.from('album_likes').delete().eq('album_id', albumId).eq('user_id', _uid);
@@ -583,6 +602,21 @@ Future<void> clearAlbumEntries(String albumId) async {
     final row = await supabase.from('album_likes').select('album_id')
         .eq('album_id', albumId).eq('user_id', _uid).maybeSingle();
     return row != null;
+  }
+
+  Future<void> _createNotification({
+    required String recipientId,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    if (recipientId == _uid) return; // 본인 게시물에 본인이 반응한 경우는 알림 생략
+    await supabase.from('notifications').insert({
+      'recipient_id': recipientId,
+      'title': title,
+      'body': body,
+      'data': data,
+    });
   }
 
   // Notifications/preferences ----------------------------------------------

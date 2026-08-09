@@ -173,7 +173,11 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   children: [
                     IconButton(
                       onPressed: () async {
-                        final liked = await SupabaseRepository().toggleAlbumLike(widget.album.id);
+                        final liked = await SupabaseRepository().toggleAlbumLike(
+                          widget.album.id,
+                          albumOwnerId: widget.album.ownerId,
+                          albumTitle: widget.album.title,
+                        );
                         if (mounted) {
                           setState(() {
                             _liked = liked;
@@ -257,7 +261,12 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                     IconButton(
                       onPressed: () async {
                         if (controller.text.trim().isEmpty) return;
-                        await SupabaseRepository().addAlbumComment(widget.album.id, controller.text.trim());
+                        await SupabaseRepository().addAlbumComment(
+                          widget.album.id,
+                          controller.text.trim(),
+                          albumOwnerId: widget.album.ownerId,
+                          albumTitle: widget.album.title,
+                        );
                         controller.clear();
                         items = await SupabaseRepository().getAlbumComments(widget.album.id);
                         setLocal(() {});

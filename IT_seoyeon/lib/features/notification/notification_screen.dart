@@ -109,14 +109,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('방 정보를 불러오지 못했습니다: $e')),
+              const SnackBar(content: Text('이미 삭제되었거나 더 이상 존재하지 않는 방입니다.')),
             );
           }
         }
       }
     }
-    await SupabaseRepository().markNotificationRead(item['id'].toString());
-    _load();
+    try {
+      await SupabaseRepository().markNotificationRead(item['id'].toString());
+    } catch (_) {
+      // 알림 읽음 처리 실패는 화면에 굳이 안 보여줘도 됨
+    }
+    if (mounted) _load();
   }
 
   @override
