@@ -69,6 +69,8 @@ class _DepartureInfoScreenState extends State<DepartureInfoScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => PlaceSearchSheet(
+        showGroupScore: false,
+        roomId: widget.roomId,
         title: '출발지 주소를 검색하세요',
         hintText: '예: 서울역, 강남구 테헤란로 123',
         onPlaceSelected: (name, address, lat, lng, category) {

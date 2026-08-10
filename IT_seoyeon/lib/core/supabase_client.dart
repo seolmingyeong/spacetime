@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Supabase 초기화 설정.
 class SupabaseConfig {
   static const String url = 'https://kmglkpcpftsoalsqyalk.supabase.co';
-  static const String anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttZ2xrcGNwZnRzb2Fsc3F5YWxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0MjY0NTUsImV4cCI6MjEwMTAwMjQ1NX0.01xhzg7bUO__Jv2eOvijSIz-DlZW3oQk7m-q9PSd6jo';
+  static const String anonKey = 'sb_publishable_rZhqYXUXu095W6wOEsVZrg_XBVJN2aR';
 
   static Future<void> init() async {
     await Supabase.initialize(

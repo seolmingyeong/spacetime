@@ -702,6 +702,36 @@ Future<void> clearAlbumEntries(String albumId) async {
     return (data as Map)['documents'] as List<dynamic>? ?? [];
   }
 
+  Future<int?> getDriveTime({
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+  }) async {
+    final res = await supabase.functions.invoke(
+      'kakao-place-search',
+      body: {
+        'action': 'driveTime',
+        'originLat': originLat,
+        'originLng': originLng,
+        'destLat': destLat,
+        'destLng': destLng,
+      },
+    );
+    
+    final data = res.data;
+
+    if (data is Map && data['error'] != null){
+      return null;
+    }
+
+    if (data is Map && data['minutes'] != null){
+      return (data['minutes'] as num).round();
+    }
+
+    return null;
+  }
+
   /// get_places RPC를 통해 투표수(votes)와 내 투표 여부(has_my_vote)까지
   /// 함께 가져온다. places 테이블을 직접 select하면 이 값들을 알 수 없다.
   Future<List<PlaceItem>> getPlaces(String roomId) async {
