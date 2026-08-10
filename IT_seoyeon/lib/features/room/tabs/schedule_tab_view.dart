@@ -60,6 +60,152 @@ class _ScheduleTabViewState extends State<ScheduleTabView> {
     _load();
   }
 
+  Future<void> _changeSoloTravelDate() async {
+    final r = _room;
+    if (r == null || r.travelType != 'solo' || r.startDate == null) return;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: r.startDate!,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 730)),
+      helpText: '여행 시작일 변경',
+      cancelText: '취소',
+      confirmText: '변경',
+    );
+
+    if (picked == null) return;
+
+    final start = DateTime(picked.year, picked.month, picked.day);
+    final end = DateTime(
+      start.year,
+      start.month,
+      start.day + r.tripDays - 1,
+    );
+
+    setState(() => _saving = true);
+    try {
+      await _repo.updateSoloTravelDates(
+        roomId: widget.roomId,
+        startDate: start,
+        endDate: end,
+      );
+      await _load();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('여행 날짜를 변경했습니다.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('날짜 변경 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Widget _soloSchedule(TravelRoom r) {
+    final start = r.startDate;
+    final end = r.endDate ?? start;
+
+    if (start == null) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: Text('여행 날짜가 설정되지 않았습니다.'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Card(
+          color: AppColors.schedule.withOpacity(.08),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.person, color: AppColors.schedule),
+                    SizedBox(width: 8),
+                    Text(
+                      '혼자 여행',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  '여행 날짜를 변경할 수 있습니다.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _finalizedRangeText(r),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  end == null
+                      ? DateFormat('yyyy.MM.dd').format(start)
+                      : '${DateFormat('yyyy.MM.dd').format(start)}부터 ${DateFormat('yyyy.MM.dd').format(end)}까지',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: _saving ? null : _changeSoloTravelDate,
+          icon: const Icon(Icons.edit_calendar),
+          label: Text(_saving ? '변경 중...' : '여행 날짜 변경'),
+        ),
+        const SizedBox(height: 16),
+        Card(
+          child: ListTile(
+            leading: const Icon(
+              Icons.my_location,
+              color: AppColors.schedule,
+            ),
+            title: const Text('내 출발 정보'),
+            subtitle: const Text(
+              '출발 위치와 이동수단을 입력하면 출발지 주변 장소를 추천받을 수 있습니다.',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DepartureInfoScreen(roomId: widget.roomId),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _submit() async {
     if (_selected.isEmpty) return;
     setState(() => _saving = true);
@@ -127,6 +273,7 @@ class _ScheduleTabViewState extends State<ScheduleTabView> {
     }
     final r = _room!;
 
+    if (r.travelType == 'solo') return _soloSchedule(r);
     if (_editingDates) return _editingPicker(r);
     if (r.isScheduleFinalized) return _finalized(r);
 

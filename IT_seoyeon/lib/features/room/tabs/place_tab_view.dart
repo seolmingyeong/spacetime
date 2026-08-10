@@ -25,12 +25,17 @@ class _PlaceTabViewState extends State<PlaceTabView> {
   List<MidpointRecommendation> _midpoints = [];
   bool _midpointLoading = true;
   String? _midpointError;
+  String _travelType = 'group';
+  DepartureInfo? _departure;
+  List<PlaceSuggestion> _soloRecommendations = [];
+  bool _soloLoading = true;
+  String? _soloError;
 
   @override
   void initState() {
     super.initState();
     _loadPlaces();
-    _loadMidpoints();
+    _loadRoomType();
   }
 
   Future<void> _loadPlaces() async {
@@ -45,9 +50,36 @@ class _PlaceTabViewState extends State<PlaceTabView> {
     }
   }
 
+  Future<void> _loadRoomType() async {
+    try {
+      final room = await SupabaseRepository().getRoom(widget.roomId);
+      if (!mounted) return;
+
+      setState(() {
+        _travelType = room.travelType;
+      });
+
+      if (_travelType == 'solo') {
+        await _loadSoloRecommendations();
+      } else {
+        await _loadMidpoints();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _soloLoading = false;
+          _midpointLoading = false;
+          _soloError = '$e';
+        });
+      }
+    }
+  }
+
   Future<void> _loadMidpoints({
     bool forceRefresh = false,
   }) async {
+    if (_travelType == 'solo') return;
+
     if (mounted) {
       setState(() {
         _midpointLoading = true;
@@ -74,6 +106,98 @@ class _PlaceTabViewState extends State<PlaceTabView> {
           _midpointError = '$e';
           _midpointLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _loadSoloRecommendations() async {
+    if (mounted) {
+      setState(() {
+        _soloLoading = true;
+        _soloError = null;
+      });
+    }
+
+    try {
+      final departure =
+          await SupabaseRepository().getDepartureInfo(widget.roomId);
+
+      if (departure == null) {
+        if (mounted) {
+          setState(() {
+            _departure = null;
+            _soloRecommendations = [];
+            _soloLoading = false;
+            _soloError = '출발지를 먼저 입력해주세요.';
+          });
+        }
+        return;
+      }
+
+      final recommendations =
+          await SupabaseRepository().getNearbyPlaceRecommendations(
+        lat: departure.lat,
+        lng: departure.lng,
+        radiusMeters: 1500,
+      );
+
+      if (mounted) {
+        setState(() {
+          _departure = departure;
+          _soloRecommendations = recommendations;
+          _soloLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _soloLoading = false;
+          _soloError = '$e';
+        });
+      }
+    }
+  }
+
+  Future<void> _addRecommendedPlace(PlaceSuggestion suggestion) async {
+    final alreadyAdded = _places.any(
+      (p) =>
+          p.name == suggestion.name &&
+          p.lat == suggestion.lat &&
+          p.lng == suggestion.lng,
+    );
+
+    if (alreadyAdded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('이미 추가된 장소입니다.')),
+      );
+      return;
+    }
+
+    try {
+      await SupabaseRepository().addPlace(
+        widget.roomId,
+        PlaceItem(
+          id: '',
+          name: suggestion.name,
+          address: suggestion.address,
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          category: suggestion.category,
+        ),
+      );
+
+      await _loadPlaces();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${suggestion.name}을(를) 장소에 추가했습니다.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('장소 추가 실패: $e')),
+        );
       }
     }
   }
@@ -257,27 +381,32 @@ class _PlaceTabViewState extends State<PlaceTabView> {
 
     return Stack(
       children: [
-        _places.isEmpty
-            ? _buildEmptyState()
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: _places.length + 1,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: 12),
-                itemBuilder: (context, i) {
-                  if (i == _places.length) {
-                    return _buildAiRecommendationSection();
-                  }
+        ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          itemCount: _places.length + 2,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, i) {
+            if (i < _places.length) {
+              final place = _places[i];
 
-                  final place = _places[i];
+              return _PlaceCard(
+                place: place,
+                onVote: () => _votePlace(place),
+                onDelete: () => _deletePlace(place),
+              );
+            }
 
-                  return _PlaceCard(
-                    place: place,
-                    onVote: () => _votePlace(place),
-                    onDelete: () => _deletePlace(place),
-                  );
-                },
-              ),
+            if (i == _places.length) {
+              return _travelType == 'solo'
+                  ? _buildSoloRecommendationSection()
+                  : _buildAiRecommendationSection();
+            }
+
+            return _places.isEmpty
+                ? _buildEmptyState()
+                : const SizedBox.shrink();
+          },
+        ),
         Positioned(
           right: 16,
           bottom: 16,
@@ -316,6 +445,109 @@ class _PlaceTabViewState extends State<PlaceTabView> {
               color: AppColors.textSecondary,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSoloRecommendationSection() {
+    return Container(
+      margin: const EdgeInsets.only(
+        top: 24,
+        bottom: 80,
+      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.room.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.room.withOpacity(0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome,
+                color: AppColors.room,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '혼자 여행 추천',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.room,
+                  ),
+                ),
+              ),
+              if (!_soloLoading)
+                IconButton(
+                  onPressed: _loadSoloRecommendations,
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 18,
+                    color: AppColors.room,
+                  ),
+                  tooltip: '다시 추천받기',
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_departure != null)
+            Text(
+              '${_departure!.address} 근처에서 혼자 즐기기 좋은 장소를 추천해요.',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            )
+          else
+            const Text(
+              '출발지 근처에서 혼자 즐기기 좋은 장소를 추천해요.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          const SizedBox(height: 12),
+          if (_soloLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else if (_soloError != null)
+            Text(
+              _soloError!,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            )
+          else if (_soloRecommendations.isEmpty)
+            const Text(
+              '주변에서 추천할 장소를 찾지 못했습니다.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            )
+          else
+            ..._soloRecommendations.map(
+              (place) => _SoloRecommendationCard(
+                place: place,
+                onAdd: () => _addRecommendedPlace(place),
+              ),
+            ),
         ],
       ),
     );
@@ -415,6 +647,99 @@ class _PlaceTabViewState extends State<PlaceTabView> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SoloRecommendationCard extends StatelessWidget {
+  final PlaceSuggestion place;
+  final VoidCallback onAdd;
+
+  const _SoloRecommendationCard({
+    required this.place,
+    required this.onAdd,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final info = getCategoryInfo(place.category);
+    final distance =
+        place.distanceMeters < 1000
+            ? '${place.distanceMeters.round()}m'
+            : '${(place.distanceMeters / 1000).toStringAsFixed(1)}km';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.room.withOpacity(0.12),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: info.color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              info.icon,
+              color: info.color,
+              size: 21,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  place.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  place.category,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$distance · ${place.address}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            onPressed: onAdd,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.room,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 36),
+            ),
+            child: const Text('추가'),
+          ),
         ],
       ),
     );

@@ -75,12 +75,22 @@ class SupabaseRepository {
     required String inviteCode,
     required int tripDays,
     required bool placeRecommendationEnabled,
+    required String travelType,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     final result = await supabase.rpc('create_travel_room', params: {
       'p_name': name.trim(),
       'p_invite_code': inviteCode,
       'p_trip_days': tripDays,
       'p_place_recommendation_enabled': placeRecommendationEnabled,
+      'p_travel_type': travelType,
+      'p_start_date': startDate == null
+          ? null
+          : startDate.toIso8601String().split('T').first,
+      'p_end_date': endDate == null
+          ? null
+          : endDate.toIso8601String().split('T').first,
     });
     return TravelRoom.fromJson(Map<String, dynamic>.from(result));
   }
@@ -105,6 +115,17 @@ class SupabaseRepository {
 
   Future<void> updateRoom(TravelRoom room) async =>
       supabase.from('rooms').update(room.toJson()).eq('id', room.id);
+
+  Future<void> updateSoloTravelDates({
+    required String roomId,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    await supabase.from('rooms').update({
+      'start_date': _date(startDate),
+      'end_date': _date(endDate),
+    }).eq('id', roomId);
+  }
 
   Future<List<RoomMember>> getMembers(String roomId) async {
     final rows = await supabase.from('room_members')
