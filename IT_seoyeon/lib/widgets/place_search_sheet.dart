@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../core/supabase_repository.dart';
 import '../core/theme.dart';
 import 'category_utils.dart';
 
@@ -29,15 +28,8 @@ class _PlaceSearchSheetState extends State<PlaceSearchSheet> {
 
     setState(() => _isSearching = true);
     try {
-      final url = Uri.parse(
-          'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&limit=10&addressdetails=1');
-      final response = await http.get(url, headers: {'User-Agent': 'TravelTogetherApp/1.0'});
-
-      if (response.statusCode == 200) {
-        setState(() {
-          _searchResults = jsonDecode(response.body);
-        });
-      }
+      final results = await SupabaseRepository().searchPlaces(query);
+      setState(() => _searchResults = results);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('검색 실패: $e')));
@@ -45,18 +37,6 @@ class _PlaceSearchSheetState extends State<PlaceSearchSheet> {
     } finally {
       if (mounted) setState(() => _isSearching = false);
     }
-  }
-
-  String _formatAddress(Map<String, dynamic> addr) {
-    final List<String> parts = [];
-    if (addr.containsKey('province')) parts.add(addr['province']);
-    if (addr.containsKey('city')) parts.add(addr['city']);
-    if (addr.containsKey('borough')) parts.add(addr['borough']);
-    if (addr.containsKey('suburb')) parts.add(addr['suburb']);
-    if (addr.containsKey('road')) parts.add(addr['road']);
-    if (addr.containsKey('house_number')) parts.add(addr['house_number']);
-
-    return parts.join(' ').trim();
   }
 
   @override
@@ -101,11 +81,13 @@ class _PlaceSearchSheetState extends State<PlaceSearchSheet> {
                       itemCount: _searchResults.length,
                       separatorBuilder: (_, __) => const Divider(),
                       itemBuilder: (context, i) {
-                        final result = _searchResults[i];
-                        final name = result['display_name'].split(',')[0];
-                        final address = _formatAddress(result['address'] ?? {});
-                        final type = result['type'] as String?;
-                        final info = getCategoryInfo(type);
+                        final result = _searchResults[i] as Map<String, dynamic>;
+                        final name = result['place_name'] as String? ?? '';
+                        final roadAddress = result['road_address_name'] as String? ?? '';
+                        final lotAddress = result['address_name'] as String? ?? '';
+                        final address = roadAddress.isNotEmpty ? roadAddress : lotAddress;
+                        final categoryCode = result['category_group_code'] as String?;
+                        final info = getCategoryInfo(categoryCode);
 
                         return ListTile(
                           leading: Container(
@@ -115,15 +97,15 @@ class _PlaceSearchSheetState extends State<PlaceSearchSheet> {
                             child: Icon(info.icon, color: info.color, size: 18),
                           ),
                           title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(address.isEmpty ? result['display_name'] : address,
+                          subtitle: Text(address,
                             maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12)),
                           onTap: () {
                             widget.onPlaceSelected(
                               name,
-                              address.isEmpty ? result['display_name'] : address,
-                              double.parse(result['lat']),
-                              double.parse(result['lon']),
-                              type,
+                              address,
+                              double.parse(result['y'] as String),
+                              double.parse(result['x'] as String),
+                              categoryCode,
                             );
                             Navigator.pop(context);
                           },

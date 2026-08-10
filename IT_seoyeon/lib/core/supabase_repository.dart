@@ -688,6 +688,20 @@ Future<void> clearAlbumEntries(String albumId) async {
       supabase.from('notification_preferences').upsert({'user_id': _uid, ...values});
 
   // Legacy place/course/record methods -------------------------------------
+  /// 카카오 로컬 검색을 대신 호출해주는 Edge Function을 통해 장소를 검색한다.
+  /// API 키는 서버(Supabase Secrets)에만 있고 클라이언트엔 노출되지 않는다.
+  Future<List<dynamic>> searchPlaces(String query) async {
+    final res = await supabase.functions.invoke(
+      'kakao-place-search',
+      body: {'query': query},
+    );
+    final data = res.data;
+    if (data is Map && data['error'] != null) {
+      throw data['error'].toString();
+    }
+    return (data as Map)['documents'] as List<dynamic>? ?? [];
+  }
+
   /// get_places RPC를 통해 투표수(votes)와 내 투표 여부(has_my_vote)까지
   /// 함께 가져온다. places 테이블을 직접 select하면 이 값들을 알 수 없다.
   Future<List<PlaceItem>> getPlaces(String roomId) async {
