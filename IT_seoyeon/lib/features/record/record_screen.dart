@@ -68,8 +68,10 @@ class RecordScreenState extends State<RecordScreen> {
 
   /// 상세 화면에서 돌아온 결과를 처리한다.
   /// - 삭제: 목록에서 즉시 제거 (네트워크 왕복 없이).
-  /// - 수정: 그 앨범 하나만 다시 불러와 목록 안의 항목을 즉시 교체.
-  /// - 그 외(알 수 없는 값): 안전하게 전체 재조회.
+  /// - 수정/좋아요: 그 앨범 하나만 다시 불러와 목록 안의 항목을 즉시 교체.
+  ///   (좋아요는 상세 화면에서 이미 최신 개수를 알고 있지만, 모델 구조를
+  ///   그대로 두기 위해 수정 때와 같은 방식으로 단건 재조회한다.)
+  /// - 그 외(알 수 없는 값): 아무것도 하지 않는다.
   Future<void> _handleDetailResult(Object? result) async {
     if (result is Map && result['action'] == 'deleted') {
       final id = result['id'];
@@ -81,7 +83,8 @@ class RecordScreenState extends State<RecordScreen> {
       return;
     }
 
-    if (result is Map && result['action'] == 'updated') {
+    if (result is Map &&
+        (result['action'] == 'updated' || result['action'] == 'liked')) {
       final id = result['id'] as String;
       try {
         final fresh = await SupabaseRepository().getAlbum(id);
@@ -98,8 +101,6 @@ class RecordScreenState extends State<RecordScreen> {
       }
       return;
     }
-
-    // 좋아요/댓글처럼 리스트에 반영할 필요 없는 경우 아무것도 하지 않는다.
   }
 
   Future<void> _create() async {

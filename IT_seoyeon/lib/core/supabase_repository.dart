@@ -556,14 +556,21 @@ Future<void> clearAlbumEntries(String albumId) async {
 
   Future<void> addAlbumComment(String albumId, String content, {String? albumOwnerId, String? albumTitle}) async {
     await supabase.from('album_comments').insert({'album_id': albumId, 'user_id': _uid, 'content': content.trim()});
+    // 알림 생성은 부가 기능이므로, 여기서 실패해도 댓글 등록 자체는 성공한 것으로 처리한다.
     if (albumOwnerId != null) {
-      final me = await getMyProfile();
-      await _createNotification(
-        recipientId: albumOwnerId,
-        title: '새 댓글',
-        body: '${me.nickname}님이 "${albumTitle ?? '기록'}"에 댓글을 남겼습니다.',
-        data: {'album_id': albumId},
-      );
+      try {
+        final me = await getMyProfile();
+        await _createNotification(
+          recipientId: albumOwnerId,
+          category: 'comment',
+          eventType: 'album_comment',
+          title: '새 댓글',
+          body: '${me.nickname}님이 "${albumTitle ?? '기록'}"에 댓글을 남겼습니다.',
+          data: {'album_id': albumId},
+        );
+      } catch (e) {
+        debugPrint('알림 생성 실패(무시하고 진행): $e');
+      }
     }
   }
 
@@ -572,29 +579,64 @@ Future<void> clearAlbumEntries(String albumId) async {
       supabase.from('album_comments').delete()
           .eq('id', commentId).eq('user_id', _uid);
 
-  /// 좋아요 토글. true면 좋아요를 누른 상태, false면 취소된 상태.
-  Future<bool> toggleAlbumLike(String albumId, {String? albumOwnerId, String? albumTitle}) async {
-    final existing = await supabase.from('album_likes').select('album_id')
-        .eq('album_id', albumId).eq('user_id', _uid).maybeSingle();
+  /// 좋아요 토글. liked: true면 좋아요를 누른 상태, false면 취소된 상태.
+  /// likeCount: 로컬에서 +1/-1로 임의 계산하지 않고, 처리 직후 서버에 실제로
+  /// 남아있는 행 개수를 다시 세어 반환한다. 화면 숫자가 서버와 어긋나는 것을
+  /// 막기 위함이다 (연타, 지연 응답, 오래된 로컬 상태 등으로 인한 불일치 방지).
+  Future<({bool liked, int likeCount})> toggleAlbumLike(
+    String albumId, {
+    String? albumOwnerId,
+    String? albumTitle,
+  }) async {
+    final existing = await supabase
+        .from('album_likes')
+        .select('album_id')
+        .eq('album_id', albumId)
+        .eq('user_id', _uid)
+        .maybeSingle();
+
+    bool liked;
     if (existing == null) {
-      await supabase.from('album_likes').insert({'album_id': albumId, 'user_id': _uid});
+      await supabase.from('album_likes').insert({
+        'album_id': albumId,
+        'user_id': _uid,
+      });
+      liked = true;
+      // 알림 생성은 부가 기능이므로, 여기서 실패해도 좋아요 자체는 성공한 것으로 처리한다.
       if (albumOwnerId != null) {
-        final me = await getMyProfile();
-        await _createNotification(
-          recipientId: albumOwnerId,
-          title: '새 좋아요',
-          body: '${me.nickname}님이 "${albumTitle ?? '기록'}"을 좋아합니다.',
-          data: {'album_id': albumId},
-        );
+        try {
+          final me = await getMyProfile();
+          await _createNotification(
+            recipientId: albumOwnerId,
+            category: 'like',
+            eventType: 'album_like',
+            title: '새 좋아요',
+            body: '${me.nickname}님이 "${albumTitle ?? '기록'}"을 좋아합니다.',
+            data: {'album_id': albumId},
+          );
+        } catch (e) {
+          debugPrint('알림 생성 실패(무시하고 진행): $e');
+        }
       }
-      return true;
     } else {
-      await supabase.from('album_likes').delete().eq('album_id', albumId).eq('user_id', _uid);
-      return false;
+      final deleted = await supabase
+          .from('album_likes')
+          .delete()
+          .eq('album_id', albumId)
+          .eq('user_id', _uid)
+          .select();
+      debugPrint('좋아요 삭제된 행: $deleted');
+      liked = false;
     }
+
+    final likeRows = await supabase
+        .from('album_likes')
+        .select('user_id')
+        .eq('album_id', albumId);
+    final likeCount = (likeRows as List).length;
+
+    return (liked: liked, likeCount: likeCount);
   }
-
-
 
   /// 특정 앨범에 내가 좋아요를 눌렀는지 단건 확인 (목록이 아니라 상세 화면 등에서 사용).
   Future<bool> isAlbumLikedByMe(String albumId) async {
@@ -606,6 +648,8 @@ Future<void> clearAlbumEntries(String albumId) async {
 
   Future<void> _createNotification({
     required String recipientId,
+    required String category,
+    required String eventType,
     required String title,
     required String body,
     Map<String, dynamic>? data,
@@ -613,6 +657,8 @@ Future<void> clearAlbumEntries(String albumId) async {
     if (recipientId == _uid) return; // 본인 게시물에 본인이 반응한 경우는 알림 생략
     await supabase.from('notifications').insert({
       'recipient_id': recipientId,
+      'category': category,
+      'event_type': eventType,
       'title': title,
       'body': body,
       'data': data,

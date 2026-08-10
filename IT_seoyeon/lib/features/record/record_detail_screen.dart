@@ -19,6 +19,10 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
   int _likes = 0;
   int _commentsCount = 0;
   bool _liked = false;
+  bool _likeInFlight = false;
+  // 이 화면에서 좋아요 상태가 바뀌었는지 여부. 바뀐 경우, 화면을 나갈 때
+  // 이전 화면(목록)에 최신 좋아요 상태를 전달해서 목록도 함께 갱신되게 한다.
+  bool _likeChanged = false;
 
   @override
   void initState() {
@@ -62,45 +66,91 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     }
   }
 
+  Future<void> _toggleLike() async {
+    if (_likeInFlight) return;
+    setState(() => _likeInFlight = true);
+    try {
+      // 로컬에서 +1/-1로 임의 계산하지 않고, 서버가 처리 직후 다시 세어 돌려준
+      // 진짜 개수(result.likeCount)를 그대로 화면에 반영한다. 연타나 지연 응답
+      // 때문에 화면 숫자가 실제 DB 값과 어긋나는 것을 막기 위함이다.
+      final result = await SupabaseRepository().toggleAlbumLike(
+        widget.album.id,
+        albumOwnerId: widget.album.ownerId,
+        albumTitle: widget.album.title,
+      );
+      if (mounted) {
+        setState(() {
+          _liked = result.liked;
+          _likes = result.likeCount;
+          _likeChanged = true;
+        });
+      }
+    } catch (e, st) {
+      debugPrint('좋아요 토글 실패: $e');
+      debugPrint('$st');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('좋아요 처리 실패: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _likeInFlight = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // 좋아요 상태가 이 화면 안에서 바뀐 채로 뒤로 나가면(뒤로가기 버튼, 시스템
+    // 제스처 모두 포함), 목록 화면이 그 변경 사항을 알 수 있도록 결과를 함께
+    // 전달한다. 그렇지 않으면 목록은 예전 좋아요 개수를 계속 들고 있게 되어
+    // 상세 화면과 목록 화면의 숫자가 서로 어긋나 보인다.
+    return PopScope(
+      canPop: !_likeChanged,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop(context, {
+          'action': 'liked',
+          'id': widget.album.id,
+          'likeCount': _likes,
+          'liked': _liked,
+        });
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.album.title),
         actions: [
           if (widget.album.ownerId == SupabaseRepository().currentUserId)
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'edit') {
-                final updated = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => RecordCreateScreen(
-                      album: widget.album,
-                      roomId: widget.album.roomId,
+            PopupMenuButton<String>(
+              onSelected: (value) async {
+                if (value == 'edit') {
+                  final updated = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecordCreateScreen(
+                        album: widget.album,
+                        roomId: widget.album.roomId,
+                      ),
                     ),
-                  ),
-                );
-                if (updated == true && mounted) {
-                  Navigator.pop(context, {'action': 'updated', 'id': widget.album.id});
+                  );
+                  if (updated == true && mounted) {
+                    Navigator.pop(context, {'action': 'updated', 'id': widget.album.id});
+                  }
+                } else if (value == 'delete') {
+                  _delete();
                 }
-              } else if (value == 'delete') {
-                _delete();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(
-                value: 'edit',
-                child: Text('수정'),
-              ),
-              PopupMenuItem<String>(
-                value: 'delete',
-                child: Text('삭제'),
-              ),
-            ],
-          ),
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem<String>(
+                  value: 'edit',
+                  child: Text('수정'),
+                ),
+                PopupMenuItem<String>(
+                  value: 'delete',
+                  child: Text('삭제'),
+                ),
+              ],
+            ),
         ],
-      
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -118,16 +168,18 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                   children: [
                     CircleAvatar(
                       radius: 12,
-                      backgroundImage: widget.album.ownerAvatar != null 
-                        ? NetworkImage(widget.album.ownerAvatar!) 
-                        : null,
+                      backgroundImage: widget.album.ownerAvatar != null
+                          ? NetworkImage(widget.album.ownerAvatar!)
+                          : null,
                       child: widget.album.ownerAvatar == null
-                        ? const Icon(Icons.person, size: 14)
-                        : null,
+                          ? const Icon(Icons.person, size: 14)
+                          : null,
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      widget.album.ownerName ?? '', style: const TextStyle(color: AppColors.textSecondary)),
+                      widget.album.ownerName ?? '',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
                   ],
                 ),
 
@@ -164,19 +216,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: () async {
-                        final liked = await SupabaseRepository().toggleAlbumLike(
-                          widget.album.id,
-                          albumOwnerId: widget.album.ownerId,
-                          albumTitle: widget.album.title,
-                        );
-                        if (mounted) {
-                          setState(() {
-                            _liked = liked;
-                            _likes += liked ? 1 : -1;
-                          });
-                        }
-                      },
+                      onPressed: _likeInFlight ? null : _toggleLike,
                       icon: Icon(
                         _liked ? Icons.favorite : Icons.favorite_border,
                         color: _liked ? Colors.red : null,
@@ -190,6 +230,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                 ),
               ],
             ),
+      ),
     );
   }
 
@@ -216,7 +257,7 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                     children: items.map((item) {
                       final isMine = item['user_id']?.toString() ==
                           SupabaseRepository().currentUserId;
-                      
+
                       return ListTile(
                         leading: CircleAvatar(
                           radius: 16,
@@ -229,8 +270,6 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                         ),
                         title: Text(item['profiles']?['nickname'] ?? '알 수 없음'),
                         subtitle: Text(item['content'] ?? ''),
-
-
                         trailing: isMine
                             ? IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 20),
@@ -276,5 +315,4 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
     controller.dispose();
     if (mounted) setState(() => _commentsCount = items.length);
   }
-
 }
