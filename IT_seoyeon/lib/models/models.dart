@@ -98,6 +98,21 @@ class TravelRoom {
   String get tripDurationLabel =>
       tripDays <= 1 ? '당일치기' : '${tripDays - 1}박 $tripDays일';
 
+  /// 여행 날짜를 사람이 읽기 좋은 형태로 표시한다.
+  /// 시작일과 종료일이 같은 날(당일치기)이면 "8/19"처럼 하루만 표시하고,
+  /// 여러 날에 걸치면 "8/19~8/21"처럼 범위로 표시한다.
+  String get tripDateRangeLabel {
+    final start = startDate;
+    if (start == null) return '';
+    final end = endDate ?? start;
+    final startLabel = '${start.month}/${start.day}';
+    final isSameDay =
+        start.year == end.year && start.month == end.month && start.day == end.day;
+    if (isSameDay) return startLabel;
+    final endLabel = '${end.month}/${end.day}';
+    return '$startLabel~$endLabel';
+  }
+
   bool get isScheduleFinalized => scheduleLockedAt != null || startDate != null;
 
   Map<String, dynamic> toJson() => {

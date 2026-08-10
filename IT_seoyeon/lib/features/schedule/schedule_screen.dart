@@ -150,8 +150,7 @@ class ScheduleScreenState extends State<ScheduleScreen> {
           leading: _leadingAvatar(Icons.groups, color),
           title: Text(event.name, style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text(
-            '${event.tripDurationLabel} · ${DateFormat('M/d').format(event.startDate!)}'
-            '~${DateFormat('M/d').format(event.endDate ?? event.startDate!)}',
+            '${event.tripDurationLabel} · ${event.tripDateRangeLabel}',
           ),
           trailing: Icon(Icons.chevron_right, color: color),
           onTap: () => Navigator.push(
