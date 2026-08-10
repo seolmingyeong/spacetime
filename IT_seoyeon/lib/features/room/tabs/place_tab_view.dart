@@ -56,6 +56,7 @@ class _PlaceTabViewState extends State<PlaceTabView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => PlaceSearchSheet(
+        roomId: widget.roomId,
         onPlaceSelected: (name, address, lat, lng, category) async {
           final newPlace = PlaceItem(
             id: '',

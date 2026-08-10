@@ -290,6 +290,7 @@ class _ManualCourseBuilderScreenState extends State<ManualCourseBuilderScreen>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => PlaceSearchSheet(
+        roomId: widget.roomId,
         onPlaceSelected: (name, address, lat, lng, category) async {
           selected = true;
           await _persistAndAddNewPlace(day, name: name, address: address, lat: lat, lng: lng, category: category);
