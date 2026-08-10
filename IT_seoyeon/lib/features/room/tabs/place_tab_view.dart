@@ -379,11 +379,17 @@ class _PlaceTabViewState extends State<PlaceTabView> {
       );
     }
 
+    final topVotedPlace = _places.isNotEmpty
+        ? _places.reduce((a, b) => a.votes >= b.votes ? a : b)
+        : null;
+    final hasVotes = topVotedPlace != null && topVotedPlace.votes > 0;
+    final recCount = hasVotes ? 2 : 1;
+
     return Stack(
       children: [
         ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-          itemCount: _places.length + 2,
+          itemCount: _places.length + recCount + (_places.isEmpty ? 1 : 0),
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, i) {
             if (i < _places.length) {
@@ -393,7 +399,23 @@ class _PlaceTabViewState extends State<PlaceTabView> {
                 place: place,
                 onVote: () => _votePlace(place),
                 onDelete: () => _deletePlace(place),
+                onTap: () => _openNearbyPlaces(
+                  MidpointRecommendation(
+                    rank: 0,
+                    lat: place.lat,
+                    lng: place.lng,
+                    regionName: place.name,
+                    cafeCount: 0,
+                    restaurantCount: 0,
+                    activityCount: 0,
+                    avgDistanceKm: 0,
+                  ),
+                ),
               );
+            }
+
+            if (i == 0 && _places.isEmpty) {
+              return _buildEmptyState();
             }
 
             if (i == _places.length) {
@@ -402,9 +424,11 @@ class _PlaceTabViewState extends State<PlaceTabView> {
                   : _buildAiRecommendationSection();
             }
 
-            return _places.isEmpty
-                ? _buildEmptyState()
-                : const SizedBox.shrink();
+            if (hasVotes && i == _places.length + 1) {
+              return _buildPopularPlaceRecommendationSection(topVotedPlace!);
+            }
+
+            return const SizedBox.shrink();
           },
         ),
         Positioned(
@@ -651,6 +675,71 @@ class _PlaceTabViewState extends State<PlaceTabView> {
       ),
     );
   }
+
+  Widget _buildPopularPlaceRecommendationSection(PlaceItem place) {
+    return Container(
+      margin: const EdgeInsets.only(top: 0, bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.stars, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '인기 장소 주변 추천',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange[800],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            '가장 많은 투표를 받은 장소 주변의 다른 장소도 찾아보세요.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _MidpointCard(
+            rec: MidpointRecommendation(
+              rank: 0,
+              lat: place.lat,
+              lng: place.lng,
+              regionName: '${place.name} 주변',
+              cafeCount: 0,
+              restaurantCount: 0,
+              activityCount: 0,
+              avgDistanceKm: 0,
+            ),
+            onTap: () => _openNearbyPlaces(
+              MidpointRecommendation(
+                rank: 0,
+                lat: place.lat,
+                lng: place.lng,
+                regionName: place.name,
+                cafeCount: 0,
+                restaurantCount: 0,
+                activityCount: 0,
+                avgDistanceKm: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SoloRecommendationCard extends StatelessWidget {
@@ -830,11 +919,13 @@ class _PlaceCard extends StatelessWidget {
   final PlaceItem place;
   final VoidCallback onVote;
   final VoidCallback onDelete;
+  final VoidCallback onTap;
 
   const _PlaceCard({
     required this.place,
     required this.onVote,
     required this.onDelete,
+    required this.onTap,
   });
 
   @override
@@ -842,7 +933,10 @@ class _PlaceCard extends StatelessWidget {
     final info = getCategoryInfo(place.category);
 
     return Card(
-      child: ListTile(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: ListTile(
         leading: Container(
           width: 44,
           height: 44,
@@ -911,6 +1005,7 @@ class _PlaceCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
