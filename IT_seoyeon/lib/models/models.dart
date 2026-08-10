@@ -478,14 +478,21 @@ class PlaceItem {
   final double lng;
   final String? category;
   final int votes;
+  final bool hasMyVote;
   const PlaceItem({required this.id, required this.name, required this.address,
-    required this.lat, required this.lng, this.category, this.votes = 0});
+    required this.lat, required this.lng, this.category, this.votes = 0,
+    this.hasMyVote = false});
   factory PlaceItem.fromJson(Map<String, dynamic> j) => PlaceItem(
     id: j['id'].toString(), name: j['name'] ?? '', address: j['address'] ?? '',
     lat: (j['lat'] as num?)?.toDouble() ?? 0,
     lng: (j['lng'] as num?)?.toDouble() ?? 0,
-    category: j['category'], votes: (j['votes'] as num?)?.toInt() ?? 0);
+    category: j['category'], votes: (j['votes'] as num?)?.toInt() ?? 0,
+    hasMyVote: j['has_my_vote'] as bool? ?? false);
+  // 주의: places 테이블에는 'address'/'votes' 컬럼이 없다. insert 시에는
+  // 반드시 이 값들을 제외해야 하므로 별도의 insertJson()을 사용한다.
   Map<String,dynamic> toJson()=>{'name':name,'address':address,'lat':lat,'lng':lng,'category':category,'votes':votes};
+  /// places 테이블에 실제로 존재하는 컬럼만 담은 insert용 payload.
+  Map<String,dynamic> insertJson()=>{'name':name,'lat':lat,'lng':lng,'category':category};
 }
 
 /// 코스 안의 한 장소(스탑). 하루(CourseDay) 안에서의 순서와, 이 스탑이
@@ -552,6 +559,7 @@ class CourseItem {
   final List<CourseDay> days;
   final int votes;
   final bool isConfirmed;
+  final bool hasMyVote;
 
   const CourseItem({
     required this.id,
@@ -559,6 +567,7 @@ class CourseItem {
     required this.days,
     this.votes = 0,
     this.isConfirmed = false,
+    this.hasMyVote = false,
   });
 
   /// 하위 호환용: 모든 날짜의 place id를 순서대로 펼친 리스트.
@@ -592,14 +601,16 @@ class CourseItem {
       days: parsedDays,
       votes: (j['votes'] as num?)?.toInt() ?? 0,
       isConfirmed: j['is_confirmed'] ?? false,
+      hasMyVote: j['has_my_vote'] as bool? ?? false,
     );
   }
 
+  // 주의: courses 테이블의 실제 컬럼은 name/days/is_confirmed 뿐이다.
+  // votes는 course_votes 테이블 집계로 계산되고, place_ids는 저장용
+  // 컬럼이 아니라 days에서 파생되는 값이라 insert 시 보내지 않는다.
   Map<String, dynamic> toJson() => {
         'name': name,
         'days': days.map((d) => d.toJson()).toList(),
-        'place_ids': placeIds,
-        'votes': votes,
         'is_confirmed': isConfirmed,
       };
 }

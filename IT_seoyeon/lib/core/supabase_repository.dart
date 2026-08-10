@@ -688,31 +688,42 @@ Future<void> clearAlbumEntries(String albumId) async {
       supabase.from('notification_preferences').upsert({'user_id': _uid, ...values});
 
   // Legacy place/course/record methods -------------------------------------
+  /// get_places RPC를 통해 투표수(votes)와 내 투표 여부(has_my_vote)까지
+  /// 함께 가져온다. places 테이블을 직접 select하면 이 값들을 알 수 없다.
   Future<List<PlaceItem>> getPlaces(String roomId) async {
-    final rows = await supabase.from('places').select().eq('room_id', roomId).order('created_at');
+    final rows = await supabase.rpc('get_places', params: {'p_room_id': roomId});
     return (rows as List).map((e) => PlaceItem.fromJson(e)).toList();
   }
   /// 삽입된 행을 그대로 반환한다 (id 포함). 화면에서 방금 추가한 장소를
   /// 바로 사용해야 하는 경우(예: 경로 직접 만들기에서 새 장소를 추가하자마자
   /// 그 날짜에 바로 배치)를 위해 id가 필요하기 때문이다.
+  /// place.insertJson()을 사용해 places 테이블에 실제로 존재하는
+  /// 컬럼만 보낸다 (address/votes는 컬럼이 아니므로 제외).
   Future<PlaceItem> addPlace(String roomId, PlaceItem place) async {
     final row = await supabase
         .from('places')
-        .insert({...place.toJson(), 'room_id': roomId, 'added_by': _uid})
+        .insert({...place.insertJson(), 'room_id': roomId, 'added_by': _uid})
         .select()
         .single();
     return PlaceItem.fromJson(row);
   }
   Future<void> deletePlace(String placeId) async =>
       supabase.from('places').delete().eq('id', placeId);
+  /// 장소 투표를 토글한다 (이미 투표했으면 취소). 반환값은 투표 후 상태.
+  Future<bool> votePlace(String placeId) async =>
+      await supabase.rpc('vote_place', params: {'p_place_id': placeId}) as bool;
+
   Future<List<CourseItem>> getCourses(String roomId) async {
-    final rows = await supabase.from('courses').select().eq('room_id', roomId).order('created_at');
+    final rows = await supabase.rpc('get_courses', params: {'p_room_id': roomId});
     return (rows as List).map((e) => CourseItem.fromJson(e)).toList();
   }
   Future<void> addCourse(String roomId, CourseItem course) async =>
       supabase.from('courses').insert({...course.toJson(), 'room_id': roomId});
   Future<void> deleteCourse(String courseId) async =>
       supabase.from('courses').delete().eq('id', courseId);
+  /// 코스 투표를 토글한다 (이미 투표했으면 취소). 반환값은 투표 후 상태.
+  Future<bool> voteCourse(String courseId) async =>
+      await supabase.rpc('vote_course', params: {'p_course_id': courseId}) as bool;
   Future<List<RecordItem>> getRecords({String? roomId}) async {
     try {
       var q = supabase.from('records').select('*, profiles(nickname, avatar_url), comments:record_comments(count)');

@@ -101,6 +101,30 @@ class _CourseTabViewState extends State<CourseTabView> {
     if (mounted) _loadAll();
   }
 
+  Future<void> _voteCourse(CourseItem course) async {
+    // 낙관적 업데이트: 즉시 UI에 반영하고, 실패하면 되돌린다.
+    final index = _courses.indexWhere((c) => c.id == course.id);
+    if (index == -1) return;
+    final wasVoted = course.hasMyVote;
+    final optimistic = CourseItem(
+      id: course.id,
+      name: course.name,
+      days: course.days,
+      votes: wasVoted ? course.votes - 1 : course.votes + 1,
+      isConfirmed: course.isConfirmed,
+      hasMyVote: !wasVoted,
+    );
+    setState(() => _courses[index] = optimistic);
+    try {
+      await SupabaseRepository().voteCourse(course.id);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _courses[index] = course);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('투표 실패: $e')));
+      }
+    }
+  }
+
   Future<void> _deleteCourse(CourseItem course) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -161,6 +185,7 @@ class _CourseTabViewState extends State<CourseTabView> {
                       course: course,
                       placesById: _placesById,
                       onDelete: () => _deleteCourse(course),
+                      onVote: () => _voteCourse(course),
                     );
                   },
                 ),
@@ -228,7 +253,8 @@ class _CourseCard extends StatelessWidget {
   final CourseItem course;
   final Map<String, PlaceItem> placesById;
   final VoidCallback onDelete;
-  const _CourseCard({required this.course, required this.placesById, required this.onDelete});
+  final VoidCallback onVote;
+  const _CourseCard({required this.course, required this.placesById, required this.onDelete, required this.onVote});
 
   @override
   Widget build(BuildContext context) {
@@ -276,8 +302,11 @@ class _CourseCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.thumb_up_alt_outlined),
+                  onPressed: onVote,
+                  style: TextButton.styleFrom(
+                    foregroundColor: course.hasMyVote ? Colors.blue[700] : null,
+                  ),
+                  icon: Icon(course.hasMyVote ? Icons.thumb_up_alt : Icons.thumb_up_alt_outlined),
                   label: Text('투표 (${course.votes})')
                 ),
               ],

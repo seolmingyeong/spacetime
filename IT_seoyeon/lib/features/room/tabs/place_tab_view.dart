@@ -118,6 +118,32 @@ class _PlaceTabViewState extends State<PlaceTabView> {
     }
   }
 
+  Future<void> _votePlace(PlaceItem place) async {
+    // 낙관적 업데이트: 즉시 UI에 반영하고, 실패하면 되돌린다.
+    final index = _places.indexWhere((p) => p.id == place.id);
+    if (index == -1) return;
+    final wasVoted = place.hasMyVote;
+    final optimistic = PlaceItem(
+      id: place.id,
+      name: place.name,
+      address: place.address,
+      lat: place.lat,
+      lng: place.lng,
+      category: place.category,
+      votes: wasVoted ? place.votes - 1 : place.votes + 1,
+      hasMyVote: !wasVoted,
+    );
+    setState(() => _places[index] = optimistic);
+    try {
+      await SupabaseRepository().votePlace(place.id);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _places[index] = place);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('투표 실패: $e')));
+      }
+    }
+  }
+
   Future<void> _openNearbyPlaces(MidpointRecommendation rec) async {
     await showModalBottomSheet(
       context: context,
@@ -152,9 +178,7 @@ class _PlaceTabViewState extends State<PlaceTabView> {
                   final place = _places[i];
                   return _PlaceCard(
                     place: place,
-                    onVote: () {
-                      // TODO: 투표 로직
-                    },
+                    onVote: () => _votePlace(place),
                     onDelete: () => _deletePlace(place),
                   );
                 },
@@ -313,15 +337,15 @@ class _PlaceCard extends StatelessWidget {
             ElevatedButton(
               onPressed: onVote,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.room.withOpacity(0.1),
-                foregroundColor: AppColors.room,
+                backgroundColor: place.hasMyVote ? AppColors.room : AppColors.room.withOpacity(0.1),
+                foregroundColor: place.hasMyVote ? Colors.white : AppColors.room,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.thumb_up_alt_outlined, size: 14),
+                  Icon(place.hasMyVote ? Icons.thumb_up_alt : Icons.thumb_up_alt_outlined, size: 14),
                   const SizedBox(width: 4),
                   Text('${place.votes}'),
                 ],
