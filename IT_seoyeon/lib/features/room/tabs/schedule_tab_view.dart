@@ -103,8 +103,12 @@ class _ScheduleTabViewState extends State<ScheduleTabView> {
     await _load();
   }
 
-  String _range(ScheduleCandidate c) =>
-      '${DateFormat('M월 d일').format(c.startDate)} ~ ${DateFormat('M월 d일').format(c.endDate)}';
+  String _range(ScheduleCandidate c) {
+    final start = DateFormat('M월 d일').format(c.startDate);
+    if (_day(c.startDate) == _day(c.endDate)) return start;
+    final end = DateFormat('M월 d일').format(c.endDate);
+    return '$start ~ $end';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -300,7 +304,7 @@ class _ScheduleTabViewState extends State<ScheduleTabView> {
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 6),
                   Text(
-                    '${DateFormat('yyyy.MM.dd').format(r.startDate!)} ~ ${DateFormat('yyyy.MM.dd').format(r.endDate ?? r.startDate!)}',
+                    _finalizedRangeText(r),
                     style: const TextStyle(
                         color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
@@ -324,6 +328,15 @@ class _ScheduleTabViewState extends State<ScheduleTabView> {
           ),
         ],
       );
+
+  String _finalizedRangeText(TravelRoom r) {
+    final start = r.startDate!;
+    final end = r.endDate ?? r.startDate!;
+    final startText = DateFormat('yyyy.MM.dd').format(start);
+    if (_day(start) == _day(end)) return startText;
+    final endText = DateFormat('yyyy.MM.dd').format(end);
+    return '$startText ~ $endText';
+  }
 
   Widget _title(String s) => Text(s, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold));
 }
