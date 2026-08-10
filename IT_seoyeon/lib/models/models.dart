@@ -50,6 +50,7 @@ class TravelRoom {
   final String? coverImageUrl;
   final int tripDays;
   final bool placeRecommendationEnabled;
+  final String travelType;
   final DateTime? startDate;
   final DateTime? endDate;
   final DateTime? confirmedDate;
@@ -66,6 +67,7 @@ class TravelRoom {
     this.coverImageUrl,
     this.tripDays = 1,
     this.placeRecommendationEnabled = true,
+    this.travelType = 'group',
     this.startDate,
     this.endDate,
     this.confirmedDate,
@@ -87,6 +89,7 @@ class TravelRoom {
         tripDays: (json['trip_days'] as num?)?.toInt() ?? 1,
         placeRecommendationEnabled:
             json['place_recommendation_enabled'] as bool? ?? true,
+        travelType: json['travel_type'] as String? ?? 'group',
         startDate: parseDate(json['start_date']),
         endDate: parseDate(json['end_date']),
         confirmedDate: parseDate(json['confirmed_date']),
@@ -122,6 +125,7 @@ class TravelRoom {
         'cover_image_url': coverImageUrl,
         'trip_days': tripDays,
         'place_recommendation_enabled': placeRecommendationEnabled,
+        'travel_type': travelType,
       };
 }
 
