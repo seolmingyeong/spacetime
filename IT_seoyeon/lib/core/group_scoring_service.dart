@@ -1,6 +1,4 @@
 import 'dart:math';
-
-import '../models/models.dart';
 import 'supabase_repository.dart';
 
 class GroupScoreResult {
@@ -19,8 +17,8 @@ class GroupScoreResult {
   });
 
   String get label {
-    if (score < 50) return '매우 공평함';
-    if (score < 100) return '공평함';
+    if (score < 50) return '매우 균형';
+    if (score < 100) return '균형';
     if (score < 200) return '보통';
     return '불균형';
   }
@@ -64,11 +62,8 @@ class GroupScoringService {
     return earthRadiusKm * c;
   }
 
-  /// Kakao Mobility 호출이 실패했을 때 사용할
+  /// Kakao Mobility 호출에 실패했을 때 사용하는
   /// 직선거리 기반 예상 이동시간.
-  ///
-  /// 실제 도로 이동시간을 알 수 없으므로
-  /// 평균 자동차 속도를 기준으로 대략적인 시간을 계산한다.
   static int _estimateDriveTimeMinutes(
     double originLat,
     double originLng,
@@ -82,7 +77,7 @@ class GroupScoringService {
       destLng,
     );
 
-    // 도심 주행을 고려한 보수적인 평균 속도
+    // 평균 자동차 주행속도 30km/h 기준
     const averageSpeedKmh = 30.0;
 
     final minutes =
@@ -91,13 +86,13 @@ class GroupScoringService {
     return max(1, minutes.round());
   }
 
-  /// 각 멤버의 출발지에서 후보 장소까지의
-  /// 실제 자동차 이동시간을 이용해 그룹 점수를 계산한다.
+  /// 각 멤버의 출발지에서 특정 장소까지의 이동시간을 계산하고
+  /// 그룹 전체의 균형 점수를 계산한다.
   ///
-  /// Kakao Mobility 호출에 실패한 멤버는
-  /// 직선거리 기반 예상시간으로 fallback한다.
+  /// Kakao Mobility API를 우선 사용하고,
+  /// API 호출에 실패하면 직선거리 기반 예상시간으로 fallback한다.
   static Future<GroupScoreResult?> evaluatePlace(
-    List<RoomMember> members,
+    List members,
     double targetLat,
     double targetLng,
   ) async {
@@ -122,10 +117,10 @@ class GroupScoringService {
         );
 
         if (driveTime != null) {
-          // Kakao Mobility 성공
+          // Kakao Mobility 결과 사용
           minutes = driveTime;
         } else {
-          // Kakao Mobility 실패 → 거리 기반 fallback
+          // API 결과가 없으면 거리 기반 fallback
           minutes = _estimateDriveTimeMinutes(
             departure.lat,
             departure.lng,
@@ -134,8 +129,8 @@ class GroupScoringService {
           );
         }
       } catch (_) {
-        // API 호출 자체가 실패한 경우에도
-        // 거리 기반 예상시간으로 계산을 계속한다.
+        // API 호출 자체가 실패해도
+        // 거리 기반 예상시간으로 계속 계산한다.
         minutes = _estimateDriveTimeMinutes(
           departure.lat,
           departure.lng,
@@ -170,8 +165,11 @@ class GroupScoringService {
 
     final balance = maxTime - minTime;
 
-    // 친구 코드의 그룹 공평성 점수 공식
-    // 낮을수록 그룹 전체의 이동 부담이 적고 공평하다.
+    // 그룹 이동시간 균형 점수
+    //
+    // balance가 작을수록,
+    // 평균 이동시간이 짧을수록,
+    // 최대 이동시간이 짧을수록 점수가 낮아진다.
     final score =
         (balance * 5.0) +
         (avgTime * 0.8) +
