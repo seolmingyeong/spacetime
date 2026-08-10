@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import '../../core/supabase_repository.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
+import '../../widgets/place_search_sheet.dart';
 import 'room_dashboard_screen.dart';
 
 class DepartureInfoScreen extends StatefulWidget {
@@ -60,6 +61,27 @@ class _DepartureInfoScreenState extends State<DepartureInfoScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _openAddressSearch() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PlaceSearchSheet(
+        title: '출발지 주소를 검색하세요',
+        hintText: '예: 서울역, 강남구 테헤란로 123',
+        onPlaceSelected: (name, address, lat, lng, category) {
+          if (!mounted) return;
+          setState(() {
+            _addressController.text = address;
+            _lat = lat;
+            _lng = lng;
+          });
+          _mapController.move(LatLng(lat, lng), 15);
+        },
+      ),
+    );
   }
 
   Future<void> _applyGpsLocation() async {
@@ -201,10 +223,25 @@ class _DepartureInfoScreenState extends State<DepartureInfoScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('출발지 주소 설정', style: TextStyle(fontWeight: FontWeight.bold)),
-                  if (_lat != 0) const Text('지도에서 위치를 탭하여 변경할 수 있습니다.', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                ]),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('출발지 주소 설정', style: TextStyle(fontWeight: FontWeight.bold)),
+                    if (_lat != 0) const Text('지도에서 위치를 탭하여 변경할 수 있습니다.', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                  ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TextButton.icon(
+                  onPressed: _openAddressSearch,
+                  icon: const Icon(Icons.search, size: 18),
+                  label: const Text('주소 검색으로 설정'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.indigo, padding: const EdgeInsets.symmetric(horizontal: 12)),
+                ),
                 TextButton.icon(
                   onPressed: _isGpsLoading ? null : _applyGpsLocation,
                   icon: _isGpsLoading ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.my_location, size: 18),
@@ -214,7 +251,16 @@ class _DepartureInfoScreenState extends State<DepartureInfoScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            TextField(controller: _addressController, readOnly: true, decoration: InputDecoration(border: const OutlineInputBorder(), hintText: '주소를 설정해주세요', suffixIcon: _lat != 0 ? const Icon(Icons.check_circle, color: Colors.green) : null)),
+            TextField(
+              controller: _addressController,
+              readOnly: true,
+              onTap: _openAddressSearch,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: '주소를 검색하거나 GPS로 설정해주세요',
+                suffixIcon: _lat != 0 ? const Icon(Icons.check_circle, color: Colors.green) : null,
+              ),
+            ),
             const SizedBox(height: 32),
             Container(
               height: 350,

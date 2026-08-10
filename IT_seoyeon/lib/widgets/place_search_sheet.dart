@@ -6,7 +6,14 @@ import 'category_utils.dart';
 
 class PlaceSearchSheet extends StatefulWidget {
   final Function(String name, String address, double lat, double lng, String? category) onPlaceSelected;
-  const PlaceSearchSheet({super.key, required this.onPlaceSelected});
+  final String title;
+  final String hintText;
+  const PlaceSearchSheet({
+    super.key,
+    required this.onPlaceSelected,
+    this.title = '어디로 여행 가고 싶으신가요?',
+    this.hintText = '장소 검색 (예: 제주공항, 성산일출봉)',
+  });
 
   @override
   State<PlaceSearchSheet> createState() => _PlaceSearchSheetState();
@@ -68,12 +75,12 @@ class _PlaceSearchSheetState extends State<PlaceSearchSheet> {
             decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
-          const Text('어디로 여행 가고 싶으신가요?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: '장소 검색 (예: 제주공항, 성산일출봉)',
+              hintText: widget.hintText,
               prefixIcon: const Icon(Icons.search),
               suffixIcon: IconButton(icon: const Icon(Icons.clear), onPressed: () => _searchController.clear()),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
