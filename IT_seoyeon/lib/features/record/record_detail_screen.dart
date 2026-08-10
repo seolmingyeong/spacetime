@@ -4,6 +4,7 @@ import '../../core/supabase_repository.dart';
 import '../../core/theme.dart';
 import '../../models/models.dart';
 import 'record_create_screen.dart';
+import '../../widgets/photo_page_view.dart';
 
 class RecordDetailScreen extends StatefulWidget {
   final RecordAlbum album;
@@ -146,18 +147,9 @@ class _RecordDetailScreenState extends State<RecordDetailScreen> {
                           if (entry.address != null) Text(entry.address!, style: const TextStyle(color: AppColors.textSecondary)),
                           if (entry.photos.isNotEmpty) ...[
                             const SizedBox(height: 12),
-                            SizedBox(
-                              height: 220,
-                              child: PageView(
-                                children: entry.photos.map((photo) => ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    photo.url,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image)),
-                                  ),
-                                )).toList(),
-                              ),
+                            PhotoPageView(
+                              urls: entry.photos.map((photo) => photo.url).toList(),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ],
                           if (entry.note?.isNotEmpty == true) ...[
